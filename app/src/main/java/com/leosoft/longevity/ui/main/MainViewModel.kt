@@ -19,6 +19,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+
+data class GoalPlanItem(
+    val id: Long,
+    val goalType: String,
+    val target: Int,
+    val cadence: String
+)
+
 data class OnboardingForm(
     val proteinTarget: Float = 120f,
     val carbsTarget: Float = 180f,
@@ -44,6 +52,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val goalsDashboard: StateFlow<DashboardSummary?> = selectedGoalsDate
         .flatMapLatest { date -> repository.observeDashboard(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _goalPlans = MutableStateFlow<List<GoalPlanItem>>(emptyList())
+    val goalPlans: StateFlow<List<GoalPlanItem>> = _goalPlans
+    private var nextGoalPlanId: Long = 1L
 
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -109,6 +121,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    fun addGoalPlan(goalType: String, target: Int, cadence: String) {
+        _goalPlans.value = _goalPlans.value + GoalPlanItem(
+            id = nextGoalPlanId++,
+            goalType = goalType,
+            target = target,
+            cadence = cadence
+        )
     }
 
     fun setSelectedGoalsDate(date: LocalDate) {

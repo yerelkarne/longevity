@@ -33,7 +33,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,10 +51,11 @@ import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import java.time.format.DateTimeFormatter
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
+import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY, TASK, REMINDER, GOAL }
+private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY, TASK, REMINDER }
 
 @Composable
 fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
@@ -133,15 +133,12 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 
 
 private enum class GoalCadence { HOURLY, DAILY, WEEKLY }
-private enum class GunumGoalType { WATER, STEPS, PROTEIN, SLEEP }
-private data class GunumGoalUi(val id: Long, val type: GunumGoalType, val target: Int, val cadence: GoalCadence)
 
 @Composable
 private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
     val dashboard by viewModel.goalsDashboard.collectAsState()
-    var nextGoalId by rememberSaveable { mutableLongStateOf(1L) }
-    val goals = remember { mutableStateListOf<GunumGoalUi>() }
+    val goals by viewModel.goalPlans.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
@@ -182,11 +179,11 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                 val progress = goalProgress(goal, dashboard)
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(goalTypeLabel(goal.type), style = MaterialTheme.typography.titleSmall)
+                        Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
                         Text(stringResource(R.string.goal_progress_text, progress.current, goal.target))
                         androidx.compose.material3.LinearProgressIndicator(
-                            progress = { (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
+                            progress = { if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -198,14 +195,9 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     if (showAddDialog) {
         AddGoalDialog(
             onDismiss = { showAddDialog = false },
-            onSave = { type, target, cadence ->
-                goals.add(GunumGoalUi(nextGoalId++, type, target, cadence))
-                when (type) {
-                    GunumGoalType.WATER -> viewModel.updateGoal("water", target)
-                    GunumGoalType.STEPS -> viewModel.updateGoal("steps", target)
-                    GunumGoalType.PROTEIN -> viewModel.updateGoal("protein", target)
-                    GunumGoalType.SLEEP -> viewModel.updateGoal("sleep", target)
-                }
+            onSave = { typeKey, target, cadence ->
+                viewModel.addGoalPlan(typeKey, target, cadence)
+                viewModel.updateGoal(typeKey, target)
                 showAddDialog = false
             }
         )
@@ -217,10 +209,12 @@ private data class GoalProgress(val current: Int)
 @Composable
 private fun AddGoalDialog(
     onDismiss: () -> Unit,
-    onSave: (GunumGoalType, Int, GoalCadence) -> Unit
+    onSave: (String, Int, String) -> Unit
 ) {
-    var selectedType by remember { mutableStateOf(GunumGoalType.WATER) }
-    var selectedCadence by remember { mutableStateOf(GoalCadence.DAILY) }
+    val goalTypeKeys = listOf("water", "steps", "protein", "sleep")
+    val cadenceKeys = listOf("hourly", "daily", "weekly")
+    var selectedTypeIdx by remember { mutableStateOf(0) }
+    var selectedCadenceIdx by remember { mutableStateOf(1) }
     var targetText by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -230,15 +224,15 @@ private fun AddGoalDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExposedDropdownSimple(
                     label = stringResource(R.string.goal_type),
-                    options = GunumGoalType.entries.map { goalTypeLabel(it) },
-                    selected = GunumGoalType.entries.indexOf(selectedType),
-                    onSelect = { idx -> selectedType = GunumGoalType.entries[idx] }
+                    options = goalTypeKeys.map { goalTypeLabel(it) },
+                    selected = selectedTypeIdx,
+                    onSelect = { idx -> selectedTypeIdx = idx }
                 )
                 ExposedDropdownSimple(
                     label = stringResource(R.string.goal_frequency),
-                    options = GoalCadence.entries.map { cadenceLabel(it) },
-                    selected = GoalCadence.entries.indexOf(selectedCadence),
-                    onSelect = { idx -> selectedCadence = GoalCadence.entries[idx] }
+                    options = cadenceKeys.map { cadenceLabel(it) },
+                    selected = selectedCadenceIdx,
+                    onSelect = { idx -> selectedCadenceIdx = idx }
                 )
                 OutlinedTextField(value = targetText, onValueChange = { targetText = it }, label = { Text(stringResource(R.string.target_value)) })
             }
@@ -246,7 +240,7 @@ private fun AddGoalDialog(
         confirmButton = {
             TextButton(onClick = {
                 val target = targetText.toIntOrNull() ?: return@TextButton
-                onSave(selectedType, target, selectedCadence)
+                onSave(goalTypeKeys[selectedTypeIdx], target, cadenceKeys[selectedCadenceIdx])
             }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
@@ -254,26 +248,29 @@ private fun AddGoalDialog(
 }
 
 @Composable
-private fun goalTypeLabel(type: GunumGoalType): String = when (type) {
-    GunumGoalType.WATER -> stringResource(R.string.goal_type_water)
-    GunumGoalType.STEPS -> stringResource(R.string.goal_type_steps)
-    GunumGoalType.PROTEIN -> stringResource(R.string.goal_type_protein)
-    GunumGoalType.SLEEP -> stringResource(R.string.goal_type_sleep)
+private fun goalTypeLabel(type: String): String = when (type) {
+    "water" -> stringResource(R.string.goal_type_water)
+    "steps" -> stringResource(R.string.goal_type_steps)
+    "protein" -> stringResource(R.string.goal_type_protein)
+    "sleep" -> stringResource(R.string.goal_type_sleep)
+    else -> type
 }
 
 @Composable
-private fun cadenceLabel(cadence: GoalCadence): String = when (cadence) {
-    GoalCadence.HOURLY -> stringResource(R.string.goal_frequency_hourly)
-    GoalCadence.DAILY -> stringResource(R.string.goal_frequency_daily)
-    GoalCadence.WEEKLY -> stringResource(R.string.goal_frequency_weekly)
+private fun cadenceLabel(cadence: String): String = when (cadence) {
+    "hourly" -> stringResource(R.string.goal_frequency_hourly)
+    "daily" -> stringResource(R.string.goal_frequency_daily)
+    "weekly" -> stringResource(R.string.goal_frequency_weekly)
+    else -> cadence
 }
 
-private fun goalProgress(goal: GunumGoalUi, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
-    val current = when (goal.type) {
-        GunumGoalType.WATER -> dashboard?.waterMl ?: 0
-        GunumGoalType.STEPS -> dashboard?.steps ?: 0
-        GunumGoalType.PROTEIN -> dashboard?.macroTotals?.protein?.toInt() ?: 0
-        GunumGoalType.SLEEP -> dashboard?.sleepMinutes ?: 0
+private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
+    val current = when (goal.goalType) {
+        "water" -> dashboard?.waterMl ?: 0
+        "steps" -> dashboard?.steps ?: 0
+        "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
+        "sleep" -> dashboard?.sleepMinutes ?: 0
+        else -> 0
     }
     return GoalProgress(current = current)
 }
@@ -300,7 +297,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var notesText by remember { mutableStateOf("") }
     var selectedWorkoutType by remember { mutableStateOf(WorkoutType.WALKING) }
     var customActivityName by remember { mutableStateOf("") }
-    var selectedGoalType by remember { mutableStateOf("water") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -368,22 +364,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.reminder_type)) })
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.reminder_time)) })
                     }
-                    QuickAddType.GOAL -> {
-                        val goalOptions = listOf(
-                            "water" to stringResource(R.string.goal_type_water),
-                            "steps" to stringResource(R.string.goal_type_steps),
-                            "protein" to stringResource(R.string.goal_type_protein),
-                            "sleep" to stringResource(R.string.goal_type_sleep),
-                            "supplements" to stringResource(R.string.goal_type_supplements)
-                        )
-                        ExposedDropdownSimple(
-                            label = stringResource(R.string.goal_type),
-                            options = goalOptions.map { it.second },
-                            selected = goalOptions.indexOfFirst { it.first == selectedGoalType }.coerceAtLeast(0),
-                            onSelect = { idx -> selectedGoalType = goalOptions[idx].first }
-                        )
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.target_value)) })
-                    }
                 }
                 OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
             }
@@ -403,7 +383,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     }
                     QuickAddType.TASK -> viewModel.addTask(amountText, secondaryText.ifBlank { null })
                     QuickAddType.REMINDER -> viewModel.addReminder(amountText, secondaryText)
-                    QuickAddType.GOAL -> viewModel.updateGoal(selectedGoalType, amountText.toIntOrNull() ?: 0)
                 }
                 onDismiss()
             }) { Text(stringResource(R.string.save)) }
@@ -442,7 +421,6 @@ private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.ACTIVITY -> R.string.add_type_activity
     QuickAddType.TASK -> R.string.add_type_task
     QuickAddType.REMINDER -> R.string.add_type_reminder
-    QuickAddType.GOAL -> R.string.add_type_goal
 }
 
 private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
