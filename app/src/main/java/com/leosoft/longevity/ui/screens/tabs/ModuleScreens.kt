@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +96,7 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
-    val data = viewModel.dashboard.value
+    val data by viewModel.dashboard.collectAsState()
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -132,9 +133,10 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
         viewModel.ensureCoreFoods().join()
         foodsReady = true
     }
-    val nutritiousFoods = viewModel.nutritiousFoods.value
-    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else viewModel.foods.value
-    val supplements = viewModel.supplements.value
+    val nutritiousFoods by viewModel.nutritiousFoods.collectAsState()
+    val allFoods by viewModel.foods.collectAsState()
+    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else allFoods
+    val supplements by viewModel.supplements.collectAsState()
     var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedFoodId by remember { mutableStateOf<Long?>(null) }
@@ -322,9 +324,9 @@ private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
 
 @Composable
 fun BeslenmeKayitScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
+    val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
-    val meals = viewModel.mealEntries.value
+    val meals by viewModel.mealEntries.collectAsState()
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
@@ -354,8 +356,8 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
 
 @Composable
 fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
-    val meals = viewModel.mealEntries.value
+    val foods by viewModel.foods.collectAsState()
+    val meals by viewModel.mealEntries.collectAsState()
     val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -367,9 +369,9 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
 
 @Composable
 fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
+    val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
-    val meals = viewModel.mealEntries.value
+    val meals by viewModel.mealEntries.collectAsState()
     val total = meals.fold(NutrientTotals()) { acc, meal ->
         val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
         acc.copy(
