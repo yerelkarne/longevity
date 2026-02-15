@@ -344,7 +344,7 @@ private fun AddReminderDialog(
         confirmButton = {
             TextButton(onClick = {
                 val interval = if (cadence == "hourly") (intervalText.toIntOrNull() ?: 1).coerceAtLeast(1) else null
-                onSave(title.ifBlank { stringResource(R.string.reminder_default_title) }, cadence, dailyTime, interval)
+                onSave(title.ifBlank { context.getString(R.string.reminder_default_title) }, cadence, dailyTime, interval)
             }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
