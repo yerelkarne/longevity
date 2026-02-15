@@ -504,11 +504,36 @@ private fun MealEntryActionsDialog(
 fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.macros_line, totals.protein, totals.carbs, totals.fat, totals.fiber))
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
+                        NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, totals.fat), modifier = Modifier.weight(1f))
+                        NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, totals.fiber), modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }
@@ -518,6 +543,8 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val total = meals.fold(NutrientTotals()) { acc, meal ->
         val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
         acc.copy(
@@ -529,10 +556,57 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
         )
     }
 
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.micros_line, total.iron, total.magnesium, total.potassium, total.vitaminD, total.omega3))
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
+                        NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, total.potassium), modifier = Modifier.weight(1f))
+                        NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, total.vitaminD), modifier = Modifier.weight(1f))
+                    }
+                    NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, total.omega3), modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutritionDatePickerCard(
+    selectedDate: java.time.LocalDate,
+    selectedDateText: String,
+    onDateSelected: (java.time.LocalDate) -> Unit
+) {
+    val context = LocalContext.current
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        TextButton(onClick = {
+            DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    onDateSelected(java.time.LocalDate.of(year, month + 1, dayOfMonth))
+                },
+                selectedDate.year,
+                selectedDate.monthValue - 1,
+                selectedDate.dayOfMonth
+            ).show()
+        }) {
+            Text(stringResource(R.string.nutrition_selected_date, selectedDateText))
         }
     }
 }
