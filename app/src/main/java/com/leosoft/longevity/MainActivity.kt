@@ -4,7 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -54,6 +55,8 @@ private fun MainScaffold(vm: MainViewModel) {
     val currentRoute = backStack?.destination?.route
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavigationBar {
                 bottomDestinations.forEach { destination ->
@@ -66,8 +69,8 @@ private fun MainScaffold(vm: MainViewModel) {
                 }
             }
         }
-    ) { padding ->
-        NavHost(navController = navController, startDestination = bottomDestinations.first().route, modifier = Modifier.padding(padding)) {
+    ) {
+        NavHost(navController = navController, startDestination = bottomDestinations.first().route, modifier = Modifier.fillMaxSize()) {
             composable("gunum") { GunumModule(vm) }
             composable("beslenme") { BeslenmeModule(vm) }
             composable("aktivite") { AktiviteModule() }
