@@ -162,16 +162,12 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
 
                 when (type) {
                     QuickAddType.FOOD -> {
-                        Text(stringResource(R.string.food_list_label), style = MaterialTheme.typography.labelLarge)
-                        Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F6F5))) {
-                            Column(modifier = Modifier.fillMaxWidth().padding(6.dp)) {
-                                foods.forEach { food ->
-                                    TextButton(onClick = { selectedFoodId = food.id }, modifier = Modifier.fillMaxWidth()) {
-                                        Text(text = if (selectedFoodId == food.id) "✓ ${food.name}" else food.name)
-                                    }
-                                }
-                            }
-                        }
+                        ExposedDropdownSimple(
+                            label = stringResource(R.string.food_list_label),
+                            options = foods.map { it.name },
+                            selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
+                            onSelect = { idx -> selectedFoodId = foods[idx].id }
+                        )
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
