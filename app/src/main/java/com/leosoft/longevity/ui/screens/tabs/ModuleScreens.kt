@@ -1,5 +1,6 @@
 package com.leosoft.longevity.ui.screens.tabs
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
@@ -46,6 +48,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
+import java.time.format.DateTimeFormatter
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.MainViewModel
@@ -332,22 +335,38 @@ private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
 
 @Composable
 fun BeslenmeKayitScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val mealsSorted = remember(meals) { meals.sortedByDescending { it.time } }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
     var mealToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
     var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.daily_total))
-                    Text(stringResource(R.string.total_grams, meals.sumOf { it.grams }))
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = {
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            viewModel.setSelectedNutritionDate(java.time.LocalDate.of(year, month + 1, dayOfMonth))
+                        },
+                        selectedDate.year,
+                        selectedDate.monthValue - 1,
+                        selectedDate.dayOfMonth
+                    ).show()
+                }) {
+                    Text(stringResource(R.string.nutrition_selected_date, selectedDate.format(dateFormatter)))
                 }
             }
         }
-        items(meals, key = { it.id }) { entry ->
+
+        items(mealsSorted, key = { it.id }) { entry ->
             val food = foodsById[entry.foodId]
             val n = food?.let { nutrientByGrams(it, entry.grams) }
             Card(
@@ -357,7 +376,7 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${food?.name ?: stringResource(R.string.unknown_food)} • ${entry.grams} g", style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.time_label, entry.time.toLocalTime().toString()), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.record_date_time, entry.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
                     if (n != null) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, n.protein), modifier = Modifier.weight(1f))
@@ -405,7 +424,7 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
             text = { Text(stringResource(R.string.delete_meal_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteMealEntry(entry.id)
+                    viewModel.deleteMealEntry(entry)
                     mealToDelete = null
                 }) { Text(stringResource(R.string.delete)) }
             },

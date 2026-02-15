@@ -11,8 +11,10 @@ import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,7 +43,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val mealEntries = repository.observeMealEntries(LocalDate.now()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val selectedNutritionDate = MutableStateFlow(LocalDate.now())
+    val mealEntries = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeMealEntries(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         ensureCoreFoods()
@@ -72,7 +77,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.addMealEntry(
                 MealEntryEntity(
-                    date = LocalDate.now(),
+                    date = selectedNutritionDate.value,
                     time = LocalDateTime.now(),
                     mealType = mealType,
                     foodId = foodId,
@@ -91,7 +96,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.addMealEntry(
                 MealEntryEntity(
-                    date = LocalDate.now(),
+                    date = selectedNutritionDate.value,
                     time = LocalDateTime.now(),
                     mealType = mealType,
                     foodId = resolvedFoodId,
@@ -101,12 +106,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setSelectedNutritionDate(date: LocalDate) {
+        selectedNutritionDate.value = date
+    }
+
     fun updateMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
         repository.updateMealEntry(entry)
     }
 
-    fun deleteMealEntry(id: Long) = viewModelScope.launch {
-        repository.deleteMealEntry(id, LocalDate.now())
+    fun deleteMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
+        repository.deleteMealEntry(entry.id, entry.date)
     }
 
     fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
