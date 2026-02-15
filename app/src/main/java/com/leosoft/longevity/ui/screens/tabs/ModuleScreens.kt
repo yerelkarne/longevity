@@ -140,6 +140,8 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.goalsDashboard.collectAsState()
     val goals by viewModel.goalPlans.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
+    var goalToDelete by remember { mutableStateOf<GoalPlanItem?>(null) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
     LazyColumn(
@@ -177,7 +179,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
         } else {
             items(goals, key = { it.id }) { goal ->
                 val progress = goalProgress(goal, dashboard)
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { goalToEdit = goal }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
@@ -194,11 +196,48 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
 
     if (showAddDialog) {
         AddGoalDialog(
+            title = stringResource(R.string.goal_add_link),
             onDismiss = { showAddDialog = false },
             onSave = { typeKey, target, cadence ->
                 viewModel.addGoalPlan(typeKey, target, cadence)
                 viewModel.updateGoal(typeKey, target)
                 showAddDialog = false
+            }
+        )
+    }
+
+    goalToEdit?.let { current ->
+        AddGoalDialog(
+            title = stringResource(R.string.goal_edit_title),
+            initialGoalType = current.goalType,
+            initialTarget = current.target,
+            initialCadence = current.cadence,
+            onDismiss = { goalToEdit = null },
+            onSave = { typeKey, target, cadence ->
+                viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
+                viewModel.updateGoal(typeKey, target)
+                goalToEdit = null
+            },
+            onDelete = {
+                goalToEdit = null
+                goalToDelete = current
+            }
+        )
+    }
+
+    goalToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { goalToDelete = null },
+            title = { Text(stringResource(R.string.goal_delete_title)) },
+            text = { Text(stringResource(R.string.goal_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGoalPlan(current.id)
+                    goalToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { goalToDelete = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -208,18 +247,23 @@ private data class GoalProgress(val current: Int)
 
 @Composable
 private fun AddGoalDialog(
+    title: String,
     onDismiss: () -> Unit,
-    onSave: (String, Int, String) -> Unit
+    onSave: (String, Int, String) -> Unit,
+    initialGoalType: String = "water",
+    initialTarget: Int? = null,
+    initialCadence: String = "daily",
+    onDelete: (() -> Unit)? = null
 ) {
     val goalTypeKeys = listOf("water", "steps", "protein", "sleep")
     val cadenceKeys = listOf("hourly", "daily", "weekly")
-    var selectedTypeIdx by remember { mutableStateOf(0) }
-    var selectedCadenceIdx by remember { mutableStateOf(1) }
-    var targetText by remember { mutableStateOf("") }
+    var selectedTypeIdx by remember(initialGoalType) { mutableStateOf(goalTypeKeys.indexOf(initialGoalType).takeIf { it >= 0 } ?: 0) }
+    var selectedCadenceIdx by remember(initialCadence) { mutableStateOf(cadenceKeys.indexOf(initialCadence).takeIf { it >= 0 } ?: 1) }
+    var targetText by remember(initialTarget) { mutableStateOf(initialTarget?.toString().orEmpty()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.goal_add_link)) },
+        title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExposedDropdownSimple(
@@ -243,7 +287,14 @@ private fun AddGoalDialog(
                 onSave(goalTypeKeys[selectedTypeIdx], target, cadenceKeys[selectedCadenceIdx])
             }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let {
+                    TextButton(onClick = it) { Text(stringResource(R.string.delete)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        }
     )
 }
 
@@ -387,7 +438,14 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 onDismiss()
             }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let {
+                    TextButton(onClick = it) { Text(stringResource(R.string.delete)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        }
     )
 }
 

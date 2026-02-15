@@ -132,6 +132,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) {
+        _goalPlans.value = _goalPlans.value.map {
+            if (it.id == id) it.copy(goalType = goalType, target = target, cadence = cadence) else it
+        }
+    }
+
+    fun deleteGoalPlan(id: Long) {
+        _goalPlans.value = _goalPlans.value.filterNot { it.id == id }
+    }
+
     fun setSelectedGoalsDate(date: LocalDate) {
         selectedGoalsDate.value = date
     }
