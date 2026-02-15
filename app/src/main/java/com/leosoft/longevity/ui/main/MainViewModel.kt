@@ -77,6 +77,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addMealWithOptionalCustomFood(foodId: Long?, customFoodName: String, grams: Int, mealType: MealType = MealType.SNACK) {
+        viewModelScope.launch {
+            val resolvedFoodId = if (customFoodName.isNotBlank()) {
+                repository.addCustomFood(customFoodName.trim())
+            } else {
+                foodId ?: return@launch
+            }
+            repository.addMealEntry(
+                MealEntryEntity(
+                    date = LocalDate.now(),
+                    time = LocalDateTime.now(),
+                    mealType = mealType,
+                    foodId = resolvedFoodId,
+                    grams = grams
+                )
+            )
+        }
+    }
+
     fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {

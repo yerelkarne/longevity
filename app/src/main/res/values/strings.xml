@@ -38,6 +38,7 @@
     <string name="add_type_reminder">Hatırlatıcı Kaydı</string>
     <string name="add_type_goal">Hedef Ekle</string>
     <string name="food_name">Yemek</string>
+    <string name="food_name_custom_optional">Listede yoksa yemek adı (opsiyonel)</string>
     <string name="supplement_name">Takviye</string>
     <string name="grams">Gram</string>
     <string name="water_ml_input">Kaç ml içildi?</string>

@@ -70,6 +70,19 @@ class LongevityRepositoryImpl(
         recalculateScore(entry.date)
     }
 
+    override suspend fun addCustomFood(name: String): Long {
+        return nutritionDao.insertFood(
+            FoodEntity(
+                name = name,
+                kcalPer100g = 0,
+                protein = 0f,
+                carbs = 0f,
+                fat = 0f,
+                fiber = 0f
+            )
+        )
+    }
+
     override suspend fun addWater(date: LocalDate, amountMl: Int) {
         waterDao.insert(WaterLogEntity(date = date, time = LocalDateTime.now(), amountMl = amountMl))
         recalculateScore(date)

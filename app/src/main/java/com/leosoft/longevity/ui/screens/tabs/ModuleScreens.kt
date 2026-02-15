@@ -130,6 +130,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var type by remember { mutableStateOf(QuickAddType.FOOD) }
     var expanded by remember { mutableStateOf(false) }
     var selectedFoodId by remember { mutableLongStateOf(foods.firstOrNull()?.id ?: 0L) }
+    var customFoodName by remember { mutableStateOf("") }
     var selectedSupplementId by remember { mutableLongStateOf(supplements.firstOrNull()?.id ?: 0L) }
     var amountText by remember { mutableStateOf("") }
     var secondaryText by remember { mutableStateOf("") }
@@ -167,6 +168,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
                             onSelect = { idx -> selectedFoodId = foods[idx].id }
                         )
+                        OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
@@ -215,7 +217,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 when (type) {
-                    QuickAddType.FOOD -> viewModel.addMeal(selectedFoodId, amountText.toIntOrNull() ?: 0, MealType.SNACK)
+                    QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId.takeIf { it > 0L }, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
                     QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
