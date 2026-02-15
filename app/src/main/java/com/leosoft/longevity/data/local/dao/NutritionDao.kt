@@ -57,4 +57,32 @@ interface NutritionDao {
 
     @Query("SELECT * FROM foods WHERE id = :id LIMIT 1")
     suspend fun getFoodById(id: Long): FoodEntity?
+
+    @Query("""
+        UPDATE foods
+        SET kcalPer100g = :kcalPer100g,
+            protein = :protein,
+            carbs = :carbs,
+            fat = :fat,
+            fiber = :fiber,
+            ironMg = :ironMg,
+            magnesiumMg = :magnesiumMg,
+            potassiumMg = :potassiumMg,
+            vitaminDUi = :vitaminDUi,
+            omega3Mg = :omega3Mg
+        WHERE id = :id
+    """)
+    suspend fun updateFoodNutritionById(
+        id: Long,
+        kcalPer100g: Int,
+        protein: Float,
+        carbs: Float,
+        fat: Float,
+        fiber: Float,
+        ironMg: Float,
+        magnesiumMg: Float,
+        potassiumMg: Float,
+        vitaminDUi: Float,
+        omega3Mg: Float
+    )
 }

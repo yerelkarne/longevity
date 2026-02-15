@@ -215,8 +215,23 @@ class LongevityRepositoryImpl(
             FoodEntity(name = "Zeytin", kcalPer100g = 115, protein = 0.8f, carbs = 6.3f, fat = 10.7f, fiber = 3.2f, ironMg = 3.3f, potassiumMg = 42f)
         )
         defaults.forEach { food ->
-            if (nutritionDao.getFoodByName(food.name) == null) {
+            val existing = nutritionDao.getFoodByName(food.name)
+            if (existing == null) {
                 nutritionDao.insertFood(food)
+            } else {
+                nutritionDao.updateFoodNutritionById(
+                    id = existing.id,
+                    kcalPer100g = food.kcalPer100g,
+                    protein = food.protein,
+                    carbs = food.carbs,
+                    fat = food.fat,
+                    fiber = food.fiber,
+                    ironMg = food.ironMg,
+                    magnesiumMg = food.magnesiumMg,
+                    potassiumMg = food.potassiumMg,
+                    vitaminDUi = food.vitaminDUi,
+                    omega3Mg = food.omega3Mg
+                )
             }
         }
     }
