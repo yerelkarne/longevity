@@ -1,8 +1,6 @@
 package com.leosoft.longevity.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -17,16 +15,10 @@ private val LightScheme = lightColorScheme(
     onSurface = Color(0xFF4B5C59)
 )
 
-private val DarkScheme = darkColorScheme(
-    primary = Color(0xFF7FBFA1),
-    secondary = Color(0xFF7DA6D9),
-    tertiary = Color(0xFFB8A6D9)
-)
-
 @Composable
 fun LongevityTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkScheme else LightScheme,
+        colorScheme = LightScheme,
         content = content
     )
 }
