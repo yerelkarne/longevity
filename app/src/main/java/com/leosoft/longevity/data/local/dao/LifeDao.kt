@@ -1,0 +1,21 @@
+package com.leosoft.longevity.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.leosoft.longevity.data.local.entity.SleepLogEntity
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface LifeDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSleepLog(log: SleepLogEntity)
+
+    @Query("SELECT * FROM sleep_logs WHERE date = :date ORDER BY wakeTime DESC LIMIT 1")
+    fun observeSleep(date: LocalDate): Flow<SleepLogEntity?>
+
+    @Query("SELECT * FROM sleep_logs WHERE date = :date ORDER BY wakeTime DESC LIMIT 1")
+    suspend fun getSleep(date: LocalDate): SleepLogEntity?
+}

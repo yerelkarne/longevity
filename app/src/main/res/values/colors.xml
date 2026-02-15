@@ -1,0 +1,15 @@
+<resources>
+    <color name="bg">#F8FAF9</color>
+    <color name="card">#FFFFFF</color>
+    <color name="sub_card">#F3F6F5</color>
+    <color name="primary">#7FBFA1</color>
+    <color name="primary_selected">#5EA989</color>
+    <color name="primary_light">#EAF6F1</color>
+    <color name="secondary">#7DA6D9</color>
+    <color name="secondary_light">#EEF4FB</color>
+    <color name="accent">#B8A6D9</color>
+    <color name="accent_light">#F3EFFA</color>
+    <color name="title">#1E2A28</color>
+    <color name="body">#4B5C59</color>
+    <color name="muted">#A6B3B0</color>
+</resources>
