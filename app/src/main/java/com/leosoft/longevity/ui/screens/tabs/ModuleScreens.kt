@@ -27,6 +27,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -125,6 +126,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) { viewModel.ensureCoreFoods() }
     val nutritiousFoods = viewModel.nutritiousFoods.value
     val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else viewModel.foods.value
     val supplements = viewModel.supplements.value

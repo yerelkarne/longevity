@@ -43,6 +43,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val mealEntries = repository.observeMealEntries(LocalDate.now()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    init {
+        ensureCoreFoods()
+    }
+
     fun completeOnboarding(form: OnboardingForm) {
         viewModelScope.launch {
             repository.saveGoals(
@@ -121,5 +125,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {
         repository.updateGoal(goalType, value)
+    }
+
+    fun ensureCoreFoods() = viewModelScope.launch {
+        repository.ensureCoreFoods()
     }
 }
