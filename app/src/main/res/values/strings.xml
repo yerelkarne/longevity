@@ -68,4 +68,8 @@
     <string name="workout_strength">Ağırlık</string>
     <string name="workout_yoga">Yoga</string>
     <string name="workout_other">Diğer</string>
+
+    <string name="unknown_food">Bilinmeyen gıda</string>
+    <string name="macros_line">P: %.1fg • K: %.1fg • Y: %.1fg • Fiber: %.1fg</string>
+    <string name="micros_line">Fe: %.1fmg • Mg: %.1fmg • K: %.1fmg • D: %.1fIU • Omega-3: %.1fmg</string>
 </resources>

@@ -38,16 +38,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
+import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
+import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.MainViewModel
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType(val key: String) {
-    FOOD("food"), WATER("water"), SUPPLEMENT("supplement"), SLEEP("sleep"), ACTIVITY("activity"), TASK("task"), REMINDER("reminder"), GOAL("goal")
-}
+private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY, TASK, REMINDER, GOAL }
 
 @Composable
 fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
@@ -77,7 +77,14 @@ fun GunumModule(viewModel: MainViewModel) {
 @Composable
 fun BeslenmeModule(viewModel: MainViewModel) {
     val tabs = listOf(stringResource(R.string.tab_log), stringResource(R.string.tab_macros), stringResource(R.string.tab_micros), stringResource(R.string.tab_water), stringResource(R.string.tab_supplements))
-    ModuleTabLayout(tabs) { page -> if (page == 0) BeslenmeKayitScreen(viewModel) else PlaceholderTab(stringResource(R.string.placeholder_ready_template, page)) }
+    ModuleTabLayout(tabs) { page ->
+        when (page) {
+            0 -> BeslenmeKayitScreen(viewModel)
+            1 -> BeslenmeMakrolarScreen(viewModel)
+            2 -> BeslenmeMikrolarScreen(viewModel)
+            else -> PlaceholderTab(stringResource(R.string.placeholder_ready_template, page))
+        }
+    }
 }
 
 @Composable fun AktiviteModule() = ModuleTabLayout(listOf("Adım", "Egzersiz Ekle", "Geçmiş", "Hedefler")) { PlaceholderTab("Aktivite") }
@@ -87,41 +94,32 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data = viewModel.dashboard.value
-
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
-                    MiniProgressCard(stringResource(R.string.card_water), "${data?.waterMl ?: 0} ml", ((data?.waterMl ?: 0) / 2000f), Modifier.weight(1f))
-                }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_water), "${data?.waterMl ?: 0} ml", ((data?.waterMl ?: 0) / 2000f), Modifier.weight(1f))
             }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MiniProgressCard(stringResource(R.string.card_macro), "P ${data?.macroTotals?.protein?.toInt() ?: 0}g", ((data?.macroTotals?.protein ?: 0f) / 120f), Modifier.weight(1f))
-                    MiniProgressCard(stringResource(R.string.card_sleep), "${data?.sleepMinutes ?: 0} dk", ((data?.sleepMinutes ?: 0) / 480f), Modifier.weight(1f))
-                }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MiniProgressCard(stringResource(R.string.card_macro), "P ${data?.macroTotals?.protein?.toInt() ?: 0}g", ((data?.macroTotals?.protein ?: 0f) / 120f), Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_sleep), "${data?.sleepMinutes ?: 0} dk", ((data?.sleepMinutes ?: 0) / 480f), Modifier.weight(1f))
             }
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
-                        Text("${data?.score?.totalScore ?: 0f}/100", style = MaterialTheme.typography.headlineMedium)
-                        ScoreBar(stringResource(R.string.score_nutrition), data?.score?.nutritionScore ?: 0f)
-                        ScoreBar(stringResource(R.string.score_water), data?.score?.hydrationScore ?: 0f)
-                        ScoreBar(stringResource(R.string.score_activity), data?.score?.activityScore ?: 0f)
-                        ScoreBar(stringResource(R.string.score_sleep), data?.score?.sleepScore ?: 0f)
-                    }
-                }
-            }
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.remaining_tasks))
-                        data?.pendingTasks?.forEach { Text("• $it") }
-                    }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
+                    Text("${data?.score?.totalScore ?: 0f}/100", style = MaterialTheme.typography.headlineMedium)
+                    ScoreBar(stringResource(R.string.score_nutrition), data?.score?.nutritionScore ?: 0f)
+                    ScoreBar(stringResource(R.string.score_water), data?.score?.hydrationScore ?: 0f)
+                    ScoreBar(stringResource(R.string.score_activity), data?.score?.activityScore ?: 0f)
+                    ScoreBar(stringResource(R.string.score_sleep), data?.score?.sleepScore ?: 0f)
                 }
             }
         }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,14 +170,12 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
-                    QuickAddType.SUPPLEMENT -> {
-                        ExposedDropdownSimple(
-                            label = stringResource(R.string.supplement_name),
-                            options = supplements.map { it.name },
-                            selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
-                            onSelect = { idx -> selectedSupplementId = supplements[idx].id }
-                        )
-                    }
+                    QuickAddType.SUPPLEMENT -> ExposedDropdownSimple(
+                        label = stringResource(R.string.supplement_name),
+                        options = supplements.map { it.name },
+                        selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
+                        onSelect = { idx -> selectedSupplementId = supplements[idx].id }
+                    )
                     QuickAddType.SLEEP -> {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.bed_time)) })
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.wake_time)) })
@@ -213,7 +209,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.target_value)) })
                     }
                 }
-
                 OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
             }
         },
@@ -273,7 +268,6 @@ private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.GOAL -> R.string.add_type_goal
 }
 
-
 private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
     WorkoutType.ELLIPTICAL -> R.string.workout_elliptical
     WorkoutType.PILATES -> R.string.workout_pilates
@@ -284,9 +278,37 @@ private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
     WorkoutType.OTHER -> R.string.workout_other
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class NutrientTotals(
+    val protein: Float = 0f,
+    val carbs: Float = 0f,
+    val fat: Float = 0f,
+    val fiber: Float = 0f,
+    val iron: Float = 0f,
+    val magnesium: Float = 0f,
+    val potassium: Float = 0f,
+    val vitaminD: Float = 0f,
+    val omega3: Float = 0f
+)
+
+private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
+    val ratio = grams / 100f
+    return NutrientTotals(
+        protein = food.protein * ratio,
+        carbs = food.carbs * ratio,
+        fat = food.fat * ratio,
+        fiber = food.fiber * ratio,
+        iron = food.ironMg * ratio,
+        magnesium = food.magnesiumMg * ratio,
+        potassium = food.potassiumMg * ratio,
+        vitaminD = food.vitaminDUi * ratio,
+        omega3 = food.omega3Mg * ratio
+    )
+}
+
 @Composable
 fun BeslenmeKayitScreen(viewModel: MainViewModel) {
+    val foods = viewModel.foods.value
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals = viewModel.mealEntries.value
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
@@ -299,16 +321,57 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
             }
         }
         items(meals) { entry ->
+            val food = foodsById[entry.foodId]
+            val n = food?.let { nutrientByGrams(it, entry.grams) }
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(14.dp)) {
-                    Text("${entry.mealType} - ${entry.grams} g")
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("${food?.name ?: stringResource(R.string.unknown_food)} - ${entry.grams} g")
                     Text(stringResource(R.string.time_label, entry.time.toLocalTime().toString()), style = MaterialTheme.typography.bodySmall)
+                    if (n != null) {
+                        Text(stringResource(R.string.macros_line, n.protein, n.carbs, n.fat, n.fiber), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.micros_line, n.iron, n.magnesium, n.potassium, n.vitaminD, n.omega3), style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
     }
+}
 
+@Composable
+fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
+    val foods = viewModel.foods.value
+    val meals = viewModel.mealEntries.value
+    val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.macros_line, totals.protein, totals.carbs, totals.fat, totals.fiber))
+        }
+    }
+}
 
+@Composable
+fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
+    val foods = viewModel.foods.value
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
+    val meals = viewModel.mealEntries.value
+    val total = meals.fold(NutrientTotals()) { acc, meal ->
+        val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
+        acc.copy(
+            iron = acc.iron + n.iron,
+            magnesium = acc.magnesium + n.magnesium,
+            potassium = acc.potassium + n.potassium,
+            vitaminD = acc.vitaminD + n.vitaminD,
+            omega3 = acc.omega3 + n.omega3
+        )
+    }
+
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.micros_line, total.iron, total.magnesium, total.potassium, total.vitaminD, total.omega3))
+        }
+    }
 }
 
 @Composable
