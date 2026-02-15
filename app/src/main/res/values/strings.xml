@@ -119,6 +119,9 @@
     <string name="reminder_hourly_every">Her %1$d saatte bir</string>
     <string name="reminder_notification_title">Hatırlatma</string>
     <string name="reminder_default_title">Hatırlatıcı</string>
+    <string name="reminder_edit_title">Hatırlatmayı Düzenle</string>
+    <string name="reminder_delete_title">Hatırlatmayı Sil</string>
+    <string name="reminder_delete_confirm">Bu hatırlatmayı silmek istediğinize emin misiniz?</string>
 
     <string name="meal_actions_title">Kayıt işlemleri</string>
     <string name="meal_actions_hint">Bu kayıt için düzenleme veya silme işlemi yapabilirsiniz.</string>

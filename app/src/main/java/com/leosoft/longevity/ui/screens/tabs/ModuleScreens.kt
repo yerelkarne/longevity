@@ -250,7 +250,10 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
 private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     val reminders by viewModel.reminders.collectAsState()
+    val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
+    var reminderToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
+    var reminderToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -274,7 +277,11 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
                 }
             }
             items(reminders, key = { it.id }) { reminder ->
-                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth().clickable { reminderToEdit = reminder }
+                ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(reminder.reminderType, style = MaterialTheme.typography.titleSmall)
                         Text(
@@ -289,34 +296,81 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
 
     if (showAddDialog) {
         AddReminderDialog(
+            title = stringResource(R.string.reminder_add_link),
             onDismiss = { showAddDialog = false },
             onSave = { title, cadence, dailyTime, interval ->
-                viewModel.addReminder(title, dailyTime, cadence, interval)
-                val id = System.currentTimeMillis()
-                ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
-                showAddDialog = false
+                scope.launch {
+                    val id = viewModel.addReminder(title, dailyTime, cadence, interval)
+                    ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
+                    showAddDialog = false
+                }
+            }
+        )
+    }
+
+    reminderToEdit?.let { current ->
+        AddReminderDialog(
+            title = stringResource(R.string.reminder_edit_title),
+            initialTitle = current.reminderType,
+            initialCadence = current.cadence,
+            initialDailyTime = current.reminderTime,
+            initialIntervalHours = current.intervalHours ?: 1,
+            onDismiss = { reminderToEdit = null },
+            onSave = { title, cadence, dailyTime, interval ->
+                viewModel.updateReminder(current.id, title, dailyTime, cadence, interval)
+                ReminderAlarmScheduler.schedule(context, current.id, title, cadence, dailyTime, interval ?: 1)
+                reminderToEdit = null
+            },
+            onDelete = {
+                reminderToEdit = null
+                reminderToDelete = current
+            }
+        )
+    }
+
+    reminderToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { reminderToDelete = null },
+            title = { Text(stringResource(R.string.reminder_delete_title)) },
+            text = { Text(stringResource(R.string.reminder_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteReminder(current.id)
+                    ReminderAlarmScheduler.cancel(context, current.id)
+                    reminderToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { reminderToDelete = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
 }
 
+
 @Composable
 private fun AddReminderDialog(
+    title: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Int?) -> Unit
+    onSave: (String, String, String, Int?) -> Unit,
+    initialTitle: String = "",
+    initialCadence: String = "daily",
+    initialDailyTime: String = "09:00",
+    initialIntervalHours: Int = 1,
+    onDelete: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    var title by remember { mutableStateOf("") }
-    var cadence by remember { mutableStateOf("daily") }
-    var dailyTime by remember { mutableStateOf("09:00") }
-    var intervalText by remember { mutableStateOf("1") }
+    var reminderTitle by remember(initialTitle) { mutableStateOf(initialTitle) }
+    var cadence by remember(initialCadence) { mutableStateOf(initialCadence) }
+    var dailyTime by remember(initialDailyTime) { mutableStateOf(initialDailyTime) }
+    var intervalText by remember(initialIntervalHours) { mutableStateOf(initialIntervalHours.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.reminder_add_link)) },
+        title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text(stringResource(R.string.reminder_type)) })
+                OutlinedTextField(value = reminderTitle, onValueChange = { reminderTitle = it }, label = { Text(stringResource(R.string.reminder_type)) })
                 ExposedDropdownSimple(
                     label = stringResource(R.string.reminder_cadence_label),
                     options = listOf(stringResource(R.string.reminder_daily), stringResource(R.string.reminder_hourly)),
@@ -344,10 +398,15 @@ private fun AddReminderDialog(
         confirmButton = {
             TextButton(onClick = {
                 val interval = if (cadence == "hourly") (intervalText.toIntOrNull() ?: 1).coerceAtLeast(1) else null
-                onSave(title.ifBlank { context.getString(R.string.reminder_default_title) }, cadence, dailyTime, interval)
+                onSave(reminderTitle.ifBlank { context.getString(R.string.reminder_default_title) }, cadence, dailyTime, interval)
             }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let { TextButton(onClick = it) { Text(stringResource(R.string.delete)) } }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        }
     )
 }
 

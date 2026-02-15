@@ -182,8 +182,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addTaskLog(LocalDate.now(), title, target)
     }
 
-    fun addReminder(type: String, time: String, cadence: String, intervalHours: Int?) = viewModelScope.launch {
-        repository.addReminderLog(LocalDate.now(), type, time, cadence, intervalHours)
+    suspend fun addReminder(type: String, time: String, cadence: String, intervalHours: Int?): Long {
+        return repository.addReminderLog(LocalDate.now(), type, time, cadence, intervalHours)
+    }
+
+    fun updateReminder(id: Long, type: String, time: String, cadence: String, intervalHours: Int?) = viewModelScope.launch {
+        repository.updateReminderLog(id, type, time, cadence, intervalHours)
+    }
+
+    fun deleteReminder(id: Long) = viewModelScope.launch {
+        repository.deleteReminderLog(id)
     }
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {

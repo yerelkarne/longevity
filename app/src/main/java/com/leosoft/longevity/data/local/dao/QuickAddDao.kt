@@ -13,8 +13,14 @@ interface QuickAddDao {
     suspend fun insertTask(task: TaskLogEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReminder(reminder: ReminderLogEntity)
+    suspend fun insertReminder(reminder: ReminderLogEntity): Long
 
     @Query("SELECT * FROM reminder_logs ORDER BY createdAt DESC")
     fun observeReminders(): kotlinx.coroutines.flow.Flow<List<ReminderLogEntity>>
+
+    @Query("UPDATE reminder_logs SET reminderType = :type, reminderTime = :time, cadence = :cadence, intervalHours = :intervalHours WHERE id = :id")
+    suspend fun updateReminder(id: Long, type: String, time: String, cadence: String, intervalHours: Int?)
+
+    @Query("DELETE FROM reminder_logs WHERE id = :id")
+    suspend fun deleteReminder(id: Long)
 }

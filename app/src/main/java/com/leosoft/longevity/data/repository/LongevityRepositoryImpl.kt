@@ -174,8 +174,8 @@ class LongevityRepositoryImpl(
 
     override fun observeReminders() = quickAddDao.observeReminders()
 
-    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?) {
-        quickAddDao.insertReminder(
+    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long {
+        return quickAddDao.insertReminder(
             ReminderLogEntity(
                 date = date,
                 reminderType = reminderType,
@@ -185,6 +185,14 @@ class LongevityRepositoryImpl(
                 createdAt = LocalDateTime.now()
             )
         )
+    }
+
+    override suspend fun updateReminderLog(id: Long, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?) {
+        quickAddDao.updateReminder(id, reminderType, reminderTime, cadence, intervalHours)
+    }
+
+    override suspend fun deleteReminderLog(id: Long) {
+        quickAddDao.deleteReminder(id)
     }
 
     override suspend fun updateGoal(goalType: String, value: Int) {

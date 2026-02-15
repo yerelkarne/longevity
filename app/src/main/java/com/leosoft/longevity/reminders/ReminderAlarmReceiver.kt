@@ -62,6 +62,18 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 }
 
 object ReminderAlarmScheduler {
+    fun cancel(context: Context, id: Long) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val intent = Intent(context, ReminderAlarmReceiver::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context,
+            id.toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        am.cancel(pi)
+    }
+
     fun schedule(context: Context, id: Long, title: String, cadence: String, reminderTime: String, intervalHours: Int) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {

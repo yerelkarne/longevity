@@ -32,7 +32,9 @@ interface LongevityRepository {
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
     suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?)
     fun observeReminders(): Flow<List<ReminderLogEntity>>
-    suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?)
+    suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long
+    suspend fun updateReminderLog(id: Long, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?)
+    suspend fun deleteReminderLog(id: Long)
     suspend fun updateGoal(goalType: String, value: Int)
 
     fun observeDailyScore(date: LocalDate): Flow<DailyScoreEntity?>
