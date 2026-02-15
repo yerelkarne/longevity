@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,14 @@ import kotlinx.coroutines.flow.Flow
 interface NutritionDao {
     @Query("SELECT * FROM foods ORDER BY name")
     fun observeFoods(): Flow<List<FoodEntity>>
+
+    @Query("""
+        SELECT * FROM foods
+        WHERE (protein > 0 OR carbs > 0 OR fat > 0 OR fiber > 0)
+          AND (ironMg > 0 OR magnesiumMg > 0 OR potassiumMg > 0 OR vitaminDUi > 0 OR omega3Mg > 0)
+        ORDER BY name
+    """)
+    fun observeFoodsWithNutrition(): Flow<List<FoodEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFood(food: FoodEntity): Long
@@ -25,7 +34,10 @@ interface NutritionDao {
     suspend fun getMealEntries(date: LocalDate): List<MealEntryEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMealEntry(entry: MealEntryEntity)
+    suspend fun insertMealEntry(entry: MealEntryEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMealNutritionRecord(record: MealNutritionRecordEntity)
 
     @Transaction
     suspend fun seedFoodsIfEmpty() {
@@ -42,4 +54,7 @@ interface NutritionDao {
 
     @Query("SELECT * FROM foods WHERE name = :name LIMIT 1")
     suspend fun getFoodByName(name: String): FoodEntity?
+
+    @Query("SELECT * FROM foods WHERE id = :id LIMIT 1")
+    suspend fun getFoodById(id: Long): FoodEntity?
 }

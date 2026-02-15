@@ -31,6 +31,25 @@ data class MealEntryEntity(
     val grams: Int
 )
 
+@Entity(tableName = "meal_nutrition_records")
+data class MealNutritionRecordEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val mealEntryId: Long,
+    val date: LocalDate,
+    val foodId: Long,
+    val grams: Int,
+    val protein: Float,
+    val carbs: Float,
+    val fat: Float,
+    val fiber: Float,
+    val ironMg: Float,
+    val magnesiumMg: Float,
+    val potassiumMg: Float,
+    val vitaminDUi: Float,
+    val omega3Mg: Float,
+    val createdAt: LocalDateTime
+)
+
 @Entity(tableName = "water_logs")
 data class WaterLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

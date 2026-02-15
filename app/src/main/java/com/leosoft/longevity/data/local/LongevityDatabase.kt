@@ -16,6 +16,7 @@ import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.TaskLogEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
@@ -30,6 +31,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
     entities = [
         FoodEntity::class,
         MealEntryEntity::class,
+        MealNutritionRecordEntity::class,
         WaterLogEntity::class,
         SupplementEntity::class,
         SupplementLogEntity::class,
@@ -41,7 +43,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         UserGoalsEntity::class,
         DailyScoreEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

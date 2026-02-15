@@ -16,6 +16,7 @@ interface LongevityRepository {
     suspend fun saveGoals(goals: UserGoalsEntity)
 
     fun observeFoods(): Flow<List<FoodEntity>>
+    fun observeFoodsWithNutrition(): Flow<List<FoodEntity>>
     fun observeSupplements(): Flow<List<SupplementEntity>>
     fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>>
     suspend fun addMealEntry(entry: MealEntryEntity)

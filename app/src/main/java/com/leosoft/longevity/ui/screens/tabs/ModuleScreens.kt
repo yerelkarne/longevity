@@ -125,7 +125,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
-    val foods = viewModel.foods.value
+    val foods = viewModel.nutritiousFoods.value
     val supplements = viewModel.supplements.value
     var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }

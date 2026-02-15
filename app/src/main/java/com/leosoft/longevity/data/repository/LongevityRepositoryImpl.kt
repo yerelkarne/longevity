@@ -11,6 +11,7 @@ import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
@@ -62,11 +63,32 @@ class LongevityRepositoryImpl(
     override fun observeGoals(): Flow<UserGoalsEntity?> = goalsDao.observeGoals()
     override suspend fun saveGoals(goals: UserGoalsEntity) { goalsDao.upsertGoals(goals) }
     override fun observeFoods(): Flow<List<FoodEntity>> = nutritionDao.observeFoods()
+    override fun observeFoodsWithNutrition(): Flow<List<FoodEntity>> = nutritionDao.observeFoodsWithNutrition()
     override fun observeSupplements(): Flow<List<SupplementEntity>> = supplementsDao.observeSupplements()
     override fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>> = nutritionDao.observeMealEntries(date)
 
     override suspend fun addMealEntry(entry: MealEntryEntity) {
-        nutritionDao.insertMealEntry(entry)
+        val mealEntryId = nutritionDao.insertMealEntry(entry)
+        nutritionDao.getFoodById(entry.foodId)?.let { food ->
+            nutritionDao.insertMealNutritionRecord(
+                MealNutritionRecordEntity(
+                    mealEntryId = mealEntryId,
+                    date = entry.date,
+                    foodId = food.id,
+                    grams = entry.grams,
+                    protein = nutrientValuePerGram(food.protein, entry.grams),
+                    carbs = nutrientValuePerGram(food.carbs, entry.grams),
+                    fat = nutrientValuePerGram(food.fat, entry.grams),
+                    fiber = nutrientValuePerGram(food.fiber, entry.grams),
+                    ironMg = nutrientValuePerGram(food.ironMg, entry.grams),
+                    magnesiumMg = nutrientValuePerGram(food.magnesiumMg, entry.grams),
+                    potassiumMg = nutrientValuePerGram(food.potassiumMg, entry.grams),
+                    vitaminDUi = nutrientValuePerGram(food.vitaminDUi, entry.grams),
+                    omega3Mg = nutrientValuePerGram(food.omega3Mg, entry.grams),
+                    createdAt = LocalDateTime.now()
+                )
+            )
+        }
         recalculateScore(entry.date)
     }
 
@@ -198,6 +220,9 @@ class LongevityRepositoryImpl(
             }
         }
     }
+
+
+    private fun nutrientValuePerGram(valuePer100g: Float, grams: Int): Float = valuePer100g * (grams / 100f)
 
     private fun defaultGoals() = UserGoalsEntity(
         proteinTarget = 120f,
