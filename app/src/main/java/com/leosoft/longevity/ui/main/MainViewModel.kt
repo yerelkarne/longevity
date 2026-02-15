@@ -40,6 +40,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .map { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val selectedGoalsDate = MutableStateFlow(LocalDate.now())
+    val goalsDashboard: StateFlow<DashboardSummary?> = selectedGoalsDate
+        .flatMapLatest { date -> repository.observeDashboard(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -104,6 +109,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    fun setSelectedGoalsDate(date: LocalDate) {
+        selectedGoalsDate.value = date
     }
 
     fun setSelectedNutritionDate(date: LocalDate) {
