@@ -11,9 +11,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,7 +19,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
-import com.leosoft.longevity.ui.onboarding.OnboardingScreen
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
 import com.leosoft.longevity.ui.screens.tabs.AnalizModule
 import com.leosoft.longevity.ui.screens.tabs.BeslenmeModule
@@ -36,12 +33,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LongevityTheme {
                 val vm: MainViewModel = viewModel()
-                val done by vm.onboardingDone.collectAsStateWithLifecycle()
-                if (!done) {
-                    OnboardingScreen(onComplete = vm::completeOnboarding)
-                } else {
-                    MainScaffold(vm)
-                }
+                MainScaffold(vm)
             }
         }
     }
