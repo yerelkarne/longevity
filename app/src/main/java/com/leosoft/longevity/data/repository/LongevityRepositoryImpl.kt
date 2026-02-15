@@ -172,8 +172,19 @@ class LongevityRepositoryImpl(
         quickAddDao.insertTask(TaskLogEntity(date = date, title = title, targetText = targetText, createdAt = LocalDateTime.now()))
     }
 
-    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String) {
-        quickAddDao.insertReminder(ReminderLogEntity(date = date, reminderType = reminderType, reminderTime = reminderTime, createdAt = LocalDateTime.now()))
+    override fun observeReminders() = quickAddDao.observeReminders()
+
+    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?) {
+        quickAddDao.insertReminder(
+            ReminderLogEntity(
+                date = date,
+                reminderType = reminderType,
+                reminderTime = reminderTime,
+                cadence = cadence,
+                intervalHours = intervalHours,
+                createdAt = LocalDateTime.now()
+            )
+        )
     }
 
     override suspend fun updateGoal(goalType: String, value: Int) {

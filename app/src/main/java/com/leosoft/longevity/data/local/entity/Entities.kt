@@ -118,6 +118,8 @@ data class ReminderLogEntity(
     val date: LocalDate,
     val reminderType: String,
     val reminderTime: String,
+    val cadence: String,
+    val intervalHours: Int?,
     val createdAt: LocalDateTime
 )
 

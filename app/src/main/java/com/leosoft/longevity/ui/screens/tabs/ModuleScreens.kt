@@ -1,6 +1,7 @@
 package com.leosoft.longevity.ui.screens.tabs
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
+import com.leosoft.longevity.reminders.ReminderAlarmScheduler
 import java.time.format.DateTimeFormatter
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
@@ -55,7 +57,7 @@ import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY, TASK, REMINDER }
+private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 @Composable
 fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
@@ -78,6 +80,7 @@ fun GunumModule(viewModel: MainViewModel) {
         when (page) {
             0 -> GunumOzetScreen(viewModel)
             1 -> GunumHedeflerScreen(viewModel)
+            2 -> GunumHatirlatmalarScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.placeholder_coming_soon, page))
         }
     }
@@ -241,6 +244,111 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             }
         )
     }
+}
+
+@Composable
+private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val reminders by viewModel.reminders.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (reminders.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.reminders_empty_message))
+                        TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                    }
+                }
+            }
+        } else {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.tab_reminders), style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                }
+            }
+            items(reminders, key = { it.id }) { reminder ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(reminder.reminderType, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (reminder.cadence == "hourly") stringResource(R.string.reminder_hourly_every, reminder.intervalHours ?: 1)
+                            else stringResource(R.string.reminder_daily_at, reminder.reminderTime)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddReminderDialog(
+            onDismiss = { showAddDialog = false },
+            onSave = { title, cadence, dailyTime, interval ->
+                viewModel.addReminder(title, dailyTime, cadence, interval)
+                val id = System.currentTimeMillis()
+                ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun AddReminderDialog(
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, Int?) -> Unit
+) {
+    val context = LocalContext.current
+    var title by remember { mutableStateOf("") }
+    var cadence by remember { mutableStateOf("daily") }
+    var dailyTime by remember { mutableStateOf("09:00") }
+    var intervalText by remember { mutableStateOf("1") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reminder_add_link)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text(stringResource(R.string.reminder_type)) })
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.reminder_cadence_label),
+                    options = listOf(stringResource(R.string.reminder_daily), stringResource(R.string.reminder_hourly)),
+                    selected = if (cadence == "daily") 0 else 1,
+                    onSelect = { cadence = if (it == 0) "daily" else "hourly" }
+                )
+                if (cadence == "daily") {
+                    OutlinedTextField(
+                        value = dailyTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            val parts = dailyTime.split(":")
+                            val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+                            val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                            TimePickerDialog(context, { _, h, m -> dailyTime = String.format("%02d:%02d", h, m) }, hour, minute, true).show()
+                        },
+                        label = { Text(stringResource(R.string.reminder_pick_time)) }
+                    )
+                } else {
+                    OutlinedTextField(value = intervalText, onValueChange = { intervalText = it }, label = { Text(stringResource(R.string.reminder_interval_hours)) })
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val interval = if (cadence == "hourly") (intervalText.toIntOrNull() ?: 1).coerceAtLeast(1) else null
+                onSave(title.ifBlank { stringResource(R.string.reminder_default_title) }, cadence, dailyTime, interval)
+            }) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
 }
 
 private data class GoalProgress(val current: Int)
@@ -430,14 +538,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             label = { Text(if (isStepBased) stringResource(R.string.distance_km_optional) else stringResource(R.string.intensity_1_3)) }
                         )
                     }
-                    QuickAddType.TASK -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.task_title)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.optional_target)) })
-                    }
-                    QuickAddType.REMINDER -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.reminder_type)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.reminder_time)) })
-                    }
                 }
                 OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
             }
@@ -464,8 +564,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
                         }
                     }
-                    QuickAddType.TASK -> viewModel.addTask(amountText, secondaryText.ifBlank { null })
-                    QuickAddType.REMINDER -> viewModel.addReminder(amountText, secondaryText)
                 }
                 onDismiss()
             }) { Text(stringResource(R.string.save)) }
@@ -502,8 +600,6 @@ private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.SUPPLEMENT -> R.string.add_type_supplement
     QuickAddType.SLEEP -> R.string.add_type_sleep
     QuickAddType.ACTIVITY -> R.string.add_type_activity
-    QuickAddType.TASK -> R.string.add_type_task
-    QuickAddType.REMINDER -> R.string.add_type_reminder
 }
 
 private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {

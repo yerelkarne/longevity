@@ -108,6 +108,18 @@
     <string name="goal_delete_title">Hedefi Sil</string>
     <string name="goal_delete_confirm">Bu hedefi silmek istediğinize emin misiniz?</string>
 
+    <string name="reminders_empty_message">Henüz hatırlatıcı eklemediniz.</string>
+    <string name="reminder_add_link">Hatırlatma Ekle</string>
+    <string name="reminder_cadence_label">Hatırlatma sıklığı</string>
+    <string name="reminder_daily">Günlük</string>
+    <string name="reminder_hourly">Saatlik</string>
+    <string name="reminder_pick_time">Saat seçin</string>
+    <string name="reminder_interval_hours">Kaç saatte bir?</string>
+    <string name="reminder_daily_at">Her gün: %1$s</string>
+    <string name="reminder_hourly_every">Her %1$d saatte bir</string>
+    <string name="reminder_notification_title">Hatırlatma</string>
+    <string name="reminder_default_title">Hatırlatıcı</string>
+
     <string name="meal_actions_title">Kayıt işlemleri</string>
     <string name="meal_actions_hint">Bu kayıt için düzenleme veya silme işlemi yapabilirsiniz.</string>
     <string name="edit_meal">Kayıt düzenle</string>

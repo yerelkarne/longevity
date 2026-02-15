@@ -61,6 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val reminders = repository.observeReminders().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
@@ -181,8 +182,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addTaskLog(LocalDate.now(), title, target)
     }
 
-    fun addReminder(type: String, time: String) = viewModelScope.launch {
-        repository.addReminderLog(LocalDate.now(), type, time)
+    fun addReminder(type: String, time: String, cadence: String, intervalHours: Int?) = viewModelScope.launch {
+        repository.addReminderLog(LocalDate.now(), type, time, cadence, intervalHours)
     }
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {

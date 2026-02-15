@@ -13,4 +13,7 @@ interface QuickAddDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderLogEntity)
+
+    @Query("SELECT * FROM reminder_logs ORDER BY createdAt DESC")
+    fun observeReminders(): kotlinx.coroutines.flow.Flow<List<ReminderLogEntity>>
 }

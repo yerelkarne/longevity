@@ -5,6 +5,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementEntity
+import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
@@ -30,7 +31,8 @@ interface LongevityRepository {
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
     suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?)
-    suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String)
+    fun observeReminders(): Flow<List<ReminderLogEntity>>
+    suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?)
     suspend fun updateGoal(goalType: String, value: Int)
 
     fun observeDailyScore(date: LocalDate): Flow<DailyScoreEntity?>
