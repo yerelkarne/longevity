@@ -6,12 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,6 +30,7 @@ import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
 import com.leosoft.longevity.ui.screens.tabs.AnalizModule
 import com.leosoft.longevity.ui.screens.tabs.BeslenmeModule
 import com.leosoft.longevity.ui.screens.tabs.GunumModule
+import com.leosoft.longevity.ui.screens.tabs.QuickAddDialog
 import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
 
@@ -46,8 +52,14 @@ private fun MainScaffold(vm: MainViewModel) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+    val openQuickAdd = remember { mutableStateOf(false) }
 
     Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { openQuickAdd.value = true }) {
+                Icon(Icons.Rounded.AddCircle, contentDescription = stringResource(R.string.add_record_fab_cd))
+            }
+        },
         bottomBar = {
             NavigationBar {
                 bottomDestinations.forEach { destination ->
@@ -67,6 +79,10 @@ private fun MainScaffold(vm: MainViewModel) {
             composable("aktivite") { AktiviteModule() }
             composable("yasam") { YasamModule() }
             composable("analiz") { AnalizModule() }
+        }
+
+        if (openQuickAdd.value) {
+            QuickAddDialog(viewModel = vm, onDismiss = { openQuickAdd.value = false })
         }
     }
 }

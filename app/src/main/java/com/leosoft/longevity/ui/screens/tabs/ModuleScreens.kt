@@ -2,7 +2,6 @@ package com.leosoft.longevity.ui.screens.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,7 +21,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
@@ -37,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -92,10 +89,8 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data = viewModel.dashboard.value
-    var openQuickAdd by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
@@ -129,20 +124,11 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
                 }
             }
         }
-
-        FloatingActionButton(onClick = { openQuickAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) {
-            Text(stringResource(R.string.add_record_cta))
-        }
-    }
-
-    if (openQuickAdd) {
-        QuickAddDialog(viewModel = viewModel, onDismiss = { openQuickAdd = false })
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     val foods = viewModel.foods.value
     val supplements = viewModel.supplements.value
     var type by remember { mutableStateOf(QuickAddType.FOOD) }

@@ -27,6 +27,7 @@
     <string name="score_sleep">Uyku</string>
     <string name="remaining_tasks">Bugün kalan görevler</string>
     <string name="add_record_cta">Kayıt Ekle</string>
+    <string name="add_record_fab_cd">Kayıt ekle</string>
     <string name="what_to_add">Ne eklemek istersin?</string>
     <string name="add_type_food">Yemek</string>
     <string name="add_type_water">Su Kaydı</string>
