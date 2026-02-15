@@ -127,9 +127,9 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     val foods = viewModel.foods.value
     val supplements = viewModel.supplements.value
-    var type by remember { mutableStateOf(QuickAddType.FOOD) }
+    var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }
-    var selectedFoodId by remember { mutableLongStateOf(foods.firstOrNull()?.id ?: 0L) }
+    var selectedFoodId by remember { mutableStateOf<Long?>(null) }
     var customFoodName by remember { mutableStateOf("") }
     var selectedSupplementId by remember { mutableLongStateOf(supplements.firstOrNull()?.id ?: 0L) }
     var amountText by remember { mutableStateOf("") }
@@ -148,7 +148,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     OutlinedTextField(
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         readOnly = true,
-                        value = stringResource(typeLabel(type)),
+                        value = type?.let { stringResource(typeLabel(it)) } ?: stringResource(R.string.select_prompt),
                         onValueChange = {},
                         label = { Text(stringResource(R.string.what_to_add)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
@@ -161,12 +161,13 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 }
 
                 when (type) {
+                    null -> Text(stringResource(R.string.select_first_hint), style = MaterialTheme.typography.bodySmall)
                     QuickAddType.FOOD -> {
                         ExposedDropdownSimple(
                             label = stringResource(R.string.food_list_label),
-                            options = foods.map { it.name },
-                            selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
-                            onSelect = { idx -> selectedFoodId = foods[idx].id }
+                            options = listOf(stringResource(R.string.select_prompt)) + foods.map { it.name },
+                            selected = foods.indexOfFirst { it.id == selectedFoodId }.takeIf { it >= 0 }?.plus(1) ?: 0,
+                            onSelect = { idx -> selectedFoodId = if (idx == 0) null else foods[idx - 1].id }
                         )
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
@@ -217,7 +218,8 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 when (type) {
-                    QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId.takeIf { it > 0L }, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
+                    null -> Unit
+                    QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
                     QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
