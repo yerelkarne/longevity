@@ -31,8 +31,7 @@ class LongevityApp : Application() {
             goalsDao = db.goalsDao(),
             scoresDao = db.scoresDao(),
             calculateDailyScore = CalculateDailyScoreUseCase(macroUseCase),
-            calculateMacroTotals = macroUseCase,
-            scope = appScope
+            calculateMacroTotals = macroUseCase
         )
         preferences = AppPreferences(this)
         appScope.launch { db.nutritionDao().seedFoodsIfEmpty() }
