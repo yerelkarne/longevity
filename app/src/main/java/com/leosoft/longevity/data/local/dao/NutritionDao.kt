@@ -39,4 +39,7 @@ interface NutritionDao {
 
     @Query("SELECT COUNT(*) FROM foods")
     suspend fun observeFoodsCount(): Int
+
+    @Query("SELECT * FROM foods WHERE name = :name LIMIT 1")
+    suspend fun getFoodByName(name: String): FoodEntity?
 }

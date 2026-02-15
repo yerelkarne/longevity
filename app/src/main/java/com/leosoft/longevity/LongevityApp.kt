@@ -35,6 +35,9 @@ class LongevityApp : Application() {
             calculateMacroTotals = macroUseCase
         )
         preferences = AppPreferences(this)
-        appScope.launch { db.nutritionDao().seedFoodsIfEmpty() }
+        appScope.launch {
+            db.nutritionDao().seedFoodsIfEmpty()
+            repository.ensureCoreFoods()
+        }
     }
 }

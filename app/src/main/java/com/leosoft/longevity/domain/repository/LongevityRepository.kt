@@ -34,4 +34,5 @@ interface LongevityRepository {
     fun observeDashboard(date: LocalDate): Flow<DashboardSummary>
 
     suspend fun recalculateScore(date: LocalDate)
+    suspend fun ensureCoreFoods()
 }
