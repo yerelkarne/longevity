@@ -1,6 +1,7 @@
 package com.leosoft.longevity.ui.screens.tabs
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,13 +19,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -216,11 +218,18 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.reminder_time)) })
                     }
                     QuickAddType.GOAL -> {
+                        val goalOptions = listOf(
+                            "water" to stringResource(R.string.goal_type_water),
+                            "steps" to stringResource(R.string.goal_type_steps),
+                            "protein" to stringResource(R.string.goal_type_protein),
+                            "sleep" to stringResource(R.string.goal_type_sleep),
+                            "supplements" to stringResource(R.string.goal_type_supplements)
+                        )
                         ExposedDropdownSimple(
                             label = stringResource(R.string.goal_type),
-                            options = listOf("water", "steps", "protein", "sleep", "supplements"),
-                            selected = listOf("water", "steps", "protein", "sleep", "supplements").indexOf(selectedGoalType),
-                            onSelect = { idx -> selectedGoalType = listOf("water", "steps", "protein", "sleep", "supplements")[idx] }
+                            options = goalOptions.map { it.second },
+                            selected = goalOptions.indexOfFirst { it.first == selectedGoalType }.coerceAtLeast(0),
+                            onSelect = { idx -> selectedGoalType = goalOptions[idx].first }
                         )
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.target_value)) })
                     }
@@ -327,6 +336,8 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    var mealToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
+    var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
@@ -337,21 +348,138 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
                 }
             }
         }
-        items(meals) { entry ->
+        items(meals, key = { it.id }) { entry ->
             val food = foodsById[entry.foodId]
             val n = food?.let { nutrientByGrams(it, entry.grams) }
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${food?.name ?: stringResource(R.string.unknown_food)} - ${entry.grams} g")
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth().clickable { mealToEdit = entry }
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${food?.name ?: stringResource(R.string.unknown_food)} • ${entry.grams} g", style = MaterialTheme.typography.titleSmall)
                     Text(stringResource(R.string.time_label, entry.time.toLocalTime().toString()), style = MaterialTheme.typography.bodySmall)
                     if (n != null) {
-                        Text(stringResource(R.string.macros_line, n.protein, n.carbs, n.fat, n.fiber), style = MaterialTheme.typography.bodySmall)
-                        Text(stringResource(R.string.micros_line, n.iron, n.magnesium, n.potassium, n.vitaminD, n.omega3), style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, n.protein), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, n.carbs), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, n.fat), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, n.fiber), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, n.iron), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, n.magnesium), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, n.potassium), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, n.vitaminD), modifier = Modifier.weight(1f))
+                        }
+                        NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, n.omega3), modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
         }
     }
+
+    mealToEdit?.let { entry ->
+        MealEntryActionsDialog(
+            onDismiss = { mealToEdit = null },
+            onDelete = { selected ->
+                mealToEdit = null
+                mealToDelete = selected
+            },
+            currentMeal = entry,
+            foods = foods,
+            onSaveEdit = { updated ->
+                viewModel.updateMealEntry(updated)
+                mealToEdit = null
+            }
+        )
+    }
+
+    mealToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { mealToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteMealEntry(entry.id)
+                    mealToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { mealToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun NutrientChip(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F6F5)), modifier = modifier) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(value, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealEntryActionsDialog(
+    onDismiss: () -> Unit,
+    onDelete: (com.leosoft.longevity.data.local.entity.MealEntryEntity) -> Unit,
+    currentMeal: com.leosoft.longevity.data.local.entity.MealEntryEntity,
+    foods: List<FoodEntity>,
+    onSaveEdit: (com.leosoft.longevity.data.local.entity.MealEntryEntity) -> Unit
+) {
+    var isEditing by remember(currentMeal.id) { mutableStateOf(false) }
+    var selectedFoodId by remember(currentMeal.id) { mutableLongStateOf(currentMeal.foodId) }
+    var gramsText by remember(currentMeal.id) { mutableStateOf(currentMeal.grams.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (isEditing) R.string.edit_meal else R.string.meal_actions_title)) },
+        text = {
+            if (isEditing) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExposedDropdownSimple(
+                        label = stringResource(R.string.food_list_label),
+                        options = foods.map { it.name },
+                        selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
+                        onSelect = { idx -> selectedFoodId = foods[idx].id }
+                    )
+                    OutlinedTextField(
+                        value = gramsText,
+                        onValueChange = { gramsText = it },
+                        label = { Text(stringResource(R.string.grams)) }
+                    )
+                }
+            } else {
+                Text(stringResource(R.string.meal_actions_hint))
+            }
+        },
+        confirmButton = {
+            if (isEditing) {
+                TextButton(onClick = {
+                    val grams = gramsText.toIntOrNull() ?: return@TextButton
+                    onSaveEdit(currentMeal.copy(foodId = selectedFoodId, grams = grams))
+                }) { Text(stringResource(R.string.save)) }
+            } else {
+                TextButton(onClick = { isEditing = true }) { Text(stringResource(R.string.edit)) }
+            }
+        },
+        dismissButton = {
+            if (isEditing) {
+                TextButton(onClick = { isEditing = false }) { Text(stringResource(R.string.back)) }
+            } else {
+                TextButton(onClick = { onDelete(currentMeal) }) { Text(stringResource(R.string.delete)) }
+            }
+        }
+    )
 }
 
 @Composable

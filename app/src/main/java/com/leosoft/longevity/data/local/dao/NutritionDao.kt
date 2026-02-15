@@ -36,8 +36,17 @@ interface NutritionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMealEntry(entry: MealEntryEntity): Long
 
+    @Query("UPDATE meal_entries SET foodId = :foodId, grams = :grams WHERE id = :id")
+    suspend fun updateMealEntry(id: Long, foodId: Long, grams: Int)
+
+    @Query("DELETE FROM meal_entries WHERE id = :id")
+    suspend fun deleteMealEntry(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMealNutritionRecord(record: MealNutritionRecordEntity)
+
+    @Query("DELETE FROM meal_nutrition_records WHERE mealEntryId = :mealEntryId")
+    suspend fun deleteMealNutritionRecordByMealEntryId(mealEntryId: Long)
 
     @Transaction
     suspend fun seedFoodsIfEmpty() {

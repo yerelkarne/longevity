@@ -101,6 +101,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
+        repository.updateMealEntry(entry)
+    }
+
+    fun deleteMealEntry(id: Long) = viewModelScope.launch {
+        repository.deleteMealEntry(id, LocalDate.now())
+    }
+
     fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {

@@ -20,6 +20,8 @@ interface LongevityRepository {
     fun observeSupplements(): Flow<List<SupplementEntity>>
     fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>>
     suspend fun addMealEntry(entry: MealEntryEntity)
+    suspend fun updateMealEntry(entry: MealEntryEntity)
+    suspend fun deleteMealEntry(id: Long, date: LocalDate)
     suspend fun addCustomFood(name: String): Long
 
     suspend fun addWater(date: LocalDate, amountMl: Int)

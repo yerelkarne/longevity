@@ -77,4 +77,32 @@
     <string name="unknown_food">Bilinmeyen gıda</string>
     <string name="macros_line">P: %.1fg • K: %.1fg • Y: %.1fg • Fiber: %.1fg</string>
     <string name="micros_line">Fe: %.1fmg • Mg: %.1fmg • K: %.1fmg • D: %.1fIU • Omega-3: %.1fmg</string>
+
+    <string name="goal_type_water">Su</string>
+    <string name="goal_type_steps">Adım</string>
+    <string name="goal_type_protein">Protein</string>
+    <string name="goal_type_sleep">Uyku</string>
+    <string name="goal_type_supplements">Takviye</string>
+
+    <string name="meal_actions_title">Kayıt işlemleri</string>
+    <string name="meal_actions_hint">Bu kayıt için düzenleme veya silme işlemi yapabilirsiniz.</string>
+    <string name="edit_meal">Kayıt düzenle</string>
+    <string name="delete_meal_title">Kaydı sil</string>
+    <string name="delete_meal_confirm">Bu kaydı silmek istediğinize emin misiniz?</string>
+    <string name="edit">Düzenle</string>
+    <string name="delete">Sil</string>
+    <string name="back">Geri</string>
+
+    <string name="nutrient_protein">Protein</string>
+    <string name="nutrient_carbs">Karbonhidrat</string>
+    <string name="nutrient_fat">Yağ</string>
+    <string name="nutrient_fiber">Lif</string>
+    <string name="nutrient_iron">Demir</string>
+    <string name="nutrient_magnesium">Magnezyum</string>
+    <string name="nutrient_potassium">Potasyum</string>
+    <string name="nutrient_vitamin_d">D Vitamini</string>
+    <string name="nutrient_omega3">Omega-3</string>
+    <string name="nutrient_grams_value">%.1f g</string>
+    <string name="nutrient_mg_value">%.1f mg</string>
+    <string name="nutrient_iu_value">%.1f IU</string>
 </resources>

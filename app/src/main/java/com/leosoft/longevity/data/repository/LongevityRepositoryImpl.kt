@@ -92,6 +92,38 @@ class LongevityRepositoryImpl(
         recalculateScore(entry.date)
     }
 
+    override suspend fun updateMealEntry(entry: MealEntryEntity) {
+        nutritionDao.updateMealEntry(id = entry.id, foodId = entry.foodId, grams = entry.grams)
+        nutritionDao.deleteMealNutritionRecordByMealEntryId(entry.id)
+        nutritionDao.getFoodById(entry.foodId)?.let { food ->
+            nutritionDao.insertMealNutritionRecord(
+                MealNutritionRecordEntity(
+                    mealEntryId = entry.id,
+                    date = entry.date,
+                    foodId = food.id,
+                    grams = entry.grams,
+                    protein = nutrientValuePerGram(food.protein, entry.grams),
+                    carbs = nutrientValuePerGram(food.carbs, entry.grams),
+                    fat = nutrientValuePerGram(food.fat, entry.grams),
+                    fiber = nutrientValuePerGram(food.fiber, entry.grams),
+                    ironMg = nutrientValuePerGram(food.ironMg, entry.grams),
+                    magnesiumMg = nutrientValuePerGram(food.magnesiumMg, entry.grams),
+                    potassiumMg = nutrientValuePerGram(food.potassiumMg, entry.grams),
+                    vitaminDUi = nutrientValuePerGram(food.vitaminDUi, entry.grams),
+                    omega3Mg = nutrientValuePerGram(food.omega3Mg, entry.grams),
+                    createdAt = LocalDateTime.now()
+                )
+            )
+        }
+        recalculateScore(entry.date)
+    }
+
+    override suspend fun deleteMealEntry(id: Long, date: LocalDate) {
+        nutritionDao.deleteMealNutritionRecordByMealEntryId(id)
+        nutritionDao.deleteMealEntry(id)
+        recalculateScore(date)
+    }
+
     override suspend fun addCustomFood(name: String): Long {
         return nutritionDao.insertFood(
             FoodEntity(
