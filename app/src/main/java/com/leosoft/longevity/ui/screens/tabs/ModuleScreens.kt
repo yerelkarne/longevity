@@ -153,6 +153,7 @@ private fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var secondaryText by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
     var selectedWorkoutType by remember { mutableStateOf(WorkoutType.WALKING) }
+    var customActivityName by remember { mutableStateOf("") }
     var selectedGoalType by remember { mutableStateOf("water") }
 
     AlertDialog(
@@ -202,10 +203,11 @@ private fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.ACTIVITY -> {
                         ExposedDropdownSimple(
                             label = stringResource(R.string.activity_type),
-                            options = WorkoutType.entries.map { it.name },
+                            options = WorkoutType.entries.map { stringResource(workoutTypeLabel(it)) },
                             selected = WorkoutType.entries.indexOf(selectedWorkoutType),
                             onSelect = { idx -> selectedWorkoutType = WorkoutType.entries[idx] }
                         )
+                        OutlinedTextField(value = customActivityName, onValueChange = { customActivityName = it }, label = { Text(stringResource(R.string.custom_activity_name_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.duration_min)) })
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.intensity_1_3)) })
                     }
@@ -238,7 +240,11 @@ private fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
                     QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
-                    QuickAddType.ACTIVITY -> viewModel.addWorkout(selectedWorkoutType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, notesText)
+                    QuickAddType.ACTIVITY -> {
+                        val resolvedType = if (customActivityName.isNotBlank()) WorkoutType.OTHER else selectedWorkoutType
+                        val mergedNotes = listOf(customActivityName.takeIf { it.isNotBlank() }, notesText.takeIf { it.isNotBlank() }).joinToString(" | ")
+                        viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
+                    }
                     QuickAddType.TASK -> viewModel.addTask(amountText, secondaryText.ifBlank { null })
                     QuickAddType.REMINDER -> viewModel.addReminder(amountText, secondaryText)
                     QuickAddType.GOAL -> viewModel.updateGoal(selectedGoalType, amountText.toIntOrNull() ?: 0)
@@ -281,6 +287,17 @@ private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.TASK -> R.string.add_type_task
     QuickAddType.REMINDER -> R.string.add_type_reminder
     QuickAddType.GOAL -> R.string.add_type_goal
+}
+
+
+private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
+    WorkoutType.ELLIPTICAL -> R.string.workout_elliptical
+    WorkoutType.PILATES -> R.string.workout_pilates
+    WorkoutType.WALKING -> R.string.workout_walking
+    WorkoutType.RUNNING -> R.string.workout_running
+    WorkoutType.STRENGTH -> R.string.workout_strength
+    WorkoutType.YOGA -> R.string.workout_yoga
+    WorkoutType.OTHER -> R.string.workout_other
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
