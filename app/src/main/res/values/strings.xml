@@ -41,6 +41,7 @@
     <string name="add_type_goal">Hedef Ekle</string>
     <string name="food_name">Yemek</string>
     <string name="food_list_label">Yemek listesi</string>
+    <string name="foods_loading_hint">Yemek listesi yükleniyor, lütfen bekleyin.</string>
     <string name="food_name_custom_optional">Listede yoksa yemek adı (opsiyonel)</string>
     <string name="supplement_name">Takviye</string>
     <string name="grams">Gram</string>

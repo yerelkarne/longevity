@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -126,7 +127,11 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
-    LaunchedEffect(Unit) { viewModel.ensureCoreFoods() }
+    var foodsReady by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        viewModel.ensureCoreFoods().join()
+        foodsReady = true
+    }
     val nutritiousFoods = viewModel.nutritiousFoods.value
     val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else viewModel.foods.value
     val supplements = viewModel.supplements.value
@@ -166,6 +171,9 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 when (type) {
                     null -> Text(stringResource(R.string.select_first_hint), style = MaterialTheme.typography.bodySmall)
                     QuickAddType.FOOD -> {
+                        if (!foodsReady && foods.isEmpty()) {
+                            Text(stringResource(R.string.foods_loading_hint), style = MaterialTheme.typography.bodySmall)
+                        }
                         ExposedDropdownSimple(
                             label = stringResource(R.string.food_list_label),
                             options = listOf(stringResource(R.string.select_prompt)) + foods.map { it.name },
