@@ -14,7 +14,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -29,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -289,11 +287,7 @@ private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeslenmeKayitScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
     val meals = viewModel.mealEntries.value
-    var openDialog by remember { mutableStateOf(false) }
-    var selectedFoodId by remember { mutableLongStateOf(foods.firstOrNull()?.id ?: 0L) }
-    var grams by remember { mutableIntStateOf(100) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
@@ -301,7 +295,6 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
                 Column(Modifier.padding(16.dp)) {
                     Text(stringResource(R.string.daily_total))
                     Text(stringResource(R.string.total_grams, meals.sumOf { it.grams }))
-                    Button(onClick = { openDialog = true }, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.add_food)) }
                 }
             }
         }
@@ -315,27 +308,7 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
         }
     }
 
-    if (openDialog) {
-        AlertDialog(
-            onDismissRequest = { openDialog = false },
-            title = { Text(stringResource(R.string.add_food_dialog_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ExposedDropdownSimple(
-                        label = stringResource(R.string.food_name),
-                        options = foods.map { it.name },
-                        selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
-                        onSelect = { selectedFoodId = foods[it].id }
-                    )
-                    OutlinedTextField(value = grams.toString(), onValueChange = { grams = it.toIntOrNull() ?: grams }, label = { Text(stringResource(R.string.grams)) })
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.addMeal(selectedFoodId, grams, MealType.SNACK); openDialog = false }) { Text(stringResource(R.string.save)) }
-            },
-            dismissButton = { TextButton(onClick = { openDialog = false }) { Text(stringResource(R.string.cancel)) } }
-        )
-    }
+
 }
 
 @Composable
