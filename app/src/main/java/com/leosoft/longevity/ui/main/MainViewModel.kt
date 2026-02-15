@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
+import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -32,27 +34,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as LongevityApp
     private val repository = app.repository
 
-    val onboardingDone = app.preferences.onboardingDone.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        false
-    )
-
     val dashboard: StateFlow<DashboardSummary?> = repository.observeDashboard(LocalDate.now())
         .map { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val mealEntries = repository.observeMealEntries(LocalDate.now()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    init {
-        viewModelScope.launch {
-            if (foods.value.isEmpty()) {
-                // lightweight seed
-                app.repository.observeFoods()
-            }
-        }
-    }
 
     fun completeOnboarding(form: OnboardingForm) {
         viewModelScope.launch {
@@ -75,11 +63,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun quickAddWater() {
-        viewModelScope.launch { repository.addWater(LocalDate.now(), 250) }
-    }
-
-    fun addMeal(foodId: Long, grams: Int, mealType: com.leosoft.longevity.data.local.entity.MealType) {
+    fun addMeal(foodId: Long, grams: Int, mealType: MealType) {
         viewModelScope.launch {
             repository.addMealEntry(
                 MealEntryEntity(
@@ -91,5 +75,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
+
+    fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
+        repository.addSupplementLog(LocalDate.now(), supplementId, true)
+    }
+
+    fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
+        repository.addSleepLog(LocalDate.now(), bedtime, wakeTime)
+    }
+
+    fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
+        repository.addWorkoutLog(LocalDate.now(), type, durationMinutes, intensity, notes)
+    }
+
+    fun addTask(title: String, target: String?) = viewModelScope.launch {
+        repository.addTaskLog(LocalDate.now(), title, target)
+    }
+
+    fun addReminder(type: String, time: String) = viewModelScope.launch {
+        repository.addReminderLog(LocalDate.now(), type, time)
+    }
+
+    fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {
+        repository.updateGoal(goalType, value)
     }
 }

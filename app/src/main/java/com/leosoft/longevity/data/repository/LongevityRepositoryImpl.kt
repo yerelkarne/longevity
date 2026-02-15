@@ -4,23 +4,32 @@ import com.leosoft.longevity.data.local.dao.ActivityDao
 import com.leosoft.longevity.data.local.dao.GoalsDao
 import com.leosoft.longevity.data.local.dao.LifeDao
 import com.leosoft.longevity.data.local.dao.NutritionDao
+import com.leosoft.longevity.data.local.dao.QuickAddDao
 import com.leosoft.longevity.data.local.dao.ScoresDao
 import com.leosoft.longevity.data.local.dao.SupplementsDao
 import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
+import com.leosoft.longevity.data.local.entity.SupplementEntity
+import com.leosoft.longevity.data.local.entity.SupplementLogEntity
+import com.leosoft.longevity.data.local.entity.TaskLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
+import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
+import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import com.leosoft.longevity.domain.model.DayData
 import com.leosoft.longevity.domain.repository.LongevityRepository
 import com.leosoft.longevity.domain.usecase.CalculateDailyScoreUseCase
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -45,18 +54,15 @@ class LongevityRepositoryImpl(
     private val activityDao: ActivityDao,
     private val goalsDao: GoalsDao,
     private val scoresDao: ScoresDao,
+    private val quickAddDao: QuickAddDao,
     private val calculateDailyScore: CalculateDailyScoreUseCase,
     private val calculateMacroTotals: CalculateMacroTotalsUseCase
 ) : LongevityRepository {
 
     override fun observeGoals(): Flow<UserGoalsEntity?> = goalsDao.observeGoals()
-
-    override suspend fun saveGoals(goals: UserGoalsEntity) {
-        goalsDao.upsertGoals(goals)
-    }
-
+    override suspend fun saveGoals(goals: UserGoalsEntity) { goalsDao.upsertGoals(goals) }
     override fun observeFoods(): Flow<List<FoodEntity>> = nutritionDao.observeFoods()
-
+    override fun observeSupplements(): Flow<List<SupplementEntity>> = supplementsDao.observeSupplements()
     override fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>> = nutritionDao.observeMealEntries(date)
 
     override suspend fun addMealEntry(entry: MealEntryEntity) {
@@ -74,22 +80,53 @@ class LongevityRepositoryImpl(
         recalculateScore(log.date)
     }
 
+    override suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean) {
+        supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = supplementId, taken = taken))
+        recalculateScore(date)
+    }
+
+    override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
+        val bed = LocalTime.parse(bedtime)
+        val wake = LocalTime.parse(wakeTime)
+        val bedDateTime = LocalDateTime.of(date, bed)
+        val wakeDateTime = LocalDateTime.of(if (wake.isBefore(bed)) date.plusDays(1) else date, wake)
+        val duration = Duration.between(bedDateTime, wakeDateTime).toMinutes().toInt().coerceAtLeast(0)
+        lifeDao.insertSleepLog(SleepLogEntity(date = date, bedtime = bedDateTime, wakeTime = wakeDateTime, durationMinutes = duration))
+        recalculateScore(date)
+    }
+
+    override suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) {
+        activityDao.insertWorkout(WorkoutLogEntity(date = date, time = LocalDateTime.now(), type = type, durationMinutes = durationMinutes, intensity = intensity, notes = notes))
+        recalculateScore(date)
+    }
+
+    override suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?) {
+        quickAddDao.insertTask(TaskLogEntity(date = date, title = title, targetText = targetText, createdAt = LocalDateTime.now()))
+    }
+
+    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String) {
+        quickAddDao.insertReminder(ReminderLogEntity(date = date, reminderType = reminderType, reminderTime = reminderTime, createdAt = LocalDateTime.now()))
+    }
+
+    override suspend fun updateGoal(goalType: String, value: Int) {
+        val current = goalsDao.getGoals() ?: defaultGoals()
+        val updated = when (goalType) {
+            "water" -> current.copy(waterTargetMl = value)
+            "steps" -> current.copy(stepsTarget = value)
+            "protein" -> current.copy(proteinTarget = value.toFloat())
+            "sleep" -> current.copy(sleepTargetMinutes = value)
+            "supplements" -> current.copy(supplementsPerDayTarget = value)
+            else -> current
+        }
+        goalsDao.upsertGoals(updated)
+        recalculateScore(LocalDate.now())
+    }
+
     override fun observeDailyScore(date: LocalDate): Flow<DailyScoreEntity?> = scoresDao.observeByDate(date)
 
     override fun observeDashboard(date: LocalDate): Flow<DashboardSummary> {
-        val partialFlow: Flow<DashboardInputs> = combine(
-            scoresDao.observeByDate(date),
-            activityDao.observeSteps(date)
-        ) { score, steps ->
-            DashboardInputs(
-                score = score,
-                steps = steps,
-                waterLogs = emptyList(),
-                sleep = null,
-                meals = emptyList(),
-                foods = emptyList(),
-                goals = null
-            )
+        val partialFlow: Flow<DashboardInputs> = combine(scoresDao.observeByDate(date), activityDao.observeSteps(date)) { score, steps ->
+            DashboardInputs(score, steps, emptyList(), null, emptyList(), emptyList(), null)
         }
             .combine(waterDao.observeByDate(date)) { partial, waterLogs -> partial.copy(waterLogs = waterLogs) }
             .combine(lifeDao.observeSleep(date)) { partial, sleep -> partial.copy(sleep = sleep) }

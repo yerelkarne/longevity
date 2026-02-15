@@ -83,6 +83,25 @@ data class WorkoutLogEntity(
     val notes: String = ""
 )
 
+@Entity(tableName = "task_logs")
+data class TaskLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: LocalDate,
+    val title: String,
+    val targetText: String? = null,
+    val completed: Boolean = false,
+    val createdAt: LocalDateTime
+)
+
+@Entity(tableName = "reminder_logs")
+data class ReminderLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: LocalDate,
+    val reminderType: String,
+    val reminderTime: String,
+    val createdAt: LocalDateTime
+)
+
 @Entity(tableName = "user_goals")
 data class UserGoalsEntity(
     @PrimaryKey val id: Int = 1,

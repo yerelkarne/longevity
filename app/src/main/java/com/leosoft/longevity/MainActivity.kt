@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -53,8 +54,8 @@ private fun MainScaffold(vm: MainViewModel) {
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
                         onClick = { navController.navigate(destination.route) },
-                        icon = { Icon(destination.icon, contentDescription = destination.title) },
-                        label = { Text(destination.title) }
+                        icon = { Icon(destination.icon, contentDescription = stringResource(destination.titleRes)) },
+                        label = { Text(stringResource(destination.titleRes)) }
                     )
                 }
             }

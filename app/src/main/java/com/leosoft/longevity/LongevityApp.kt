@@ -30,6 +30,7 @@ class LongevityApp : Application() {
             activityDao = db.activityDao(),
             goalsDao = db.goalsDao(),
             scoresDao = db.scoresDao(),
+            quickAddDao = db.quickAddDao(),
             calculateDailyScore = CalculateDailyScoreUseCase(macroUseCase),
             calculateMacroTotals = macroUseCase
         )
