@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
+import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
@@ -159,6 +160,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
+
+    fun addSteps(steps: Int) = viewModelScope.launch {
+        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+    }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
         repository.addSupplementLog(LocalDate.now(), supplementId, true)

@@ -200,7 +200,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onDismiss = { showAddDialog = false },
             onSave = { typeKey, target, cadence ->
                 viewModel.addGoalPlan(typeKey, target, cadence)
-                viewModel.updateGoal(typeKey, target)
+                if (typeKey in listOf("water", "steps", "protein", "sleep", "supplements")) viewModel.updateGoal(typeKey, target)
                 showAddDialog = false
             }
         )
@@ -215,7 +215,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onDismiss = { goalToEdit = null },
             onSave = { typeKey, target, cadence ->
                 viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
-                viewModel.updateGoal(typeKey, target)
+                if (typeKey in listOf("water", "steps", "protein", "sleep", "supplements")) viewModel.updateGoal(typeKey, target)
                 goalToEdit = null
             },
             onDelete = {
@@ -255,7 +255,7 @@ private fun AddGoalDialog(
     initialCadence: String = "daily",
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "steps", "protein", "sleep")
+    val goalTypeKeys = listOf("water", "steps", "protein", "sleep", "supplements")
     val cadenceKeys = listOf("hourly", "daily", "weekly")
     var selectedTypeIdx by remember(initialGoalType) { mutableStateOf(goalTypeKeys.indexOf(initialGoalType).takeIf { it >= 0 } ?: 0) }
     var selectedCadenceIdx by remember(initialCadence) { mutableStateOf(cadenceKeys.indexOf(initialCadence).takeIf { it >= 0 } ?: 1) }
@@ -272,6 +272,7 @@ private fun AddGoalDialog(
                     selected = selectedTypeIdx,
                     onSelect = { idx -> selectedTypeIdx = idx }
                 )
+                Text(goalTargetHintLabel(goalTypeKeys[selectedTypeIdx]), style = MaterialTheme.typography.bodySmall)
                 ExposedDropdownSimple(
                     label = stringResource(R.string.goal_frequency),
                     options = cadenceKeys.map { cadenceLabel(it) },
@@ -304,7 +305,18 @@ private fun goalTypeLabel(type: String): String = when (type) {
     "steps" -> stringResource(R.string.goal_type_steps)
     "protein" -> stringResource(R.string.goal_type_protein)
     "sleep" -> stringResource(R.string.goal_type_sleep)
+    "supplements" -> stringResource(R.string.goal_type_supplements)
     else -> type
+}
+
+@Composable
+private fun goalTargetHintLabel(type: String): String = when (type) {
+    "water" -> stringResource(R.string.goal_hint_water)
+    "steps" -> stringResource(R.string.goal_hint_steps)
+    "protein" -> stringResource(R.string.goal_hint_protein)
+    "sleep" -> stringResource(R.string.goal_hint_sleep)
+    "supplements" -> stringResource(R.string.goal_hint_supplements)
+    else -> ""
 }
 
 @Composable
@@ -321,6 +333,7 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
         "steps" -> dashboard?.steps ?: 0
         "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
         "sleep" -> dashboard?.sleepMinutes ?: 0
+        "supplements" -> dashboard?.supplementsTaken ?: 0
         else -> 0
     }
     return GoalProgress(current = current)
@@ -329,6 +342,7 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     var foodsReady by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         viewModel.ensureCoreFoods().join()
@@ -397,6 +411,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.wake_time)) })
                     }
                     QuickAddType.ACTIVITY -> {
+                        val isStepBased = selectedWorkoutType == WorkoutType.WALKING || selectedWorkoutType == WorkoutType.RUNNING
                         ExposedDropdownSimple(
                             label = stringResource(R.string.activity_type),
                             options = WorkoutType.entries.map { stringResource(workoutTypeLabel(it)) },
@@ -404,8 +419,16 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             onSelect = { idx -> selectedWorkoutType = WorkoutType.entries[idx] }
                         )
                         OutlinedTextField(value = customActivityName, onValueChange = { customActivityName = it }, label = { Text(stringResource(R.string.custom_activity_name_optional)) })
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.duration_min)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.intensity_1_3)) })
+                        OutlinedTextField(
+                            value = amountText,
+                            onValueChange = { amountText = it },
+                            label = { Text(if (isStepBased) stringResource(R.string.steps_input) else stringResource(R.string.duration_min)) }
+                        )
+                        OutlinedTextField(
+                            value = secondaryText,
+                            onValueChange = { secondaryText = it },
+                            label = { Text(if (isStepBased) stringResource(R.string.distance_km_optional) else stringResource(R.string.intensity_1_3)) }
+                        )
                     }
                     QuickAddType.TASK -> {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.task_title)) })
@@ -429,8 +452,17 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
                     QuickAddType.ACTIVITY -> {
                         val resolvedType = if (customActivityName.isNotBlank()) WorkoutType.OTHER else selectedWorkoutType
-                        val mergedNotes = listOf(customActivityName.takeIf { it.isNotBlank() }, notesText.takeIf { it.isNotBlank() }).joinToString(" | ")
-                        viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
+                        val isStepBased = resolvedType == WorkoutType.WALKING || resolvedType == WorkoutType.RUNNING
+                        val mergedNotes = listOf(
+                            customActivityName.takeIf { it.isNotBlank() },
+                            secondaryText.takeIf { it.isNotBlank() && isStepBased }?.let { context.getString(R.string.distance_km_note, it) },
+                            notesText.takeIf { it.isNotBlank() }
+                        ).joinToString(" | ")
+                        if (isStepBased) {
+                            viewModel.addSteps(amountText.toIntOrNull() ?: 0)
+                        } else {
+                            viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
+                        }
                     }
                     QuickAddType.TASK -> viewModel.addTask(amountText, secondaryText.ifBlank { null })
                     QuickAddType.REMINDER -> viewModel.addReminder(amountText, secondaryText)

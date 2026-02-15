@@ -94,6 +94,16 @@
     <string name="goals_empty_message">Hedefiniz bulunmuyor.</string>
     <string name="goal_frequency_label">Sıklık: %1$s</string>
     <string name="goal_progress_text">İlerleme: %1$d / %2$d</string>
+
+    <string name="steps_input">Adım</string>
+    <string name="distance_km_optional">Mesafe (km, opsiyonel)</string>
+    <string name="distance_km_note">Mesafe: %1$s km</string>
+
+    <string name="goal_hint_water">Su hedefi için ml girin.</string>
+    <string name="goal_hint_steps">Adım/yürüyüş hedefi için adım girin.</string>
+    <string name="goal_hint_protein">Beslenme hedefi için protein gramı girin.</string>
+    <string name="goal_hint_sleep">Uyku hedefi için dakika girin.</string>
+    <string name="goal_hint_supplements">Takviye hedefi için günlük adet girin.</string>
     <string name="goal_edit_title">Hedefi Düzenle</string>
     <string name="goal_delete_title">Hedefi Sil</string>
     <string name="goal_delete_confirm">Bu hedefi silmek istediğinize emin misiniz?</string>

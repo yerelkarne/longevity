@@ -44,6 +44,7 @@ private data class DashboardInputs(
     val sleep: SleepLogEntity?,
     val meals: List<MealEntryEntity>,
     val foods: List<FoodEntity>,
+    val supplementLogs: List<SupplementLogEntity>,
     val goals: UserGoalsEntity?
 )
 
@@ -193,12 +194,13 @@ class LongevityRepositoryImpl(
 
     override fun observeDashboard(date: LocalDate): Flow<DashboardSummary> {
         val partialFlow: Flow<DashboardInputs> = combine(scoresDao.observeByDate(date), activityDao.observeSteps(date)) { score, steps ->
-            DashboardInputs(score, steps, emptyList(), null, emptyList(), emptyList(), null)
+            DashboardInputs(score, steps, emptyList(), null, emptyList(), emptyList(), emptyList(), null)
         }
             .combine(waterDao.observeByDate(date)) { partial, waterLogs -> partial.copy(waterLogs = waterLogs) }
             .combine(lifeDao.observeSleep(date)) { partial, sleep -> partial.copy(sleep = sleep) }
             .combine(nutritionDao.observeMealEntries(date)) { partial, meals -> partial.copy(meals = meals) }
             .combine(nutritionDao.observeFoods()) { partial, foods -> partial.copy(foods = foods) }
+            .combine(supplementsDao.observeLogs(date)) { partial, logs -> partial.copy(supplementLogs = logs) }
             .combine(goalsDao.observeGoals()) { partial, goals -> partial.copy(goals = goals) }
 
         return partialFlow.combine(goalsDao.observeGoals()) { partial, latestGoals ->
@@ -212,6 +214,7 @@ class LongevityRepositoryImpl(
                 steps = stepsValue,
                 waterMl = waterTotal,
                 sleepMinutes = sleepMinutes,
+                supplementsTaken = partial.supplementLogs.count { it.taken },
                 macroTotals = totals,
                 pendingTasks = buildList {
                     if (stepsValue < safeGoals.stepsTarget) add("${safeGoals.stepsTarget} adım tamamla")

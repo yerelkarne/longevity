@@ -42,6 +42,7 @@ data class DashboardSummary(
     val steps: Int,
     val waterMl: Int,
     val sleepMinutes: Int,
+    val supplementsTaken: Int,
     val macroTotals: MacroTotals,
     val pendingTasks: List<String>
 )
