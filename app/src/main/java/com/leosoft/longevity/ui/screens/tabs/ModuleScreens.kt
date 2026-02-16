@@ -79,13 +79,13 @@ fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
 
 @Composable
 fun GunumModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders), stringResource(R.string.tab_score))
+    val tabs = listOf(stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> GunumOzetScreen(viewModel)
             1 -> GunumHedeflerScreen(viewModel)
             2 -> GunumHatirlatmalarScreen(viewModel)
-            else -> PlaceholderTab(stringResource(R.string.placeholder_coming_soon, page))
+            else -> GunumOzetScreen(viewModel)
         }
     }
 }
