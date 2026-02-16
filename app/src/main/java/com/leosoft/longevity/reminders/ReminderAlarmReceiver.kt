@@ -49,7 +49,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 .build()
         )
 
-        ReminderAlarmScheduler.schedule(context, reminderId, title, cadence, reminderTime, intervalHours)
+        ReminderAlarmScheduler.schedule(context, reminderId, title, cadence, reminderTime, intervalHours, fromReceiver = true)
     }
 
     companion object {
@@ -74,7 +74,15 @@ object ReminderAlarmScheduler {
         am.cancel(pi)
     }
 
-    fun schedule(context: Context, id: Long, title: String, cadence: String, reminderTime: String, intervalHours: Int) {
+    fun schedule(
+        context: Context,
+        id: Long,
+        title: String,
+        cadence: String,
+        reminderTime: String,
+        intervalHours: Int,
+        fromReceiver: Boolean = false
+    ) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
@@ -94,9 +102,12 @@ object ReminderAlarmScheduler {
         val triggerAtMillis = when (cadence) {
             "hourly" -> {
                 val hourInterval = intervalHours.coerceAtLeast(1)
-                val nextHour = (now.hour / hourInterval + 1) * hourInterval
-                val next = if (nextHour < 24) now.withHour(nextHour).withMinute(0).withSecond(0).withNano(0)
-                else now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val currentHourBoundary = now.withMinute(0).withSecond(0).withNano(0)
+                val next = if (fromReceiver) {
+                    currentHourBoundary.plusHours(hourInterval.toLong())
+                } else {
+                    currentHourBoundary.plusHours(1)
+                }
                 next.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
             }
             else -> {
