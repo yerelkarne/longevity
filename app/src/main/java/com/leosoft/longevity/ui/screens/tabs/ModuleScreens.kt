@@ -5,11 +5,13 @@ import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -378,18 +380,26 @@ private fun AddReminderDialog(
                     onSelect = { cadence = if (it == 0) "daily" else "hourly" }
                 )
                 if (cadence == "daily") {
-                    OutlinedTextField(
-                        value = dailyTime,
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            val parts = dailyTime.split(":")
-                            val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
-                            val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                            TimePickerDialog(context, { _, h, m -> dailyTime = String.format("%02d:%02d", h, m) }, hour, minute, true).show()
-                        },
-                        label = { Text(stringResource(R.string.reminder_pick_time)) }
-                    )
+                    val openTimePicker = {
+                        val parts = dailyTime.split(":")
+                        val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+                        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                        TimePickerDialog(context, { _, h, m -> dailyTime = String.format("%02d:%02d", h, m) }, hour, minute, true).show()
+                    }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = dailyTime,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.reminder_pick_time)) }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { openTimePicker() }
+                        )
+                    }
                 } else {
                     OutlinedTextField(value = intervalText, onValueChange = { intervalText = it }, label = { Text(stringResource(R.string.reminder_interval_hours)) })
                 }
