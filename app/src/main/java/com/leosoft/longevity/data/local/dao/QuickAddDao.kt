@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.TaskLogEntity
 
@@ -11,6 +12,19 @@ import com.leosoft.longevity.data.local.entity.TaskLogEntity
 interface QuickAddDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskLogEntity)
+
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoalPlan(goal: GoalPlanEntity): Long
+
+    @Query("SELECT * FROM goal_plans ORDER BY createdAt DESC")
+    fun observeGoalPlans(): kotlinx.coroutines.flow.Flow<List<GoalPlanEntity>>
+
+    @Query("UPDATE goal_plans SET goalType = :goalType, target = :target, cadence = :cadence WHERE id = :id")
+    suspend fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String)
+
+    @Query("DELETE FROM goal_plans WHERE id = :id")
+    suspend fun deleteGoalPlan(id: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderLogEntity): Long

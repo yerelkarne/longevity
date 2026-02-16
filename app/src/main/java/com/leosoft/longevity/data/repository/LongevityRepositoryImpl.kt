@@ -10,6 +10,7 @@ import com.leosoft.longevity.data.local.dao.SupplementsDao
 import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
+import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
@@ -170,6 +171,27 @@ class LongevityRepositoryImpl(
 
     override suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?) {
         quickAddDao.insertTask(TaskLogEntity(date = date, title = title, targetText = targetText, createdAt = LocalDateTime.now()))
+    }
+
+    override fun observeGoalPlans() = quickAddDao.observeGoalPlans()
+
+    override suspend fun addGoalPlan(goalType: String, target: Int, cadence: String): Long {
+        return quickAddDao.insertGoalPlan(
+            GoalPlanEntity(
+                goalType = goalType,
+                target = target,
+                cadence = cadence,
+                createdAt = LocalDateTime.now()
+            )
+        )
+    }
+
+    override suspend fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) {
+        quickAddDao.updateGoalPlan(id, goalType, target, cadence)
+    }
+
+    override suspend fun deleteGoalPlan(id: Long) {
+        quickAddDao.deleteGoalPlan(id)
     }
 
     override fun observeReminders() = quickAddDao.observeReminders()

@@ -54,9 +54,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { date -> repository.observeDashboard(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _goalPlans = MutableStateFlow<List<GoalPlanItem>>(emptyList())
-    val goalPlans: StateFlow<List<GoalPlanItem>> = _goalPlans
-    private var nextGoalPlanId: Long = 1L
+    val goalPlans: StateFlow<List<GoalPlanItem>> = repository.observeGoalPlans()
+        .map { items ->
+            items.map { GoalPlanItem(id = it.id, goalType = it.goalType, target = it.target, cadence = it.cadence) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -125,23 +127,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addGoalPlan(goalType: String, target: Int, cadence: String) {
-        _goalPlans.value = _goalPlans.value + GoalPlanItem(
-            id = nextGoalPlanId++,
-            goalType = goalType,
-            target = target,
-            cadence = cadence
-        )
+    fun addGoalPlan(goalType: String, target: Int, cadence: String) = viewModelScope.launch {
+        repository.addGoalPlan(goalType, target, cadence)
     }
 
-    fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) {
-        _goalPlans.value = _goalPlans.value.map {
-            if (it.id == id) it.copy(goalType = goalType, target = target, cadence = cadence) else it
-        }
+    fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) = viewModelScope.launch {
+        repository.updateGoalPlan(id, goalType, target, cadence)
     }
 
-    fun deleteGoalPlan(id: Long) {
-        _goalPlans.value = _goalPlans.value.filterNot { it.id == id }
+    fun deleteGoalPlan(id: Long) = viewModelScope.launch {
+        repository.deleteGoalPlan(id)
     }
 
     fun setSelectedGoalsDate(date: LocalDate) {
