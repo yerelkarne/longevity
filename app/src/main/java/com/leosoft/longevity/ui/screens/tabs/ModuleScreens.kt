@@ -191,6 +191,9 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { goalToEdit = goal }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
+                        if (isActivityGoalType(goal.goalType)) {
+                            Text(goalActivityLabel(goal.goalType), style = MaterialTheme.typography.bodySmall)
+                        }
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
                         Text(stringResource(R.string.goal_progress_text, progress.current, goal.target))
                         androidx.compose.material3.LinearProgressIndicator(
@@ -209,7 +212,10 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onDismiss = { showAddDialog = false },
             onSave = { typeKey, target, cadence ->
                 viewModel.addGoalPlan(typeKey, target, cadence)
-                if (typeKey in listOf("water", "steps", "protein", "sleep", "supplements")) viewModel.updateGoal(typeKey, target)
+                val userGoalType = goalTypeToUserGoalKey(typeKey)
+                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                    viewModel.updateGoal(userGoalType, target)
+                }
                 showAddDialog = false
             }
         )
@@ -221,10 +227,14 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             initialGoalType = current.goalType,
             initialTarget = current.target,
             initialCadence = current.cadence,
+            initialActivityType = current.goalType,
             onDismiss = { goalToEdit = null },
             onSave = { typeKey, target, cadence ->
                 viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
-                if (typeKey in listOf("water", "steps", "protein", "sleep", "supplements")) viewModel.updateGoal(typeKey, target)
+                val userGoalType = goalTypeToUserGoalKey(typeKey)
+                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                    viewModel.updateGoal(userGoalType, target)
+                }
                 goalToEdit = null
             },
             onDelete = {
@@ -446,11 +456,16 @@ private fun AddGoalDialog(
     initialGoalType: String = "water",
     initialTarget: Int? = null,
     initialCadence: String = "daily",
+    initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "steps", "protein", "sleep", "supplements")
+    val goalTypeKeys = listOf("water", "activity", "protein", "sleep", "supplements")
+    val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
+    val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
+    var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
     val cadenceKeys = listOf("hourly", "daily", "weekly")
-    var selectedTypeIdx by remember(initialGoalType) { mutableStateOf(goalTypeKeys.indexOf(initialGoalType).takeIf { it >= 0 } ?: 0) }
+    val initialGoalTypeKey = if (initialGoalType == "steps" || isActivityGoalType(initialGoalType)) "activity" else initialGoalType
+    var selectedTypeIdx by remember(initialGoalTypeKey) { mutableStateOf(goalTypeKeys.indexOf(initialGoalTypeKey).takeIf { it >= 0 } ?: 0) }
     var selectedCadenceIdx by remember(initialCadence) { mutableStateOf(cadenceKeys.indexOf(initialCadence).takeIf { it >= 0 } ?: 1) }
     var targetText by remember(initialTarget) { mutableStateOf(initialTarget?.toString().orEmpty()) }
 
@@ -466,6 +481,14 @@ private fun AddGoalDialog(
                     onSelect = { idx -> selectedTypeIdx = idx }
                 )
                 Text(goalTargetHintLabel(goalTypeKeys[selectedTypeIdx]), style = MaterialTheme.typography.bodySmall)
+                if (goalTypeKeys[selectedTypeIdx] == "activity") {
+                    ExposedDropdownSimple(
+                        label = stringResource(R.string.activity_type),
+                        options = activityTypeKeys.map { stringResource(workoutTypeLabel(it)) },
+                        selected = selectedActivityIdx,
+                        onSelect = { idx -> selectedActivityIdx = idx }
+                    )
+                }
                 ExposedDropdownSimple(
                     label = stringResource(R.string.goal_frequency),
                     options = cadenceKeys.map { cadenceLabel(it) },
@@ -478,7 +501,9 @@ private fun AddGoalDialog(
         confirmButton = {
             TextButton(onClick = {
                 val target = targetText.toIntOrNull() ?: return@TextButton
-                onSave(goalTypeKeys[selectedTypeIdx], target, cadenceKeys[selectedCadenceIdx])
+                val selectedGoalType = goalTypeKeys[selectedTypeIdx]
+                val resolvedGoalType = if (selectedGoalType == "activity") activityTypeKeys[selectedActivityIdx].name.lowercase() else selectedGoalType
+                onSave(resolvedGoalType, target, cadenceKeys[selectedCadenceIdx])
             }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
@@ -493,23 +518,39 @@ private fun AddGoalDialog(
 }
 
 @Composable
-private fun goalTypeLabel(type: String): String = when (type) {
-    "water" -> stringResource(R.string.goal_type_water)
-    "steps" -> stringResource(R.string.goal_type_steps)
-    "protein" -> stringResource(R.string.goal_type_protein)
-    "sleep" -> stringResource(R.string.goal_type_sleep)
-    "supplements" -> stringResource(R.string.goal_type_supplements)
+private fun goalTypeLabel(type: String): String = when {
+    type == "water" -> stringResource(R.string.goal_type_water)
+    type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_type_activity)
+    type == "protein" -> stringResource(R.string.goal_type_protein)
+    type == "sleep" -> stringResource(R.string.goal_type_sleep)
+    type == "supplements" -> stringResource(R.string.goal_type_supplements)
     else -> type
 }
 
 @Composable
-private fun goalTargetHintLabel(type: String): String = when (type) {
-    "water" -> stringResource(R.string.goal_hint_water)
-    "steps" -> stringResource(R.string.goal_hint_steps)
-    "protein" -> stringResource(R.string.goal_hint_protein)
-    "sleep" -> stringResource(R.string.goal_hint_sleep)
-    "supplements" -> stringResource(R.string.goal_hint_supplements)
+private fun goalTargetHintLabel(type: String): String = when {
+    type == "water" -> stringResource(R.string.goal_hint_water)
+    type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
+    type == "protein" -> stringResource(R.string.goal_hint_protein)
+    type == "sleep" -> stringResource(R.string.goal_hint_sleep)
+    type == "supplements" -> stringResource(R.string.goal_hint_supplements)
     else -> ""
+}
+
+
+private fun isActivityGoalType(type: String): Boolean =
+    type in WorkoutType.entries.filter { it != WorkoutType.OTHER }.map { it.name.lowercase() }
+
+private fun goalTypeToUserGoalKey(type: String): String = if (type == "steps" || type == "activity" || isActivityGoalType(type)) "steps" else type
+
+@Composable
+private fun goalActivityLabel(type: String): String {
+    val workoutType = WorkoutType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) }
+    return if (workoutType != null) {
+        stringResource(workoutTypeLabel(workoutType))
+    } else {
+        ""
+    }
 }
 
 @Composable
@@ -521,12 +562,18 @@ private fun cadenceLabel(cadence: String): String = when (cadence) {
 }
 
 private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
-    val current = when (goal.goalType) {
-        "water" -> dashboard?.waterMl ?: 0
-        "steps" -> dashboard?.steps ?: 0
-        "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
-        "sleep" -> dashboard?.sleepMinutes ?: 0
-        "supplements" -> dashboard?.supplementsTaken ?: 0
+    val current = when {
+        goal.goalType == "water" -> dashboard?.waterMl ?: 0
+        goal.goalType == "steps" || goal.goalType == "activity" || isActivityGoalType(goal.goalType) -> {
+            if (goal.goalType == "steps" || goal.goalType == "activity") {
+                dashboard?.steps ?: 0
+            } else {
+                dashboard?.workoutMinutesByType?.get(goal.goalType) ?: 0
+            }
+        }
+        goal.goalType == "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
+        goal.goalType == "sleep" -> dashboard?.sleepMinutes ?: 0
+        goal.goalType == "supplements" -> dashboard?.supplementsTaken ?: 0
         else -> 0
     }
     return GoalProgress(current = current)

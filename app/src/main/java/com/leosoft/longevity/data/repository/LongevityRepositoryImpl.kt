@@ -254,12 +254,16 @@ class LongevityRepositoryImpl(
             val stepsValue = partial.steps?.steps ?: 0
             val waterTotal = partial.waterLogs.sumOf { it.amountMl }
             val sleepMinutes = partial.sleep?.durationMinutes ?: 0
+            val workoutMinutesByType = activityDao.getWorkouts(date)
+                .groupBy { it.type.name.lowercase() }
+                .mapValues { (_, logs) -> logs.sumOf { it.durationMinutes } }
             DashboardSummary(
                 score = partial.score,
                 steps = stepsValue,
                 waterMl = waterTotal,
                 sleepMinutes = sleepMinutes,
                 supplementsTaken = partial.supplementLogs.count { it.taken },
+                workoutMinutesByType = workoutMinutesByType,
                 macroTotals = totals,
                 pendingTasks = buildList {
                     if (stepsValue < safeGoals.stepsTarget) add("${safeGoals.stepsTarget} adım tamamla")
