@@ -7,6 +7,8 @@ import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
+import com.leosoft.longevity.data.local.entity.SupplementLogEntity
+import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
@@ -67,6 +69,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val waterLogs: StateFlow<List<WaterLogEntity>> = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeWaterLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val supplementLogs: StateFlow<List<SupplementLogEntity>> = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeSupplementLogs(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -155,14 +165,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.deleteMealEntry(entry.id, entry.date)
     }
 
-    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
+    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(selectedNutritionDate.value, ml) }
 
     fun addSteps(steps: Int) = viewModelScope.launch {
         repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
     }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
-        repository.addSupplementLog(LocalDate.now(), supplementId, true)
+        repository.addSupplementLog(selectedNutritionDate.value, supplementId, true)
     }
 
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {

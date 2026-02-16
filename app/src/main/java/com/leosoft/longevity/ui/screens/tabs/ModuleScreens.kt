@@ -98,6 +98,8 @@ fun BeslenmeModule(viewModel: MainViewModel) {
             0 -> BeslenmeKayitScreen(viewModel)
             1 -> BeslenmeMakrolarScreen(viewModel)
             2 -> BeslenmeMikrolarScreen(viewModel)
+            3 -> BeslenmeSuScreen(viewModel)
+            4 -> BeslenmeTakviyelerScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.placeholder_ready_template, page))
         }
     }
@@ -755,6 +757,12 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
             }
         }
 
+        if (mealsSorted.isEmpty()) {
+            item {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            }
+        }
+
         items(mealsSorted, key = { it.id }) { entry ->
             val food = foodsById[entry.foodId]
             val n = food?.let { nutrientByGrams(it, entry.grams) }
@@ -910,16 +918,20 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
             )
         }
         item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
-                        NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, totals.fat), modifier = Modifier.weight(1f))
-                        NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, totals.fiber), modifier = Modifier.weight(1f))
+            if (meals.isEmpty()) {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            } else {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, totals.fat), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, totals.fiber), modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -958,21 +970,106 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
             )
         }
         item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
-                        NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
+            if (meals.isEmpty()) {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            } else {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, total.potassium), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, total.vitaminD), modifier = Modifier.weight(1f))
+                        }
+                        NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, total.omega3), modifier = Modifier.fillMaxWidth())
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, total.potassium), modifier = Modifier.weight(1f))
-                        NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, total.vitaminD), modifier = Modifier.weight(1f))
-                    }
-                    NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, total.omega3), modifier = Modifier.fillMaxWidth())
                 }
             }
         }
+    }
+}
+
+
+@Composable
+fun BeslenmeSuScreen(viewModel: MainViewModel) {
+    val logs by viewModel.waterLogs.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+
+        if (logs.isEmpty()) {
+            item { EmptyDateRecordCard(stringResource(R.string.water_no_records_for_date)) }
+        } else {
+            items(logs, key = { it.id }) { log ->
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.water_ml_logged, log.amountMl), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
+    val logs by viewModel.supplementLogs.collectAsState()
+    val supplements by viewModel.supplements.collectAsState()
+    val supplementsById = remember(supplements) { supplements.associateBy { it.id } }
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+
+        if (logs.isEmpty()) {
+            item { EmptyDateRecordCard(stringResource(R.string.supplement_no_records_for_date)) }
+        } else {
+            items(logs, key = { it.id }) { log ->
+                val name = supplementsById[log.supplementId]?.name ?: stringResource(R.string.supplement_unknown)
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(name, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyDateRecordCard(message: String) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Text(message, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
     }
 }
 

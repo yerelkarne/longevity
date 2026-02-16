@@ -67,6 +67,11 @@
     <string name="time_label">Saat: %1$s</string>
     <string name="nutrition_selected_date">Tarih: %1$s</string>
     <string name="record_date_time">Tarih/Saat: %1$s</string>
+    <string name="nutrition_no_records_for_date">Bu tarih için henüz kayıt eklemediniz.</string>
+    <string name="water_no_records_for_date">Bu tarih için henüz su kaydı eklemediniz.</string>
+    <string name="supplement_no_records_for_date">Bu tarih için henüz takviye kaydı eklemediniz.</string>
+    <string name="water_ml_logged">%1$d ml su</string>
+    <string name="supplement_unknown">Bilinmeyen takviye</string>
     <string name="custom_activity_name_optional">Özel aktivite adı (opsiyonel)</string>
     <string name="workout_elliptical">Eliptik</string>
     <string name="workout_pilates">Pilates</string>

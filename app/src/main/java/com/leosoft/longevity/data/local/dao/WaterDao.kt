@@ -13,7 +13,7 @@ interface WaterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(log: WaterLogEntity)
 
-    @Query("SELECT * FROM water_logs WHERE date = :date ORDER BY time")
+    @Query("SELECT * FROM water_logs WHERE date = :date ORDER BY time DESC")
     fun observeByDate(date: LocalDate): Flow<List<WaterLogEntity>>
 
     @Query("SELECT COALESCE(SUM(amountMl), 0) FROM water_logs WHERE date = :date")

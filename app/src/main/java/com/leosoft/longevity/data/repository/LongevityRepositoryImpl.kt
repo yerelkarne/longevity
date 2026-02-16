@@ -144,6 +144,8 @@ class LongevityRepositoryImpl(
         recalculateScore(date)
     }
 
+    override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
+
     override suspend fun addSteps(log: StepsLogEntity) {
         activityDao.upsertSteps(log)
         recalculateScore(log.date)
@@ -153,6 +155,8 @@ class LongevityRepositoryImpl(
         supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = supplementId, taken = taken))
         recalculateScore(date)
     }
+
+    override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
 
     override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
         val bed = LocalTime.parse(bedtime)

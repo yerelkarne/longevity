@@ -6,8 +6,10 @@ import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementEntity
+import com.leosoft.longevity.data.local.entity.SupplementLogEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
+import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import java.time.LocalDate
@@ -27,8 +29,10 @@ interface LongevityRepository {
     suspend fun addCustomFood(name: String): Long
 
     suspend fun addWater(date: LocalDate, amountMl: Int)
+    fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>>
     suspend fun addSteps(log: StepsLogEntity)
     suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean)
+    fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
     suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?)
