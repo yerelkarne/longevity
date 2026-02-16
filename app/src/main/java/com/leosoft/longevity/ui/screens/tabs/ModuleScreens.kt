@@ -44,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
@@ -370,8 +372,13 @@ private fun AddReminderDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = reminderTitle, onValueChange = { reminderTitle = it }, label = { Text(stringResource(R.string.reminder_type)) })
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(
+                    value = reminderTitle,
+                    onValueChange = { reminderTitle = it },
+                    label = { Text(stringResource(R.string.reminder_type)) },
+                    singleLine = true
+                )
                 ExposedDropdownSimple(
                     label = stringResource(R.string.reminder_cadence_label),
                     options = listOf(stringResource(R.string.reminder_daily), stringResource(R.string.reminder_hourly)),
@@ -400,7 +407,13 @@ private fun AddReminderDialog(
                         )
                     }
                 } else {
-                    OutlinedTextField(value = intervalText, onValueChange = { intervalText = it }, label = { Text(stringResource(R.string.reminder_interval_hours)) })
+                    OutlinedTextField(
+                        value = intervalText,
+                        onValueChange = { intervalText = it },
+                        label = { Text(stringResource(R.string.reminder_interval_hours)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
                 }
             }
         },
