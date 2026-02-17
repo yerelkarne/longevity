@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
+import com.leosoft.longevity.data.local.ProfilePreferences
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
@@ -94,6 +95,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { date -> repository.observeSupplementLogs(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
+
     init {
         ensureCoreFoods()
     }
@@ -169,7 +173,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 sleepTargetMinutes = targets.sleepMinutes,
                 wakeTime = "07:00",
                 bedTime = "23:00",
-                supplementsPerDayTarget = 2
+                supplementsPerDayTarget = 0
             )
         )
 
@@ -178,7 +182,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "steps" to targets.steps,
             "protein" to targets.proteinGrams.toInt(),
             "sleep" to targets.sleepMinutes,
-            "supplements" to 2,
             "iron" to targets.ironMg,
             "magnesium" to targets.magnesiumMg,
             "potassium" to targets.potassiumMg,
@@ -194,7 +197,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 repository.updateGoalPlan(existing.id, type, target, "DAILY")
             }
         }
+        currentByType["supplements"]?.let { repository.deleteGoalPlan(it.id) }
         repository.recalculateScore(LocalDate.now())
+    }
+
+    fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
+        app.preferences.saveProfile(age, heightCm, weightKg, gender)
     }
 
     fun addMeal(foodId: Long, grams: Int, mealType: MealType) {
