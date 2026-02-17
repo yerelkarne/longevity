@@ -20,7 +20,7 @@ interface SupplementsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: SupplementLogEntity)
 
-    @Query("SELECT * FROM supplement_logs WHERE date = :date")
+    @Query("SELECT * FROM supplement_logs WHERE date = :date ORDER BY time DESC")
     fun observeLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
 
     @Query("SELECT COUNT(*) FROM supplement_logs WHERE date = :date AND taken = 1")

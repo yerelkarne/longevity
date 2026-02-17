@@ -1,0 +1,123 @@
+package com.leosoft.longevity.reminders
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.leosoft.longevity.MainActivity
+import com.leosoft.longevity.R
+import java.time.LocalDateTime
+import java.time.LocalTime
+
+class ReminderAlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifBlank { context.getString(R.string.reminder_default_title) }
+        val reminderId = intent.getLongExtra(EXTRA_ID, 0L)
+        val cadence = intent.getStringExtra(EXTRA_CADENCE).orEmpty()
+        val intervalHours = intent.getIntExtra(EXTRA_INTERVAL_HOURS, 1)
+        val reminderTime = intent.getStringExtra(EXTRA_TIME).orEmpty()
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "reminders"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nm.createNotificationChannel(
+                NotificationChannel(channelId, context.getString(R.string.tab_reminders), NotificationManager.IMPORTANCE_HIGH)
+            )
+        }
+
+        val openIntent = Intent(context, MainActivity::class.java)
+        val openPending = PendingIntent.getActivity(
+            context,
+            reminderId.toInt(),
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        nm.notify(
+            reminderId.toInt(),
+            NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(context.getString(R.string.reminder_notification_title))
+                .setContentText(title)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(openPending)
+                .build()
+        )
+
+        ReminderAlarmScheduler.schedule(context, reminderId, title, cadence, reminderTime, intervalHours, fromReceiver = true)
+    }
+
+    companion object {
+        const val EXTRA_ID = "extra_id"
+        const val EXTRA_TITLE = "extra_title"
+        const val EXTRA_CADENCE = "extra_cadence"
+        const val EXTRA_TIME = "extra_time"
+        const val EXTRA_INTERVAL_HOURS = "extra_interval_hours"
+    }
+}
+
+object ReminderAlarmScheduler {
+    fun cancel(context: Context, id: Long) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val intent = Intent(context, ReminderAlarmReceiver::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context,
+            id.toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        am.cancel(pi)
+    }
+
+    fun schedule(
+        context: Context,
+        id: Long,
+        title: String,
+        cadence: String,
+        reminderTime: String,
+        intervalHours: Int,
+        fromReceiver: Boolean = false
+    ) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
+            putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
+            putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
+            putExtra(ReminderAlarmReceiver.EXTRA_CADENCE, cadence)
+            putExtra(ReminderAlarmReceiver.EXTRA_TIME, reminderTime)
+            putExtra(ReminderAlarmReceiver.EXTRA_INTERVAL_HOURS, intervalHours)
+        }
+        val pi = PendingIntent.getBroadcast(
+            context,
+            id.toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val now = LocalDateTime.now()
+        val triggerAtMillis = when (cadence) {
+            "hourly" -> {
+                val hourInterval = intervalHours.coerceAtLeast(1)
+                val currentHourBoundary = now.withMinute(0).withSecond(0).withNano(0)
+                val next = if (fromReceiver) {
+                    currentHourBoundary.plusHours(hourInterval.toLong())
+                } else {
+                    currentHourBoundary.plusHours(1)
+                }
+                next.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }
+            else -> {
+                val t = runCatching { LocalTime.parse(reminderTime) }.getOrElse { LocalTime.of(9, 0) }
+                var next = now.withHour(t.hour).withMinute(t.minute).withSecond(0).withNano(0)
+                if (!next.isAfter(now)) next = next.plusDays(1)
+                next.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }
+        }
+
+        am.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+    }
+}

@@ -6,16 +6,29 @@ import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
+import com.leosoft.longevity.data.local.entity.StepsLogEntity
+import com.leosoft.longevity.data.local.entity.SupplementLogEntity
+import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+
+data class GoalPlanItem(
+    val id: Long,
+    val goalType: String,
+    val target: Int,
+    val cadence: String
+)
 
 data class OnboardingForm(
     val proteinTarget: Float = 120f,
@@ -38,10 +51,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .map { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val selectedGoalsDate = MutableStateFlow(LocalDate.now())
+    val goalsDashboard: StateFlow<DashboardSummary?> = selectedGoalsDate
+        .flatMapLatest { date -> repository.observeDashboard(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val goalPlans: StateFlow<List<GoalPlanItem>> = repository.observeGoalPlans()
+        .map { items ->
+            items.map { GoalPlanItem(id = it.id, goalType = it.goalType, target = it.target, cadence = it.cadence) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val foods = repository.observeFoods().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val mealEntries = repository.observeMealEntries(LocalDate.now()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val reminders = repository.observeReminders().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val selectedNutritionDate = MutableStateFlow(LocalDate.now())
+    val mealEntries = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeMealEntries(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val waterLogs: StateFlow<List<WaterLogEntity>> = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeWaterLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val supplementLogs: StateFlow<List<SupplementLogEntity>> = selectedNutritionDate
+        .flatMapLatest { date -> repository.observeSupplementLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         ensureCoreFoods()
@@ -72,7 +108,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.addMealEntry(
                 MealEntryEntity(
-                    date = LocalDate.now(),
+                    date = selectedNutritionDate.value,
                     time = LocalDateTime.now(),
                     mealType = mealType,
                     foodId = foodId,
@@ -91,7 +127,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.addMealEntry(
                 MealEntryEntity(
-                    date = LocalDate.now(),
+                    date = selectedNutritionDate.value,
                     time = LocalDateTime.now(),
                     mealType = mealType,
                     foodId = resolvedFoodId,
@@ -101,10 +137,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(LocalDate.now(), ml) }
+    fun addGoalPlan(goalType: String, target: Int, cadence: String) = viewModelScope.launch {
+        repository.addGoalPlan(goalType, target, cadence)
+    }
+
+    fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) = viewModelScope.launch {
+        repository.updateGoalPlan(id, goalType, target, cadence)
+    }
+
+    fun deleteGoalPlan(id: Long) = viewModelScope.launch {
+        repository.deleteGoalPlan(id)
+    }
+
+    fun setSelectedGoalsDate(date: LocalDate) {
+        selectedGoalsDate.value = date
+    }
+
+    fun setSelectedNutritionDate(date: LocalDate) {
+        selectedNutritionDate.value = date
+    }
+
+    fun updateMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
+        repository.updateMealEntry(entry)
+    }
+
+    fun deleteMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
+        repository.deleteMealEntry(entry.id, entry.date)
+    }
+
+    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(selectedNutritionDate.value, ml) }
+
+    fun addSteps(steps: Int) = viewModelScope.launch {
+        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+    }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
-        repository.addSupplementLog(LocalDate.now(), supplementId, true)
+        repository.addSupplementLog(selectedNutritionDate.value, supplementId, true)
     }
 
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
@@ -119,8 +187,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addTaskLog(LocalDate.now(), title, target)
     }
 
-    fun addReminder(type: String, time: String) = viewModelScope.launch {
-        repository.addReminderLog(LocalDate.now(), type, time)
+    suspend fun addReminder(type: String, time: String, cadence: String, intervalHours: Int?): Long {
+        return repository.addReminderLog(LocalDate.now(), type, time, cadence, intervalHours)
+    }
+
+    fun updateReminder(id: Long, type: String, time: String, cadence: String, intervalHours: Int?) = viewModelScope.launch {
+        repository.updateReminderLog(id, type, time, cadence, intervalHours)
+    }
+
+    fun deleteReminder(id: Long) = viewModelScope.launch {
+        repository.deleteReminderLog(id)
     }
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {

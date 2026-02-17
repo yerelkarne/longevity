@@ -118,6 +118,17 @@ data class ReminderLogEntity(
     val date: LocalDate,
     val reminderType: String,
     val reminderTime: String,
+    val cadence: String,
+    val intervalHours: Int?,
+    val createdAt: LocalDateTime
+)
+
+@Entity(tableName = "goal_plans")
+data class GoalPlanEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val goalType: String,
+    val target: Int,
+    val cadence: String,
     val createdAt: LocalDateTime
 )
 

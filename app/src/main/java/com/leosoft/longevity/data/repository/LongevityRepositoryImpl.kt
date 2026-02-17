@@ -10,6 +10,7 @@ import com.leosoft.longevity.data.local.dao.SupplementsDao
 import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
+import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
@@ -44,6 +45,7 @@ private data class DashboardInputs(
     val sleep: SleepLogEntity?,
     val meals: List<MealEntryEntity>,
     val foods: List<FoodEntity>,
+    val supplementLogs: List<SupplementLogEntity>,
     val goals: UserGoalsEntity?
 )
 
@@ -92,6 +94,38 @@ class LongevityRepositoryImpl(
         recalculateScore(entry.date)
     }
 
+    override suspend fun updateMealEntry(entry: MealEntryEntity) {
+        nutritionDao.updateMealEntry(id = entry.id, foodId = entry.foodId, grams = entry.grams)
+        nutritionDao.deleteMealNutritionRecordByMealEntryId(entry.id)
+        nutritionDao.getFoodById(entry.foodId)?.let { food ->
+            nutritionDao.insertMealNutritionRecord(
+                MealNutritionRecordEntity(
+                    mealEntryId = entry.id,
+                    date = entry.date,
+                    foodId = food.id,
+                    grams = entry.grams,
+                    protein = nutrientValuePerGram(food.protein, entry.grams),
+                    carbs = nutrientValuePerGram(food.carbs, entry.grams),
+                    fat = nutrientValuePerGram(food.fat, entry.grams),
+                    fiber = nutrientValuePerGram(food.fiber, entry.grams),
+                    ironMg = nutrientValuePerGram(food.ironMg, entry.grams),
+                    magnesiumMg = nutrientValuePerGram(food.magnesiumMg, entry.grams),
+                    potassiumMg = nutrientValuePerGram(food.potassiumMg, entry.grams),
+                    vitaminDUi = nutrientValuePerGram(food.vitaminDUi, entry.grams),
+                    omega3Mg = nutrientValuePerGram(food.omega3Mg, entry.grams),
+                    createdAt = LocalDateTime.now()
+                )
+            )
+        }
+        recalculateScore(entry.date)
+    }
+
+    override suspend fun deleteMealEntry(id: Long, date: LocalDate) {
+        nutritionDao.deleteMealNutritionRecordByMealEntryId(id)
+        nutritionDao.deleteMealEntry(id)
+        recalculateScore(date)
+    }
+
     override suspend fun addCustomFood(name: String): Long {
         return nutritionDao.insertFood(
             FoodEntity(
@@ -110,6 +144,8 @@ class LongevityRepositoryImpl(
         recalculateScore(date)
     }
 
+    override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
+
     override suspend fun addSteps(log: StepsLogEntity) {
         activityDao.upsertSteps(log)
         recalculateScore(log.date)
@@ -119,6 +155,8 @@ class LongevityRepositoryImpl(
         supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = supplementId, taken = taken))
         recalculateScore(date)
     }
+
+    override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
 
     override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
         val bed = LocalTime.parse(bedtime)
@@ -139,8 +177,48 @@ class LongevityRepositoryImpl(
         quickAddDao.insertTask(TaskLogEntity(date = date, title = title, targetText = targetText, createdAt = LocalDateTime.now()))
     }
 
-    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String) {
-        quickAddDao.insertReminder(ReminderLogEntity(date = date, reminderType = reminderType, reminderTime = reminderTime, createdAt = LocalDateTime.now()))
+    override fun observeGoalPlans() = quickAddDao.observeGoalPlans()
+
+    override suspend fun addGoalPlan(goalType: String, target: Int, cadence: String): Long {
+        return quickAddDao.insertGoalPlan(
+            GoalPlanEntity(
+                goalType = goalType,
+                target = target,
+                cadence = cadence,
+                createdAt = LocalDateTime.now()
+            )
+        )
+    }
+
+    override suspend fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String) {
+        quickAddDao.updateGoalPlan(id, goalType, target, cadence)
+    }
+
+    override suspend fun deleteGoalPlan(id: Long) {
+        quickAddDao.deleteGoalPlan(id)
+    }
+
+    override fun observeReminders() = quickAddDao.observeReminders()
+
+    override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long {
+        return quickAddDao.insertReminder(
+            ReminderLogEntity(
+                date = date,
+                reminderType = reminderType,
+                reminderTime = reminderTime,
+                cadence = cadence,
+                intervalHours = intervalHours,
+                createdAt = LocalDateTime.now()
+            )
+        )
+    }
+
+    override suspend fun updateReminderLog(id: Long, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?) {
+        quickAddDao.updateReminder(id, reminderType, reminderTime, cadence, intervalHours)
+    }
+
+    override suspend fun deleteReminderLog(id: Long) {
+        quickAddDao.deleteReminder(id)
     }
 
     override suspend fun updateGoal(goalType: String, value: Int) {
@@ -161,12 +239,13 @@ class LongevityRepositoryImpl(
 
     override fun observeDashboard(date: LocalDate): Flow<DashboardSummary> {
         val partialFlow: Flow<DashboardInputs> = combine(scoresDao.observeByDate(date), activityDao.observeSteps(date)) { score, steps ->
-            DashboardInputs(score, steps, emptyList(), null, emptyList(), emptyList(), null)
+            DashboardInputs(score, steps, emptyList(), null, emptyList(), emptyList(), emptyList(), null)
         }
             .combine(waterDao.observeByDate(date)) { partial, waterLogs -> partial.copy(waterLogs = waterLogs) }
             .combine(lifeDao.observeSleep(date)) { partial, sleep -> partial.copy(sleep = sleep) }
             .combine(nutritionDao.observeMealEntries(date)) { partial, meals -> partial.copy(meals = meals) }
             .combine(nutritionDao.observeFoods()) { partial, foods -> partial.copy(foods = foods) }
+            .combine(supplementsDao.observeLogs(date)) { partial, logs -> partial.copy(supplementLogs = logs) }
             .combine(goalsDao.observeGoals()) { partial, goals -> partial.copy(goals = goals) }
 
         return partialFlow.combine(goalsDao.observeGoals()) { partial, latestGoals ->
@@ -175,11 +254,16 @@ class LongevityRepositoryImpl(
             val stepsValue = partial.steps?.steps ?: 0
             val waterTotal = partial.waterLogs.sumOf { it.amountMl }
             val sleepMinutes = partial.sleep?.durationMinutes ?: 0
+            val workoutMinutesByType = activityDao.getWorkouts(date)
+                .groupBy { it.type.name.lowercase() }
+                .mapValues { (_, logs) -> logs.sumOf { it.durationMinutes } }
             DashboardSummary(
                 score = partial.score,
                 steps = stepsValue,
                 waterMl = waterTotal,
                 sleepMinutes = sleepMinutes,
+                supplementsTaken = partial.supplementLogs.count { it.taken },
+                workoutMinutesByType = workoutMinutesByType,
                 macroTotals = totals,
                 pendingTasks = buildList {
                     if (stepsValue < safeGoals.stepsTarget) add("${safeGoals.stepsTarget} adım tamamla")

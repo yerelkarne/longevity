@@ -1,12 +1,17 @@
 package com.leosoft.longevity.ui.screens.tabs
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,12 +27,13 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,19 +43,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
+import com.leosoft.longevity.reminders.ReminderAlarmScheduler
+import java.time.format.DateTimeFormatter
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
+import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY, TASK, REMINDER, GOAL }
+private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 @Composable
 fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
@@ -67,11 +79,13 @@ fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
 
 @Composable
 fun GunumModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders), stringResource(R.string.tab_score))
+    val tabs = listOf(stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> GunumOzetScreen(viewModel)
-            else -> PlaceholderTab(stringResource(R.string.placeholder_coming_soon, page))
+            1 -> GunumHedeflerScreen(viewModel)
+            2 -> GunumHatirlatmalarScreen(viewModel)
+            else -> GunumOzetScreen(viewModel)
         }
     }
 }
@@ -84,6 +98,8 @@ fun BeslenmeModule(viewModel: MainViewModel) {
             0 -> BeslenmeKayitScreen(viewModel)
             1 -> BeslenmeMakrolarScreen(viewModel)
             2 -> BeslenmeMikrolarScreen(viewModel)
+            3 -> BeslenmeSuScreen(viewModel)
+            4 -> BeslenmeTakviyelerScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.placeholder_ready_template, page))
         }
     }
@@ -95,7 +111,7 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
-    val data = viewModel.dashboard.value
+    val data by viewModel.dashboard.collectAsState()
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -124,17 +140,458 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     }
 }
 
+
+private enum class GoalCadence { HOURLY, DAILY, WEEKLY }
+
+@Composable
+private fun GunumHedeflerScreen(viewModel: MainViewModel) {
+    val selectedDate by viewModel.selectedGoalsDate.collectAsState()
+    val dashboard by viewModel.goalsDashboard.collectAsState()
+    val goals by viewModel.goalPlans.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
+    var goalToDelete by remember { mutableStateOf<GoalPlanItem?>(null) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedGoalsDate(it) }
+            )
+        }
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.tab_tasks), style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { showAddDialog = true }) {
+                    Text(stringResource(R.string.goal_add_link))
+                }
+            }
+        }
+
+        if (goals.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.goals_empty_message))
+                        TextButton(onClick = { showAddDialog = true }) {
+                            Text(stringResource(R.string.goal_add_link))
+                        }
+                    }
+                }
+            }
+        } else {
+            items(goals, key = { it.id }) { goal ->
+                val progress = goalProgress(goal, dashboard)
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { goalToEdit = goal }) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
+                        if (isActivityGoalType(goal.goalType)) {
+                            Text(goalActivityLabel(goal.goalType), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
+                        Text(stringResource(R.string.goal_progress_text, progress.current, goal.target))
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddGoalDialog(
+            title = stringResource(R.string.goal_add_link),
+            onDismiss = { showAddDialog = false },
+            onSave = { typeKey, target, cadence ->
+                viewModel.addGoalPlan(typeKey, target, cadence)
+                val userGoalType = goalTypeToUserGoalKey(typeKey)
+                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                    viewModel.updateGoal(userGoalType, target)
+                }
+                showAddDialog = false
+            }
+        )
+    }
+
+    goalToEdit?.let { current ->
+        AddGoalDialog(
+            title = stringResource(R.string.goal_edit_title),
+            initialGoalType = current.goalType,
+            initialTarget = current.target,
+            initialCadence = current.cadence,
+            initialActivityType = current.goalType,
+            onDismiss = { goalToEdit = null },
+            onSave = { typeKey, target, cadence ->
+                viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
+                val userGoalType = goalTypeToUserGoalKey(typeKey)
+                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                    viewModel.updateGoal(userGoalType, target)
+                }
+                goalToEdit = null
+            },
+            onDelete = {
+                goalToEdit = null
+                goalToDelete = current
+            }
+        )
+    }
+
+    goalToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { goalToDelete = null },
+            title = { Text(stringResource(R.string.goal_delete_title)) },
+            text = { Text(stringResource(R.string.goal_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGoalPlan(current.id)
+                    goalToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { goalToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val reminders by viewModel.reminders.collectAsState()
+    val scope = rememberCoroutineScope()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var reminderToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
+    var reminderToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (reminders.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.reminders_empty_message))
+                        TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                    }
+                }
+            }
+        } else {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.tab_reminders), style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                }
+            }
+            items(reminders, key = { it.id }) { reminder ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth().clickable { reminderToEdit = reminder }
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(reminder.reminderType, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (reminder.cadence == "hourly") stringResource(R.string.reminder_hourly_every, reminder.intervalHours ?: 1)
+                            else stringResource(R.string.reminder_daily_at, reminder.reminderTime)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddReminderDialog(
+            title = stringResource(R.string.reminder_add_link),
+            onDismiss = { showAddDialog = false },
+            onSave = { title, cadence, dailyTime, interval ->
+                scope.launch {
+                    val id = viewModel.addReminder(title, dailyTime, cadence, interval)
+                    ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
+                    showAddDialog = false
+                }
+            }
+        )
+    }
+
+    reminderToEdit?.let { current ->
+        AddReminderDialog(
+            title = stringResource(R.string.reminder_edit_title),
+            initialTitle = current.reminderType,
+            initialCadence = current.cadence,
+            initialDailyTime = current.reminderTime,
+            initialIntervalHours = current.intervalHours ?: 1,
+            onDismiss = { reminderToEdit = null },
+            onSave = { title, cadence, dailyTime, interval ->
+                viewModel.updateReminder(current.id, title, dailyTime, cadence, interval)
+                ReminderAlarmScheduler.schedule(context, current.id, title, cadence, dailyTime, interval ?: 1)
+                reminderToEdit = null
+            },
+            onDelete = {
+                reminderToEdit = null
+                reminderToDelete = current
+            }
+        )
+    }
+
+    reminderToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { reminderToDelete = null },
+            title = { Text(stringResource(R.string.reminder_delete_title)) },
+            text = { Text(stringResource(R.string.reminder_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteReminder(current.id)
+                    ReminderAlarmScheduler.cancel(context, current.id)
+                    reminderToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { reminderToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+}
+
+
+@Composable
+private fun AddReminderDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, Int?) -> Unit,
+    initialTitle: String = "",
+    initialCadence: String = "daily",
+    initialDailyTime: String = "09:00",
+    initialIntervalHours: Int = 1,
+    onDelete: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    var reminderTitle by remember(initialTitle) { mutableStateOf(initialTitle) }
+    var cadence by remember(initialCadence) { mutableStateOf(initialCadence) }
+    var dailyTime by remember(initialDailyTime) { mutableStateOf(initialDailyTime) }
+    var intervalText by remember(initialIntervalHours) { mutableStateOf(initialIntervalHours.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(
+                    value = reminderTitle,
+                    onValueChange = { reminderTitle = it },
+                    label = { Text(stringResource(R.string.reminder_type)) },
+                    singleLine = true
+                )
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.reminder_cadence_label),
+                    options = listOf(stringResource(R.string.reminder_daily), stringResource(R.string.reminder_hourly)),
+                    selected = if (cadence == "daily") 0 else 1,
+                    onSelect = { cadence = if (it == 0) "daily" else "hourly" }
+                )
+                if (cadence == "daily") {
+                    val openTimePicker = {
+                        val parts = dailyTime.split(":")
+                        val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+                        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                        TimePickerDialog(context, { _, h, m -> dailyTime = String.format("%02d:%02d", h, m) }, hour, minute, true).show()
+                    }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = dailyTime,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.reminder_pick_time)) }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .clickable { openTimePicker() }
+                        )
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = intervalText,
+                        onValueChange = { intervalText = it },
+                        label = { Text(stringResource(R.string.reminder_interval_hours)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val interval = if (cadence == "hourly") (intervalText.toIntOrNull() ?: 1).coerceAtLeast(1) else null
+                onSave(reminderTitle.ifBlank { context.getString(R.string.reminder_default_title) }, cadence, dailyTime, interval)
+            }) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let { TextButton(onClick = it) { Text(stringResource(R.string.delete)) } }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        }
+    )
+}
+
+private data class GoalProgress(val current: Int)
+
+@Composable
+private fun AddGoalDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onSave: (String, Int, String) -> Unit,
+    initialGoalType: String = "water",
+    initialTarget: Int? = null,
+    initialCadence: String = "daily",
+    initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
+    onDelete: (() -> Unit)? = null
+) {
+    val goalTypeKeys = listOf("water", "activity", "protein", "sleep", "supplements")
+    val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
+    val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
+    var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
+    val cadenceKeys = listOf("hourly", "daily", "weekly")
+    val initialGoalTypeKey = if (initialGoalType == "steps" || isActivityGoalType(initialGoalType)) "activity" else initialGoalType
+    var selectedTypeIdx by remember(initialGoalTypeKey) { mutableStateOf(goalTypeKeys.indexOf(initialGoalTypeKey).takeIf { it >= 0 } ?: 0) }
+    var selectedCadenceIdx by remember(initialCadence) { mutableStateOf(cadenceKeys.indexOf(initialCadence).takeIf { it >= 0 } ?: 1) }
+    var targetText by remember(initialTarget) { mutableStateOf(initialTarget?.toString().orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.goal_type),
+                    options = goalTypeKeys.map { goalTypeLabel(it) },
+                    selected = selectedTypeIdx,
+                    onSelect = { idx -> selectedTypeIdx = idx }
+                )
+                Text(goalTargetHintLabel(goalTypeKeys[selectedTypeIdx]), style = MaterialTheme.typography.bodySmall)
+                if (goalTypeKeys[selectedTypeIdx] == "activity") {
+                    ExposedDropdownSimple(
+                        label = stringResource(R.string.activity_type),
+                        options = activityTypeKeys.map { stringResource(workoutTypeLabel(it)) },
+                        selected = selectedActivityIdx,
+                        onSelect = { idx -> selectedActivityIdx = idx }
+                    )
+                }
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.goal_frequency),
+                    options = cadenceKeys.map { cadenceLabel(it) },
+                    selected = selectedCadenceIdx,
+                    onSelect = { idx -> selectedCadenceIdx = idx }
+                )
+                OutlinedTextField(value = targetText, onValueChange = { targetText = it }, label = { Text(stringResource(R.string.target_value)) })
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val target = targetText.toIntOrNull() ?: return@TextButton
+                val selectedGoalType = goalTypeKeys[selectedTypeIdx]
+                val resolvedGoalType = if (selectedGoalType == "activity") activityTypeKeys[selectedActivityIdx].name.lowercase() else selectedGoalType
+                onSave(resolvedGoalType, target, cadenceKeys[selectedCadenceIdx])
+            }) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let {
+                    TextButton(onClick = it) { Text(stringResource(R.string.delete)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        }
+    )
+}
+
+@Composable
+private fun goalTypeLabel(type: String): String = when {
+    type == "water" -> stringResource(R.string.goal_type_water)
+    type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_type_activity)
+    type == "protein" -> stringResource(R.string.goal_type_protein)
+    type == "sleep" -> stringResource(R.string.goal_type_sleep)
+    type == "supplements" -> stringResource(R.string.goal_type_supplements)
+    else -> type
+}
+
+@Composable
+private fun goalTargetHintLabel(type: String): String = when {
+    type == "water" -> stringResource(R.string.goal_hint_water)
+    type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
+    type == "protein" -> stringResource(R.string.goal_hint_protein)
+    type == "sleep" -> stringResource(R.string.goal_hint_sleep)
+    type == "supplements" -> stringResource(R.string.goal_hint_supplements)
+    else -> ""
+}
+
+
+private fun isActivityGoalType(type: String): Boolean =
+    type in WorkoutType.entries.filter { it != WorkoutType.OTHER }.map { it.name.lowercase() }
+
+private fun goalTypeToUserGoalKey(type: String): String = if (type == "steps" || type == "activity" || isActivityGoalType(type)) "steps" else type
+
+@Composable
+private fun goalActivityLabel(type: String): String {
+    val workoutType = WorkoutType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) }
+    return if (workoutType != null) {
+        stringResource(workoutTypeLabel(workoutType))
+    } else {
+        ""
+    }
+}
+
+@Composable
+private fun cadenceLabel(cadence: String): String = when (cadence) {
+    "hourly" -> stringResource(R.string.goal_frequency_hourly)
+    "daily" -> stringResource(R.string.goal_frequency_daily)
+    "weekly" -> stringResource(R.string.goal_frequency_weekly)
+    else -> cadence
+}
+
+private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
+    val current = when {
+        goal.goalType == "water" -> dashboard?.waterMl ?: 0
+        goal.goalType == "steps" || goal.goalType == "activity" || isActivityGoalType(goal.goalType) -> {
+            if (goal.goalType == "steps" || goal.goalType == "activity") {
+                dashboard?.steps ?: 0
+            } else {
+                dashboard?.workoutMinutesByType?.get(goal.goalType) ?: 0
+            }
+        }
+        goal.goalType == "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
+        goal.goalType == "sleep" -> dashboard?.sleepMinutes ?: 0
+        goal.goalType == "supplements" -> dashboard?.supplementsTaken ?: 0
+        else -> 0
+    }
+    return GoalProgress(current = current)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     var foodsReady by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         viewModel.ensureCoreFoods().join()
         foodsReady = true
     }
-    val nutritiousFoods = viewModel.nutritiousFoods.value
-    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else viewModel.foods.value
-    val supplements = viewModel.supplements.value
+    val nutritiousFoods by viewModel.nutritiousFoods.collectAsState()
+    val allFoods by viewModel.foods.collectAsState()
+    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else allFoods
+    val supplements by viewModel.supplements.collectAsState()
     var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedFoodId by remember { mutableStateOf<Long?>(null) }
@@ -145,7 +602,6 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var notesText by remember { mutableStateOf("") }
     var selectedWorkoutType by remember { mutableStateOf(WorkoutType.WALKING) }
     var customActivityName by remember { mutableStateOf("") }
-    var selectedGoalType by remember { mutableStateOf("water") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -195,6 +651,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.wake_time)) })
                     }
                     QuickAddType.ACTIVITY -> {
+                        val isStepBased = selectedWorkoutType == WorkoutType.WALKING || selectedWorkoutType == WorkoutType.RUNNING
                         ExposedDropdownSimple(
                             label = stringResource(R.string.activity_type),
                             options = WorkoutType.entries.map { stringResource(workoutTypeLabel(it)) },
@@ -202,25 +659,16 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             onSelect = { idx -> selectedWorkoutType = WorkoutType.entries[idx] }
                         )
                         OutlinedTextField(value = customActivityName, onValueChange = { customActivityName = it }, label = { Text(stringResource(R.string.custom_activity_name_optional)) })
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.duration_min)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.intensity_1_3)) })
-                    }
-                    QuickAddType.TASK -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.task_title)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.optional_target)) })
-                    }
-                    QuickAddType.REMINDER -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.reminder_type)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.reminder_time)) })
-                    }
-                    QuickAddType.GOAL -> {
-                        ExposedDropdownSimple(
-                            label = stringResource(R.string.goal_type),
-                            options = listOf("water", "steps", "protein", "sleep", "supplements"),
-                            selected = listOf("water", "steps", "protein", "sleep", "supplements").indexOf(selectedGoalType),
-                            onSelect = { idx -> selectedGoalType = listOf("water", "steps", "protein", "sleep", "supplements")[idx] }
+                        OutlinedTextField(
+                            value = amountText,
+                            onValueChange = { amountText = it },
+                            label = { Text(if (isStepBased) stringResource(R.string.steps_input) else stringResource(R.string.duration_min)) }
                         )
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.target_value)) })
+                        OutlinedTextField(
+                            value = secondaryText,
+                            onValueChange = { secondaryText = it },
+                            label = { Text(if (isStepBased) stringResource(R.string.distance_km_optional) else stringResource(R.string.intensity_1_3)) }
+                        )
                     }
                 }
                 OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
@@ -236,12 +684,18 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
                     QuickAddType.ACTIVITY -> {
                         val resolvedType = if (customActivityName.isNotBlank()) WorkoutType.OTHER else selectedWorkoutType
-                        val mergedNotes = listOf(customActivityName.takeIf { it.isNotBlank() }, notesText.takeIf { it.isNotBlank() }).joinToString(" | ")
-                        viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
+                        val isStepBased = resolvedType == WorkoutType.WALKING || resolvedType == WorkoutType.RUNNING
+                        val mergedNotes = listOf(
+                            customActivityName.takeIf { it.isNotBlank() },
+                            secondaryText.takeIf { it.isNotBlank() && isStepBased }?.let { context.getString(R.string.distance_km_note, it) },
+                            notesText.takeIf { it.isNotBlank() }
+                        ).joinToString(" | ")
+                        if (isStepBased) {
+                            viewModel.addSteps(amountText.toIntOrNull() ?: 0)
+                        } else {
+                            viewModel.addWorkout(resolvedType, amountText.toIntOrNull() ?: 0, secondaryText.toIntOrNull() ?: 1, mergedNotes)
+                        }
                     }
-                    QuickAddType.TASK -> viewModel.addTask(amountText, secondaryText.ifBlank { null })
-                    QuickAddType.REMINDER -> viewModel.addReminder(amountText, secondaryText)
-                    QuickAddType.GOAL -> viewModel.updateGoal(selectedGoalType, amountText.toIntOrNull() ?: 0)
                 }
                 onDismiss()
             }) { Text(stringResource(R.string.save)) }
@@ -278,9 +732,6 @@ private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.SUPPLEMENT -> R.string.add_type_supplement
     QuickAddType.SLEEP -> R.string.add_type_sleep
     QuickAddType.ACTIVITY -> R.string.add_type_activity
-    QuickAddType.TASK -> R.string.add_type_task
-    QuickAddType.REMINDER -> R.string.add_type_reminder
-    QuickAddType.GOAL -> R.string.add_type_goal
 }
 
 private fun workoutTypeLabel(type: WorkoutType): Int = when (type) {
@@ -322,29 +773,212 @@ private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
 
 @Composable
 fun BeslenmeKayitScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
+    val context = LocalContext.current
+    val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
-    val meals = viewModel.mealEntries.value
+    val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val mealsSorted = remember(meals) { meals.sortedByDescending { it.time } }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
+    var mealToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
+    var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.daily_total))
-                    Text(stringResource(R.string.total_grams, meals.sumOf { it.grams }))
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = {
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            viewModel.setSelectedNutritionDate(java.time.LocalDate.of(year, month + 1, dayOfMonth))
+                        },
+                        selectedDate.year,
+                        selectedDate.monthValue - 1,
+                        selectedDate.dayOfMonth
+                    ).show()
+                }) {
+                    Text(stringResource(R.string.nutrition_selected_date, selectedDate.format(dateFormatter)))
                 }
             }
         }
-        items(meals) { entry ->
+
+        if (mealsSorted.isEmpty()) {
+            item {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            }
+        }
+
+        items(mealsSorted, key = { it.id }) { entry ->
             val food = foodsById[entry.foodId]
             val n = food?.let { nutrientByGrams(it, entry.grams) }
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${food?.name ?: stringResource(R.string.unknown_food)} - ${entry.grams} g")
-                    Text(stringResource(R.string.time_label, entry.time.toLocalTime().toString()), style = MaterialTheme.typography.bodySmall)
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth().clickable { mealToEdit = entry }
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${food?.name ?: stringResource(R.string.unknown_food)} • ${entry.grams} g", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.record_date_time, entry.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
                     if (n != null) {
-                        Text(stringResource(R.string.macros_line, n.protein, n.carbs, n.fat, n.fiber), style = MaterialTheme.typography.bodySmall)
-                        Text(stringResource(R.string.micros_line, n.iron, n.magnesium, n.potassium, n.vitaminD, n.omega3), style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, n.protein), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, n.carbs), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, n.fat), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, n.fiber), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, n.iron), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, n.magnesium), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, n.potassium), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, n.vitaminD), modifier = Modifier.weight(1f))
+                        }
+                        NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, n.omega3), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        }
+    }
+
+    mealToEdit?.let { entry ->
+        MealEntryActionsDialog(
+            onDismiss = { mealToEdit = null },
+            onDelete = { selected ->
+                mealToEdit = null
+                mealToDelete = selected
+            },
+            currentMeal = entry,
+            foods = foods,
+            onSaveEdit = { updated ->
+                viewModel.updateMealEntry(updated)
+                mealToEdit = null
+            }
+        )
+    }
+
+    mealToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { mealToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteMealEntry(entry)
+                    mealToDelete = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { mealToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun NutrientChip(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F6F5)), modifier = modifier) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(value, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealEntryActionsDialog(
+    onDismiss: () -> Unit,
+    onDelete: (com.leosoft.longevity.data.local.entity.MealEntryEntity) -> Unit,
+    currentMeal: com.leosoft.longevity.data.local.entity.MealEntryEntity,
+    foods: List<FoodEntity>,
+    onSaveEdit: (com.leosoft.longevity.data.local.entity.MealEntryEntity) -> Unit
+) {
+    var isEditing by remember(currentMeal.id) { mutableStateOf(false) }
+    var selectedFoodId by remember(currentMeal.id) { mutableLongStateOf(currentMeal.foodId) }
+    var gramsText by remember(currentMeal.id) { mutableStateOf(currentMeal.grams.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (isEditing) R.string.edit_meal else R.string.meal_actions_title)) },
+        text = {
+            if (isEditing) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExposedDropdownSimple(
+                        label = stringResource(R.string.food_list_label),
+                        options = foods.map { it.name },
+                        selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
+                        onSelect = { idx -> selectedFoodId = foods[idx].id }
+                    )
+                    OutlinedTextField(
+                        value = gramsText,
+                        onValueChange = { gramsText = it },
+                        label = { Text(stringResource(R.string.grams)) }
+                    )
+                }
+            } else {
+                Text(stringResource(R.string.meal_actions_hint))
+            }
+        },
+        confirmButton = {
+            if (isEditing) {
+                TextButton(onClick = {
+                    val grams = gramsText.toIntOrNull() ?: return@TextButton
+                    onSaveEdit(currentMeal.copy(foodId = selectedFoodId, grams = grams))
+                }) { Text(stringResource(R.string.save)) }
+            } else {
+                TextButton(onClick = { isEditing = true }) { Text(stringResource(R.string.edit)) }
+            }
+        },
+        dismissButton = {
+            if (isEditing) {
+                TextButton(onClick = { isEditing = false }) { Text(stringResource(R.string.back)) }
+            } else {
+                TextButton(onClick = { onDelete(currentMeal) }) { Text(stringResource(R.string.delete)) }
+            }
+        }
+    )
+}
+
+@Composable
+fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
+    val foods by viewModel.foods.collectAsState()
+    val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            if (meals.isEmpty()) {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            } else {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_fat), value = stringResource(R.string.nutrient_grams_value, totals.fat), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_fiber), value = stringResource(R.string.nutrient_grams_value, totals.fiber), modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -353,23 +987,12 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
 }
 
 @Composable
-fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
-    val meals = viewModel.mealEntries.value
-    val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.macros_line, totals.protein, totals.carbs, totals.fat, totals.fiber))
-        }
-    }
-}
-
-@Composable
 fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
-    val foods = viewModel.foods.value
+    val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
-    val meals = viewModel.mealEntries.value
+    val meals by viewModel.mealEntries.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val total = meals.fold(NutrientTotals()) { acc, meal ->
         val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
         acc.copy(
@@ -381,10 +1004,142 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
         )
     }
 
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.micros_line, total.iron, total.magnesium, total.potassium, total.vitaminD, total.omega3))
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            if (meals.isEmpty()) {
+                EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
+            } else {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            NutrientChip(label = stringResource(R.string.nutrient_potassium), value = stringResource(R.string.nutrient_mg_value, total.potassium), modifier = Modifier.weight(1f))
+                            NutrientChip(label = stringResource(R.string.nutrient_vitamin_d), value = stringResource(R.string.nutrient_iu_value, total.vitaminD), modifier = Modifier.weight(1f))
+                        }
+                        NutrientChip(label = stringResource(R.string.nutrient_omega3), value = stringResource(R.string.nutrient_mg_value, total.omega3), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun BeslenmeSuScreen(viewModel: MainViewModel) {
+    val logs by viewModel.waterLogs.collectAsState()
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+
+        if (logs.isEmpty()) {
+            item { EmptyDateRecordCard(stringResource(R.string.water_no_records_for_date)) }
+        } else {
+            items(logs, key = { it.id }) { log ->
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.water_ml_logged, log.amountMl), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
+    val logs by viewModel.supplementLogs.collectAsState()
+    val supplements by viewModel.supplements.collectAsState()
+    val supplementsById = remember(supplements) { supplements.associateBy { it.id } }
+    val selectedDate by viewModel.selectedNutritionDate.collectAsState()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+
+        if (logs.isEmpty()) {
+            item { EmptyDateRecordCard(stringResource(R.string.supplement_no_records_for_date)) }
+        } else {
+            items(logs, key = { it.id }) { log ->
+                val name = supplementsById[log.supplementId]?.name ?: stringResource(R.string.supplement_unknown)
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(name, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyDateRecordCard(message: String) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Text(message, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun NutritionDatePickerCard(
+    selectedDate: java.time.LocalDate,
+    selectedDateText: String,
+    onDateSelected: (java.time.LocalDate) -> Unit
+) {
+    val context = LocalContext.current
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        TextButton(onClick = {
+            DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    onDateSelected(java.time.LocalDate.of(year, month + 1, dayOfMonth))
+                },
+                selectedDate.year,
+                selectedDate.monthValue - 1,
+                selectedDate.dayOfMonth
+            ).show()
+        }) {
+            Text(stringResource(R.string.nutrition_selected_date, selectedDateText))
         }
     }
 }

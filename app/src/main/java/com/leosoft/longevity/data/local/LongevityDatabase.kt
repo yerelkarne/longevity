@@ -17,6 +17,7 @@ import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.TaskLogEntity
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
@@ -40,10 +41,11 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         WorkoutLogEntity::class,
         TaskLogEntity::class,
         ReminderLogEntity::class,
+        GoalPlanEntity::class,
         UserGoalsEntity::class,
         DailyScoreEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
