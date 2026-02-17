@@ -166,6 +166,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
         val success = runCatching {
+            app.preferences.saveProfile(age, heightCm, weightKg, gender)
             val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender)
             repository.saveGoals(
                 UserGoalsEntity(
@@ -201,8 +202,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             goalTargets.forEach { (type, target) ->
                 repository.addGoalPlan(type, target, "daily")
             }
-            repository.recalculateScore(LocalDate.now())
         }.isSuccess
+
+        if (success) {
+            runCatching { repository.recalculateScore(LocalDate.now()) }
+        }
         onComplete(success)
     }
 
