@@ -43,6 +43,21 @@ data class OnboardingForm(
     val supplementsTarget: Int = 2
 )
 
+data class PersonalizedTargets(
+    val waterMl: Int,
+    val steps: Int,
+    val sleepMinutes: Int,
+    val proteinGrams: Float,
+    val carbsGrams: Float,
+    val fatGrams: Float,
+    val fiberGrams: Float,
+    val ironMg: Int,
+    val magnesiumMg: Int,
+    val potassiumMg: Int,
+    val vitaminDIu: Int,
+    val omega3Mg: Int
+)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as LongevityApp
     private val repository = app.repository
@@ -102,6 +117,84 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             app.preferences.setOnboardingDone(true)
             repository.recalculateScore(LocalDate.now())
         }
+    }
+
+    fun buildPersonalizedTargets(age: Int, heightCm: Int, weightKg: Float, gender: String): PersonalizedTargets {
+        val activityFactor = when {
+            age < 30 -> 1.6f
+            age < 50 -> 1.5f
+            else -> 1.4f
+        }
+        val bmr = when (gender) {
+            "male" -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) + 5f
+            "female" -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 161f
+            else -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 78f
+        }
+        val estimatedCalories = (bmr * activityFactor).coerceAtLeast(1300f)
+        val protein = (weightKg * 1.4f).coerceIn(70f, 210f)
+        val fat = (estimatedCalories * 0.28f / 9f).coerceIn(40f, 120f)
+        val carbs = ((estimatedCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
+        val fiber = (estimatedCalories / 1000f * 14f).coerceIn(25f, 45f)
+        val water = ((weightKg * 33f) + (heightCm * 2f)).toInt().coerceIn(1800, 4500)
+        val steps = ((heightCm * 20f) + (age * 35f)).toInt().coerceIn(7000, 13000)
+        val sleep = if (age < 18) 540 else if (age < 65) 480 else 450
+        val iron = if (gender == "female" && age in 18..50) 18 else 8
+
+        return PersonalizedTargets(
+            waterMl = water,
+            steps = steps,
+            sleepMinutes = sleep,
+            proteinGrams = protein,
+            carbsGrams = carbs,
+            fatGrams = fat,
+            fiberGrams = fiber,
+            ironMg = iron,
+            magnesiumMg = if (gender == "male") 420 else 320,
+            potassiumMg = 3500,
+            vitaminDIu = 600,
+            omega3Mg = if (gender == "male") 1600 else 1100
+        )
+    }
+
+    fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
+        val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender)
+        repository.saveGoals(
+            UserGoalsEntity(
+                proteinTarget = targets.proteinGrams,
+                carbsTarget = targets.carbsGrams,
+                fatTarget = targets.fatGrams,
+                fiberTarget = targets.fiberGrams,
+                waterTargetMl = targets.waterMl,
+                stepsTarget = targets.steps,
+                sleepTargetMinutes = targets.sleepMinutes,
+                wakeTime = "07:00",
+                bedTime = "23:00",
+                supplementsPerDayTarget = 2
+            )
+        )
+
+        val goalTargets = mapOf(
+            "water" to targets.waterMl,
+            "steps" to targets.steps,
+            "protein" to targets.proteinGrams.toInt(),
+            "sleep" to targets.sleepMinutes,
+            "supplements" to 2,
+            "iron" to targets.ironMg,
+            "magnesium" to targets.magnesiumMg,
+            "potassium" to targets.potassiumMg,
+            "vitamin_d" to targets.vitaminDIu,
+            "omega3" to targets.omega3Mg
+        )
+        val currentByType = goalPlans.value.associateBy { it.goalType }
+        goalTargets.forEach { (type, target) ->
+            val existing = currentByType[type]
+            if (existing == null) {
+                repository.addGoalPlan(type, target, "DAILY")
+            } else {
+                repository.updateGoalPlan(existing.id, type, target, "DAILY")
+            }
+        }
+        repository.recalculateScore(LocalDate.now())
     }
 
     fun addMeal(foodId: Long, grams: Int, mealType: MealType) {
