@@ -99,7 +99,7 @@ private fun MainScaffold(vm: MainViewModel) {
             composable("gunum") { GunumModule(vm) }
             composable("beslenme") { BeslenmeModule(vm) }
             composable("aktivite") { AktiviteModule() }
-            composable("yasam") { YasamModule() }
+            composable("yasam") { YasamModule(vm) }
             composable("analiz") { AnalizModule() }
         }
 

@@ -127,7 +127,101 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 }
 
 @Composable fun AktiviteModule() = ModuleTabLayout(listOf("Adım", "Egzersiz Ekle", "Geçmiş", "Hedefler")) { PlaceholderTab("Aktivite") }
-@Composable fun YasamModule() = ModuleTabLayout(listOf("Uyku", "Rutinler", "Alışkanlıklar", "Hatırlatmalar")) { PlaceholderTab("Yaşam") }
+@Composable
+fun YasamModule(viewModel: MainViewModel) {
+    val tabs = listOf("Uyku", "Rutinler")
+    ModuleTabLayout(tabs) { page ->
+        when (page) {
+            0 -> YasamUykuScreen(viewModel)
+            1 -> YasamRutinlerScreen(viewModel)
+            else -> PlaceholderTab("Yaşam")
+        }
+    }
+}
+
+@Composable
+private fun YasamUykuScreen(viewModel: MainViewModel) {
+    val sleepLogs by viewModel.sleepLogs.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (sleepLogs.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text("Henüz uyku kaydı yok.", modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            items(sleepLogs, key = { it.id }) { sleep ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(sleep.date.toString(), style = MaterialTheme.typography.titleSmall)
+                        Text("Yatış: ${sleep.bedtime.toLocalTime()}")
+                        Text("Kalkış: ${sleep.wakeTime.toLocalTime()}")
+                        Text("Süre: ${formatSleepDurationLabel(sleep.durationMinutes)}")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YasamRutinlerScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val reminders by viewModel.reminders.collectAsState()
+    val scope = rememberCoroutineScope()
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Rutin kayıtlarını buradan yönetebilirsin.")
+                    TextButton(onClick = { showAddDialog = true }) { Text("Rutin kaydı ekle") }
+                }
+            }
+        }
+        if (reminders.isEmpty()) {
+            item {
+                Text("Henüz rutin yok.")
+            }
+        } else {
+            items(reminders, key = { it.id }) { reminder ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(reminder.reminderType, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (reminder.cadence == "hourly") stringResource(R.string.reminder_hourly_every, reminder.intervalHours ?: 1)
+                            else stringResource(R.string.reminder_daily_at, reminder.reminderTime)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddReminderDialog(
+            title = "Rutin oluştur",
+            onDismiss = { showAddDialog = false },
+            onSave = { title, cadence, dailyTime, interval ->
+                scope.launch {
+                    val id = viewModel.addReminder(title, dailyTime, cadence, interval)
+                    ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
+                    showAddDialog = false
+                }
+            }
+        )
+    }
+}
 @Composable fun AnalizModule() = ModuleTabLayout(listOf("Skor", "BioAge", "Rapor", "Trendler")) { PlaceholderTab("Analiz") }
 
 @Composable

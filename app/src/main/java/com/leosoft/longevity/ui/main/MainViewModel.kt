@@ -8,6 +8,7 @@ import com.leosoft.longevity.data.local.ProfilePreferences
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
+import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
@@ -86,6 +87,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val nutritiousFoods = repository.observeFoodsWithNutrition().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val supplements = repository.observeSupplements().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val reminders = repository.observeReminders().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val sleepLogs: StateFlow<List<SleepLogEntity>> = repository.observeSleepLogs()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
