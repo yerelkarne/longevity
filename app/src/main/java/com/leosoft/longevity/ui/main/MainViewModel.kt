@@ -182,7 +182,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
 
-            val goalTargets = mapOf(
+            val goalTargets = listOf(
                 "water" to targets.waterMl,
                 "steps" to targets.steps,
                 "protein" to targets.proteinGrams.toInt(),
@@ -196,19 +196,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "vitamin_d" to targets.vitaminDIu,
                 "omega3" to targets.omega3Mg
             )
-            val currentByType = goalPlans.value.associateBy { it.goalType }
+
+            goalPlans.value.forEach { repository.deleteGoalPlan(it.id) }
             goalTargets.forEach { (type, target) ->
-                val existing = currentByType[type]
-                if (existing == null) {
-                    repository.addGoalPlan(type, target, "daily")
-                } else {
-                    repository.updateGoalPlan(existing.id, type, target, "daily")
-                }
+                repository.addGoalPlan(type, target, "daily")
             }
-            currentByType
-                .filterKeys { it !in goalTargets.keys }
-                .values
-                .forEach { repository.deleteGoalPlan(it.id) }
             repository.recalculateScore(LocalDate.now())
         }.isSuccess
         onComplete(success)
