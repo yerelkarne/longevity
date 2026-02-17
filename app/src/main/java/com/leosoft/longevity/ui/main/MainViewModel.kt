@@ -72,6 +72,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { date -> repository.observeDashboard(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val goalsMealEntries: StateFlow<List<MealEntryEntity>> = selectedGoalsDate
+        .flatMapLatest { date -> repository.observeMealEntries(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val goalPlans: StateFlow<List<GoalPlanItem>> = repository.observeGoalPlans()
         .map { items ->
             items.map { GoalPlanItem(id = it.id, goalType = it.goalType, target = it.target, cadence = it.cadence) }
@@ -160,46 +164,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
-        val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender)
-        repository.saveGoals(
-            UserGoalsEntity(
-                proteinTarget = targets.proteinGrams,
-                carbsTarget = targets.carbsGrams,
-                fatTarget = targets.fatGrams,
-                fiberTarget = targets.fiberGrams,
-                waterTargetMl = targets.waterMl,
-                stepsTarget = targets.steps,
-                sleepTargetMinutes = targets.sleepMinutes,
-                wakeTime = "07:00",
-                bedTime = "23:00",
-                supplementsPerDayTarget = 0
+    fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
+        val success = runCatching {
+            val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender)
+            repository.saveGoals(
+                UserGoalsEntity(
+                    proteinTarget = targets.proteinGrams,
+                    carbsTarget = targets.carbsGrams,
+                    fatTarget = targets.fatGrams,
+                    fiberTarget = targets.fiberGrams,
+                    waterTargetMl = targets.waterMl,
+                    stepsTarget = targets.steps,
+                    sleepTargetMinutes = targets.sleepMinutes,
+                    wakeTime = "07:00",
+                    bedTime = "23:00",
+                    supplementsPerDayTarget = 0
+                )
             )
-        )
 
-        val goalTargets = mapOf(
-            "water" to targets.waterMl,
-            "steps" to targets.steps,
-            "protein" to targets.proteinGrams.toInt(),
-            "sleep" to targets.sleepMinutes,
-            "iron" to targets.ironMg,
-            "magnesium" to targets.magnesiumMg,
-            "potassium" to targets.potassiumMg,
-            "vitamin_d" to targets.vitaminDIu,
-            "omega3" to targets.omega3Mg
-        )
-        val currentByType = goalPlans.value.associateBy { it.goalType }
-        goalTargets.forEach { (type, target) ->
-            val existing = currentByType[type]
-            if (existing == null) {
-                repository.addGoalPlan(type, target, "DAILY")
-            } else {
-                repository.updateGoalPlan(existing.id, type, target, "DAILY")
+            val goalTargets = mapOf(
+                "water" to targets.waterMl,
+                "steps" to targets.steps,
+                "protein" to targets.proteinGrams.toInt(),
+                "carbs" to targets.carbsGrams.toInt(),
+                "fat" to targets.fatGrams.toInt(),
+                "fiber" to targets.fiberGrams.toInt(),
+                "sleep" to targets.sleepMinutes,
+                "iron" to targets.ironMg,
+                "magnesium" to targets.magnesiumMg,
+                "potassium" to targets.potassiumMg,
+                "vitamin_d" to targets.vitaminDIu,
+                "omega3" to targets.omega3Mg
+            )
+            val currentByType = goalPlans.value.associateBy { it.goalType }
+            goalTargets.forEach { (type, target) ->
+                val existing = currentByType[type]
+                if (existing == null) {
+                    repository.addGoalPlan(type, target, "daily")
+                } else {
+                    repository.updateGoalPlan(existing.id, type, target, "daily")
+                }
             }
-        }
-        currentByType["supplements"]?.let { repository.deleteGoalPlan(it.id) }
-        repository.recalculateScore(LocalDate.now())
+            currentByType
+                .filterKeys { it !in goalTargets.keys }
+                .values
+                .forEach { repository.deleteGoalPlan(it.id) }
+            repository.recalculateScore(LocalDate.now())
+        }.isSuccess
+        onComplete(success)
     }
+
 
     fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)

@@ -66,9 +66,20 @@ import kotlinx.coroutines.launch
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 @Composable
-fun ModuleTabLayout(tabs: List<String>, initialPage: Int = 0, content: @Composable (Int) -> Unit) {
+fun ModuleTabLayout(
+    tabs: List<String>,
+    initialPage: Int = 0,
+    requestedPage: Int? = null,
+    onRequestConsumed: () -> Unit = {},
+    content: @Composable (Int) -> Unit
+) {
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(requestedPage) {
+        val page = requestedPage ?: return@LaunchedEffect
+        pagerState.animateScrollToPage(page.coerceIn(0, tabs.lastIndex))
+        onRequestConsumed()
+    }
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
             tabs.forEachIndexed { index, tab ->
@@ -82,9 +93,15 @@ fun ModuleTabLayout(tabs: List<String>, initialPage: Int = 0, content: @Composab
 @Composable
 fun GunumModule(viewModel: MainViewModel) {
     val tabs = listOf(stringResource(R.string.tab_me), stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
-    ModuleTabLayout(tabs, initialPage = 1) { page ->
+    var requestedPage by remember { mutableStateOf<Int?>(null) }
+    ModuleTabLayout(
+        tabs = tabs,
+        initialPage = 1,
+        requestedPage = requestedPage,
+        onRequestConsumed = { requestedPage = null }
+    ) { page ->
         when (page) {
-            0 -> GunumBenScreen(viewModel)
+            0 -> GunumBenScreen(viewModel, onGoalsCreated = { requestedPage = 2 })
             1 -> GunumOzetScreen(viewModel)
             2 -> GunumHedeflerScreen(viewModel)
             3 -> GunumHatirlatmalarScreen(viewModel)
@@ -144,7 +161,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 }
 
 @Composable
-private fun GunumBenScreen(viewModel: MainViewModel) {
+private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit) {
     val profile by viewModel.profilePreferences.collectAsState()
     var ageText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
@@ -247,8 +264,14 @@ private fun GunumBenScreen(viewModel: MainViewModel) {
                 enabled = canCalculate,
                 onClick = {
                     if (canCalculate) {
-                        viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender)
-                        Toast.makeText(context, context.getString(R.string.goals_created_message), Toast.LENGTH_SHORT).show()
+                        viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
+                            if (success) {
+                                Toast.makeText(context, context.getString(R.string.goals_created_message), Toast.LENGTH_SHORT).show()
+                                onGoalsCreated()
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.goals_create_error_message), Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
             ) {
@@ -266,6 +289,25 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
     val dashboard by viewModel.goalsDashboard.collectAsState()
     val goals by viewModel.goalPlans.collectAsState()
+    val foods by viewModel.foods.collectAsState()
+    val goalsMeals by viewModel.goalsMealEntries.collectAsState()
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
+    val consumedTotals = remember(goalsMeals, foodsById) {
+        goalsMeals.fold(NutrientTotals()) { acc, meal ->
+            val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
+            acc.copy(
+                protein = acc.protein + n.protein,
+                carbs = acc.carbs + n.carbs,
+                fat = acc.fat + n.fat,
+                fiber = acc.fiber + n.fiber,
+                iron = acc.iron + n.iron,
+                magnesium = acc.magnesium + n.magnesium,
+                potassium = acc.potassium + n.potassium,
+                vitaminD = acc.vitaminD + n.vitaminD,
+                omega3 = acc.omega3 + n.omega3
+            )
+        }
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
     var goalToDelete by remember { mutableStateOf<GoalPlanItem?>(null) }
@@ -305,7 +347,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             }
         } else {
             items(goals, key = { it.id }) { goal ->
-                val progress = goalProgress(goal, dashboard)
+                val progress = goalProgress(goal, dashboard, consumedTotals)
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { goalToEdit = goal }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
@@ -331,7 +373,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onSave = { typeKey, target, cadence ->
                 viewModel.addGoalPlan(typeKey, target, cadence)
                 val userGoalType = goalTypeToUserGoalKey(typeKey)
-                if (userGoalType in listOf("water", "steps", "protein", "sleep")) {
+                if (userGoalType in listOf("water", "steps", "protein", "carbs", "fat", "fiber", "sleep")) {
                     viewModel.updateGoal(userGoalType, target)
                 }
                 showAddDialog = false
@@ -350,7 +392,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onSave = { typeKey, target, cadence ->
                 viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
                 val userGoalType = goalTypeToUserGoalKey(typeKey)
-                if (userGoalType in listOf("water", "steps", "protein", "sleep")) {
+                if (userGoalType in listOf("water", "steps", "protein", "carbs", "fat", "fiber", "sleep")) {
                     viewModel.updateGoal(userGoalType, target)
                 }
                 goalToEdit = null
@@ -577,7 +619,7 @@ private fun AddGoalDialog(
     initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "activity", "protein", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "omega3")
+    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "omega3")
     val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
     val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
     var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
@@ -640,8 +682,10 @@ private fun goalTypeLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_type_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_type_activity)
     type == "protein" -> stringResource(R.string.goal_type_protein)
+    type == "carbs" -> stringResource(R.string.nutrient_carbs)
+    type == "fat" -> stringResource(R.string.nutrient_fat)
+    type == "fiber" -> stringResource(R.string.nutrient_fiber)
     type == "sleep" -> stringResource(R.string.goal_type_sleep)
-    type == "supplements" -> stringResource(R.string.goal_type_supplements)
     type == "iron" -> stringResource(R.string.nutrient_iron)
     type == "magnesium" -> stringResource(R.string.nutrient_magnesium)
     type == "potassium" -> stringResource(R.string.nutrient_potassium)
@@ -655,8 +699,8 @@ private fun goalTargetHintLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_hint_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
     type == "protein" -> stringResource(R.string.goal_hint_protein)
+    type in listOf("carbs", "fat", "fiber") -> stringResource(R.string.goal_hint_macros)
     type == "sleep" -> stringResource(R.string.goal_hint_sleep)
-    type == "supplements" -> stringResource(R.string.goal_hint_supplements)
     type in listOf("iron", "magnesium", "potassium", "vitamin_d", "omega3") -> stringResource(R.string.goal_hint_micros)
     else -> ""
 }
@@ -700,7 +744,7 @@ private fun goalProgressLabel(goalType: String, current: Int, target: Int): Stri
 private fun goalUnit(goalType: String): String = when (goalType) {
     "water" -> "ml"
     "steps", "activity" -> "adım"
-    "protein" -> "g"
+    "protein", "carbs", "fat", "fiber" -> "g"
     "sleep" -> ""
     "iron", "magnesium", "potassium", "omega3" -> "mg"
     "vitamin_d" -> "IU"
@@ -723,7 +767,7 @@ private fun formatSleepDurationLabel(minutes: Int): String {
     }
 }
 
-private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
+private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?, consumed: NutrientTotals): GoalProgress {
     val current = when {
         goal.goalType == "water" -> dashboard?.waterMl ?: 0
         goal.goalType == "steps" || goal.goalType == "activity" || isActivityGoalType(goal.goalType) -> {
@@ -733,14 +777,16 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
                 dashboard?.workoutMinutesByType?.get(goal.goalType) ?: 0
             }
         }
-        goal.goalType == "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
+        goal.goalType == "protein" -> consumed.protein.toInt()
+        goal.goalType == "carbs" -> consumed.carbs.toInt()
+        goal.goalType == "fat" -> consumed.fat.toInt()
+        goal.goalType == "fiber" -> consumed.fiber.toInt()
         goal.goalType == "sleep" -> dashboard?.sleepMinutes ?: 0
-        goal.goalType == "supplements" -> dashboard?.supplementsTaken ?: 0
-        goal.goalType == "iron" -> 0
-        goal.goalType == "magnesium" -> 0
-        goal.goalType == "potassium" -> 0
-        goal.goalType == "vitamin_d" -> 0
-        goal.goalType == "omega3" -> 0
+        goal.goalType == "iron" -> consumed.iron.toInt()
+        goal.goalType == "magnesium" -> consumed.magnesium.toInt()
+        goal.goalType == "potassium" -> consumed.potassium.toInt()
+        goal.goalType == "vitamin_d" -> consumed.vitaminD.toInt()
+        goal.goalType == "omega3" -> consumed.omega3.toInt()
         else -> 0
     }
     return GoalProgress(current = current)
