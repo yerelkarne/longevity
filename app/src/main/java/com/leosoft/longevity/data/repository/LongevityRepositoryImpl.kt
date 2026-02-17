@@ -198,6 +198,10 @@ class LongevityRepositoryImpl(
         quickAddDao.deleteGoalPlan(id)
     }
 
+    override suspend fun clearGoalPlans() {
+        quickAddDao.clearGoalPlans()
+    }
+
     override fun observeReminders() = quickAddDao.observeReminders()
 
     override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long {

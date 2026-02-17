@@ -18,6 +18,9 @@
     <string name="me_create_goals">Hedeflerimi Oluştur</string>
     <string name="goals_created_message">Hedefleriniz oluşturuldu.</string>
     <string name="goals_create_error_message">Hedefler oluşturulurken bir hata oluştu.</string>
+    <string name="me_reset_goals_title">Hedefler Yeniden Oluşturulsun mu?</string>
+    <string name="me_reset_goals_message">Eski hedefleriniz tamamen silinecek ve yeni hedefleriniz oluşturulacaktır.</string>
+    <string name="yes">Evet</string>
     <string name="tab_summary">Özet</string>
     <string name="nav_today">Günüm</string>
     <string name="nav_nutrition">Beslenme</string>

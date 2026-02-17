@@ -40,6 +40,7 @@ interface LongevityRepository {
     suspend fun addGoalPlan(goalType: String, target: Int, cadence: String): Long
     suspend fun updateGoalPlan(id: Long, goalType: String, target: Int, cadence: String)
     suspend fun deleteGoalPlan(id: Long)
+    suspend fun clearGoalPlans()
     fun observeReminders(): Flow<List<ReminderLogEntity>>
     suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long
     suspend fun updateReminderLog(id: Long, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?)

@@ -198,7 +198,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "omega3" to targets.omega3Mg
             )
 
-            goalPlans.value.forEach { repository.deleteGoalPlan(it.id) }
+            repository.clearGoalPlans()
             goalTargets.forEach { (type, target) ->
                 repository.addGoalPlan(type, target, "daily")
             }

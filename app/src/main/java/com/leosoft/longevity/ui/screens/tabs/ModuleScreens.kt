@@ -23,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -169,6 +170,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val genderKeys = listOf("male", "female", "unspecified")
     var genderIndex by remember { mutableStateOf(2) }
     var initializedFromProfile by remember { mutableStateOf(false) }
+    var showResetGoalsDialog by remember { mutableStateOf(false) }
+    var isCreatingGoals by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     LaunchedEffect(profile, initializedFromProfile) {
@@ -261,23 +264,49 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         item {
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = canCalculate,
+                enabled = canCalculate && !isCreatingGoals,
                 onClick = {
                     if (canCalculate) {
-                        viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
-                            if (success) {
-                                Toast.makeText(context, context.getString(R.string.goals_created_message), Toast.LENGTH_SHORT).show()
-                                onGoalsCreated()
-                            } else {
-                                Toast.makeText(context, context.getString(R.string.goals_create_error_message), Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        showResetGoalsDialog = true
                     }
                 }
             ) {
-                Text(stringResource(R.string.me_create_goals))
+                if (isCreatingGoals) {
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.me_create_goals))
+                }
             }
         }
+    }
+
+    if (showResetGoalsDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isCreatingGoals) showResetGoalsDialog = false },
+            title = { Text(stringResource(R.string.me_reset_goals_title)) },
+            text = { Text(stringResource(R.string.me_reset_goals_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (!canCalculate || isCreatingGoals) return@TextButton
+                    isCreatingGoals = true
+                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
+                        isCreatingGoals = false
+                        showResetGoalsDialog = false
+                        if (success) {
+                            Toast.makeText(context, context.getString(R.string.goals_created_message), Toast.LENGTH_SHORT).show()
+                            onGoalsCreated()
+                        } else {
+                            Toast.makeText(context, context.getString(R.string.goals_create_error_message), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }) { Text(stringResource(R.string.yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { if (!isCreatingGoals) showResetGoalsDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
