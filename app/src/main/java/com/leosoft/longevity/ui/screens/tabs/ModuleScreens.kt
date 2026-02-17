@@ -2,6 +2,7 @@ package com.leosoft.longevity.ui.screens.tabs
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,8 +20,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -64,9 +67,20 @@ import kotlinx.coroutines.launch
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 @Composable
-fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
-    val pagerState = rememberPagerState { tabs.size }
+fun ModuleTabLayout(
+    tabs: List<String>,
+    initialPage: Int = 0,
+    requestedPage: Int? = null,
+    onRequestConsumed: () -> Unit = {},
+    content: @Composable (Int) -> Unit
+) {
+    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(requestedPage) {
+        val page = requestedPage ?: return@LaunchedEffect
+        pagerState.animateScrollToPage(page.coerceIn(0, tabs.lastIndex))
+        onRequestConsumed()
+    }
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
             tabs.forEachIndexed { index, tab ->
@@ -79,12 +93,19 @@ fun ModuleTabLayout(tabs: List<String>, content: @Composable (Int) -> Unit) {
 
 @Composable
 fun GunumModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
-    ModuleTabLayout(tabs) { page ->
+    val tabs = listOf(stringResource(R.string.tab_me), stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
+    var requestedPage by remember { mutableStateOf<Int?>(null) }
+    ModuleTabLayout(
+        tabs = tabs,
+        initialPage = 1,
+        requestedPage = requestedPage,
+        onRequestConsumed = { requestedPage = null }
+    ) { page ->
         when (page) {
-            0 -> GunumOzetScreen(viewModel)
-            1 -> GunumHedeflerScreen(viewModel)
-            2 -> GunumHatirlatmalarScreen(viewModel)
+            0 -> GunumBenScreen(viewModel, onGoalsCreated = { requestedPage = 2 })
+            1 -> GunumOzetScreen(viewModel)
+            2 -> GunumHedeflerScreen(viewModel)
+            3 -> GunumHatirlatmalarScreen(viewModel)
             else -> GunumOzetScreen(viewModel)
         }
     }
@@ -140,6 +161,155 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     }
 }
 
+@Composable
+private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit) {
+    val profile by viewModel.profilePreferences.collectAsState()
+    var ageText by remember { mutableStateOf("") }
+    var heightText by remember { mutableStateOf("") }
+    var weightText by remember { mutableStateOf("") }
+    val genderKeys = listOf("male", "female", "unspecified")
+    var genderIndex by remember { mutableStateOf(2) }
+    var initializedFromProfile by remember { mutableStateOf(false) }
+    var showResetGoalsDialog by remember { mutableStateOf(false) }
+    var isCreatingGoals by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    LaunchedEffect(profile, initializedFromProfile) {
+        if (!initializedFromProfile) {
+            ageText = profile.age.takeIf { it > 0 }?.toString().orEmpty()
+            heightText = profile.heightCm.takeIf { it > 0 }?.toString().orEmpty()
+            weightText = profile.weightKg.takeIf { it > 0f }?.let { if (it % 1f == 0f) it.toInt().toString() else it.toString() }.orEmpty()
+            genderIndex = genderKeys.indexOf(profile.gender).takeIf { it >= 0 } ?: 2
+            initializedFromProfile = true
+        }
+    }
+
+    val age = ageText.toIntOrNull()
+    val height = heightText.toIntOrNull()
+    val weight = weightText.toFloatOrNull()
+    val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
+    val selectedGender = genderKeys[genderIndex]
+    val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender) else null
+
+    LaunchedEffect(age, height, weight, selectedGender, initializedFromProfile) {
+        if (!initializedFromProfile) return@LaunchedEffect
+        if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
+            viewModel.saveProfile(age, height, weight, selectedGender)
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(stringResource(R.string.me_intro), style = MaterialTheme.typography.bodyMedium)
+        }
+        item {
+            OutlinedTextField(
+                value = ageText,
+                onValueChange = { ageText = it.filter(Char::isDigit) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.me_age)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = heightText,
+                onValueChange = { heightText = it.filter(Char::isDigit) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.me_height_cm)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = weightText,
+                onValueChange = { value -> weightText = value.filter { it.isDigit() || it == '.' } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.me_weight_kg)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+        }
+        item {
+            ExposedDropdownSimple(
+                label = stringResource(R.string.me_gender),
+                options = listOf(
+                    stringResource(R.string.gender_male),
+                    stringResource(R.string.gender_female),
+                    stringResource(R.string.gender_unspecified)
+                ),
+                selected = genderIndex,
+                onSelect = { genderIndex = it }
+            )
+        }
+
+        targets?.let { t ->
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.me_targets_title), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.me_target_activity, t.steps))
+                        Text(stringResource(R.string.me_target_sleep, formatSleepDurationLabel(t.sleepMinutes)))
+                        Text(stringResource(R.string.me_target_water, t.waterMl))
+                        Text(stringResource(R.string.me_target_macros, t.proteinGrams.toInt(), t.carbsGrams.toInt(), t.fatGrams.toInt(), t.fiberGrams.toInt()))
+                        Text(stringResource(R.string.me_target_micros, t.ironMg, t.magnesiumMg, t.potassiumMg, t.vitaminDIu, t.omega3Mg))
+                    }
+                }
+            }
+        }
+
+        item {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canCalculate && !isCreatingGoals,
+                onClick = {
+                    if (canCalculate) {
+                        showResetGoalsDialog = true
+                    }
+                }
+            ) {
+                if (isCreatingGoals) {
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.me_create_goals))
+                }
+            }
+        }
+    }
+
+    if (showResetGoalsDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isCreatingGoals) showResetGoalsDialog = false },
+            title = { Text(stringResource(R.string.me_reset_goals_title)) },
+            text = { Text(stringResource(R.string.me_reset_goals_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (!canCalculate || isCreatingGoals) return@TextButton
+                    isCreatingGoals = true
+                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
+                        isCreatingGoals = false
+                        showResetGoalsDialog = false
+                        if (success) {
+                            Toast.makeText(context, context.getString(R.string.goals_created_message), Toast.LENGTH_SHORT).show()
+                            onGoalsCreated()
+                        } else {
+                            Toast.makeText(context, context.getString(R.string.goals_create_error_message), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }) { Text(stringResource(R.string.yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { if (!isCreatingGoals) showResetGoalsDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+}
+
 
 private enum class GoalCadence { HOURLY, DAILY, WEEKLY }
 
@@ -148,6 +318,25 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
     val dashboard by viewModel.goalsDashboard.collectAsState()
     val goals by viewModel.goalPlans.collectAsState()
+    val foods by viewModel.foods.collectAsState()
+    val goalsMeals by viewModel.goalsMealEntries.collectAsState()
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
+    val consumedTotals = remember(goalsMeals, foodsById) {
+        goalsMeals.fold(NutrientTotals()) { acc, meal ->
+            val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
+            acc.copy(
+                protein = acc.protein + n.protein,
+                carbs = acc.carbs + n.carbs,
+                fat = acc.fat + n.fat,
+                fiber = acc.fiber + n.fiber,
+                iron = acc.iron + n.iron,
+                magnesium = acc.magnesium + n.magnesium,
+                potassium = acc.potassium + n.potassium,
+                vitaminD = acc.vitaminD + n.vitaminD,
+                omega3 = acc.omega3 + n.omega3
+            )
+        }
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
     var goalToDelete by remember { mutableStateOf<GoalPlanItem?>(null) }
@@ -187,7 +376,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             }
         } else {
             items(goals, key = { it.id }) { goal ->
-                val progress = goalProgress(goal, dashboard)
+                val progress = goalProgress(goal, dashboard, consumedTotals)
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { goalToEdit = goal }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(goalTypeLabel(goal.goalType), style = MaterialTheme.typography.titleSmall)
@@ -195,7 +384,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                             Text(goalActivityLabel(goal.goalType), style = MaterialTheme.typography.bodySmall)
                         }
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
-                        Text(stringResource(R.string.goal_progress_text, progress.current, goal.target))
+                        Text(goalProgressLabel(goal.goalType, progress.current, goal.target))
                         androidx.compose.material3.LinearProgressIndicator(
                             progress = { if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth()
@@ -213,7 +402,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onSave = { typeKey, target, cadence ->
                 viewModel.addGoalPlan(typeKey, target, cadence)
                 val userGoalType = goalTypeToUserGoalKey(typeKey)
-                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                if (userGoalType in listOf("water", "steps", "protein", "carbs", "fat", "fiber", "sleep")) {
                     viewModel.updateGoal(userGoalType, target)
                 }
                 showAddDialog = false
@@ -232,7 +421,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             onSave = { typeKey, target, cadence ->
                 viewModel.updateGoalPlan(current.id, typeKey, target, cadence)
                 val userGoalType = goalTypeToUserGoalKey(typeKey)
-                if (userGoalType in listOf("water", "steps", "protein", "sleep", "supplements")) {
+                if (userGoalType in listOf("water", "steps", "protein", "carbs", "fat", "fiber", "sleep")) {
                     viewModel.updateGoal(userGoalType, target)
                 }
                 goalToEdit = null
@@ -459,7 +648,7 @@ private fun AddGoalDialog(
     initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "activity", "protein", "sleep", "supplements")
+    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "omega3")
     val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
     val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
     var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
@@ -522,8 +711,15 @@ private fun goalTypeLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_type_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_type_activity)
     type == "protein" -> stringResource(R.string.goal_type_protein)
+    type == "carbs" -> stringResource(R.string.nutrient_carbs)
+    type == "fat" -> stringResource(R.string.nutrient_fat)
+    type == "fiber" -> stringResource(R.string.nutrient_fiber)
     type == "sleep" -> stringResource(R.string.goal_type_sleep)
-    type == "supplements" -> stringResource(R.string.goal_type_supplements)
+    type == "iron" -> stringResource(R.string.nutrient_iron)
+    type == "magnesium" -> stringResource(R.string.nutrient_magnesium)
+    type == "potassium" -> stringResource(R.string.nutrient_potassium)
+    type == "vitamin_d" -> stringResource(R.string.nutrient_vitamin_d)
+    type == "omega3" -> stringResource(R.string.nutrient_omega3)
     else -> type
 }
 
@@ -532,8 +728,9 @@ private fun goalTargetHintLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_hint_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
     type == "protein" -> stringResource(R.string.goal_hint_protein)
+    type in listOf("carbs", "fat", "fiber") -> stringResource(R.string.goal_hint_macros)
     type == "sleep" -> stringResource(R.string.goal_hint_sleep)
-    type == "supplements" -> stringResource(R.string.goal_hint_supplements)
+    type in listOf("iron", "magnesium", "potassium", "vitamin_d", "omega3") -> stringResource(R.string.goal_hint_micros)
     else -> ""
 }
 
@@ -561,7 +758,45 @@ private fun cadenceLabel(cadence: String): String = when (cadence) {
     else -> cadence
 }
 
-private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?): GoalProgress {
+@Composable
+private fun goalProgressLabel(goalType: String, current: Int, target: Int): String {
+    val unit = goalUnit(goalType)
+    val currentLabel = formatGoalValue(goalType, current)
+    val targetLabel = formatGoalValue(goalType, target)
+    return if (unit.isBlank()) {
+        stringResource(R.string.goal_progress_text_plain, currentLabel, targetLabel)
+    } else {
+        stringResource(R.string.goal_progress_text_with_unit, currentLabel, targetLabel, unit)
+    }
+}
+
+private fun goalUnit(goalType: String): String = when (goalType) {
+    "water" -> "ml"
+    "steps", "activity" -> "adım"
+    "protein", "carbs", "fat", "fiber" -> "g"
+    "sleep" -> ""
+    "iron", "magnesium", "potassium", "omega3" -> "mg"
+    "vitamin_d" -> "IU"
+    else -> if (isActivityGoalType(goalType)) "dk" else ""
+}
+
+private fun formatGoalValue(goalType: String, value: Int): String = when (goalType) {
+    "sleep" -> formatSleepDurationLabel(value)
+    else -> value.toString()
+}
+
+private fun formatSleepDurationLabel(minutes: Int): String {
+    val safe = minutes.coerceAtLeast(0)
+    val hours = safe / 60
+    val remainMinutes = safe % 60
+    return when {
+        hours == 0 -> "$remainMinutes dakika"
+        remainMinutes == 0 -> "$hours saat"
+        else -> "$hours saat $remainMinutes dakika"
+    }
+}
+
+private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.domain.model.DashboardSummary?, consumed: NutrientTotals): GoalProgress {
     val current = when {
         goal.goalType == "water" -> dashboard?.waterMl ?: 0
         goal.goalType == "steps" || goal.goalType == "activity" || isActivityGoalType(goal.goalType) -> {
@@ -571,9 +806,16 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
                 dashboard?.workoutMinutesByType?.get(goal.goalType) ?: 0
             }
         }
-        goal.goalType == "protein" -> dashboard?.macroTotals?.protein?.toInt() ?: 0
+        goal.goalType == "protein" -> consumed.protein.toInt()
+        goal.goalType == "carbs" -> consumed.carbs.toInt()
+        goal.goalType == "fat" -> consumed.fat.toInt()
+        goal.goalType == "fiber" -> consumed.fiber.toInt()
         goal.goalType == "sleep" -> dashboard?.sleepMinutes ?: 0
-        goal.goalType == "supplements" -> dashboard?.supplementsTaken ?: 0
+        goal.goalType == "iron" -> consumed.iron.toInt()
+        goal.goalType == "magnesium" -> consumed.magnesium.toInt()
+        goal.goalType == "potassium" -> consumed.potassium.toInt()
+        goal.goalType == "vitamin_d" -> consumed.vitaminD.toInt()
+        goal.goalType == "omega3" -> consumed.omega3.toInt()
         else -> 0
     }
     return GoalProgress(current = current)

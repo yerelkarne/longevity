@@ -1,5 +1,26 @@
 <resources>
     <string name="app_name">Longevity Coach</string>
+    <string name="tab_me">Ben</string>
+    <string name="me_intro">Kişisel bilgilerinizi girin, sistem tıbbi tahmine göre günlük hedeflerinizi oluştursun.</string>
+    <string name="me_age">Yaş</string>
+    <string name="me_height_cm">Boy (cm)</string>
+    <string name="me_weight_kg">Kilo (kg)</string>
+    <string name="me_gender">Cinsiyet</string>
+    <string name="gender_male">Erkek</string>
+    <string name="gender_female">Kadın</string>
+    <string name="gender_unspecified">Belirtmek istemiyorum</string>
+    <string name="me_targets_title">Tahmini Günlük Hedefler</string>
+    <string name="me_target_activity">Aktivite hedefi: %1$d adım</string>
+    <string name="me_target_sleep">Uyku hedefi: %1$s</string>
+    <string name="me_target_water">Su hedefi: %1$d ml</string>
+    <string name="me_target_macros">Makrolar • Protein: %1$d g • Karbonhidrat: %2$d g • Yağ: %3$d g • Lif: %4$d g</string>
+    <string name="me_target_micros">Mikrolar • Demir: %1$d mg • Magnezyum: %2$d mg • Potasyum: %3$d mg • D Vit: %4$d IU • Omega-3: %5$d mg</string>
+    <string name="me_create_goals">Hedeflerimi Oluştur</string>
+    <string name="goals_created_message">Hedefleriniz oluşturuldu.</string>
+    <string name="goals_create_error_message">Hedefler oluşturulurken bir hata oluştu.</string>
+    <string name="me_reset_goals_title">Hedefler Yeniden Oluşturulsun mu?</string>
+    <string name="me_reset_goals_message">Eski hedefleriniz tamamen silinecek ve yeni hedefleriniz oluşturulacaktır.</string>
+    <string name="yes">Evet</string>
     <string name="tab_summary">Özet</string>
     <string name="nav_today">Günüm</string>
     <string name="nav_nutrition">Beslenme</string>
@@ -99,6 +120,8 @@
     <string name="goals_empty_message">Hedefiniz bulunmuyor.</string>
     <string name="goal_frequency_label">Sıklık: %1$s</string>
     <string name="goal_progress_text">İlerleme: %1$d / %2$d</string>
+    <string name="goal_progress_text_with_unit">İlerleme: %1$s / %2$s %3$s</string>
+    <string name="goal_progress_text_plain">İlerleme: %1$s / %2$s</string>
 
     <string name="steps_input">Adım</string>
     <string name="distance_km_optional">Mesafe (km, opsiyonel)</string>
@@ -107,8 +130,10 @@
     <string name="goal_hint_water">Su hedefi için ml girin.</string>
     <string name="goal_hint_activity">Aktivite hedefi için süre (dk) veya adım girin.</string>
     <string name="goal_hint_protein">Beslenme hedefi için protein gramı girin.</string>
+    <string name="goal_hint_macros">Makro hedefi için günlük gram değerini girin.</string>
     <string name="goal_hint_sleep">Uyku hedefi için dakika girin.</string>
     <string name="goal_hint_supplements">Takviye hedefi için günlük adet girin.</string>
+    <string name="goal_hint_micros">Mikro besin hedefi için günlük mg/IU değerini girin.</string>
     <string name="goal_edit_title">Hedefi Düzenle</string>
     <string name="goal_delete_title">Hedefi Sil</string>
     <string name="goal_delete_confirm">Bu hedefi silmek istediğinize emin misiniz?</string>

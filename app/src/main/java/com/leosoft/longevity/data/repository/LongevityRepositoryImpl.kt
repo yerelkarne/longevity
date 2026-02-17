@@ -198,6 +198,10 @@ class LongevityRepositoryImpl(
         quickAddDao.deleteGoalPlan(id)
     }
 
+    override suspend fun clearGoalPlans() {
+        quickAddDao.clearGoalPlans()
+    }
+
     override fun observeReminders() = quickAddDao.observeReminders()
 
     override suspend fun addReminderLog(date: LocalDate, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?): Long {
@@ -227,6 +231,9 @@ class LongevityRepositoryImpl(
             "water" -> current.copy(waterTargetMl = value)
             "steps" -> current.copy(stepsTarget = value)
             "protein" -> current.copy(proteinTarget = value.toFloat())
+            "carbs" -> current.copy(carbsTarget = value.toFloat())
+            "fat" -> current.copy(fatTarget = value.toFloat())
+            "fiber" -> current.copy(fiberTarget = value.toFloat())
             "sleep" -> current.copy(sleepTargetMinutes = value)
             "supplements" -> current.copy(supplementsPerDayTarget = value)
             else -> current

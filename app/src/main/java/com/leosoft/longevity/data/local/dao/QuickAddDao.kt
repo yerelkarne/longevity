@@ -26,6 +26,9 @@ interface QuickAddDao {
     @Query("DELETE FROM goal_plans WHERE id = :id")
     suspend fun deleteGoalPlan(id: Long)
 
+    @Query("DELETE FROM goal_plans")
+    suspend fun clearGoalPlans()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderLogEntity): Long
 
