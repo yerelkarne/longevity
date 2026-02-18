@@ -18,7 +18,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,13 +82,16 @@ private fun MainScaffold(vm: MainViewModel) {
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
 
+    val sharedBarColor = MaterialTheme.colorScheme.surface
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = sharedBarColor),
                 title = {
                     Text(
                         text = "Longavity Coach",
-                        style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontFamily = FontFamily.Cursive
                     )
                 }
@@ -98,7 +103,7 @@ private fun MainScaffold(vm: MainViewModel) {
             }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = sharedBarColor) {
                 bottomDestinations.forEach { destination ->
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
