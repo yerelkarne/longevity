@@ -1,8 +1,11 @@
 package com.leosoft.longevity
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,19 +53,11 @@ import com.leosoft.longevity.ui.theme.LongevityTheme
 
 class MainActivity : ComponentActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
-    private var suppressWarningAfterManualRequest by mutableStateOf(false)
+    private var hasRequestedNotificationPermission = false
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            showNotificationPermissionWarning = false
-            suppressWarningAfterManualRequest = false
-        } else if (suppressWarningAfterManualRequest) {
-            showNotificationPermissionWarning = false
-            suppressWarningAfterManualRequest = false
-        } else {
-            showNotificationPermissionWarning = true
-        }
+        showNotificationPermissionWarning = !granted
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,10 +70,7 @@ class MainActivity : ComponentActivity() {
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,
                     onDismissNotificationWarning = { showNotificationPermissionWarning = false },
-                    onRequestNotificationPermission = {
-                        suppressWarningAfterManualRequest = true
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
+                    onRequestNotificationPermission = { requestNotificationPermissionFromUser() }
                 )
             }
         }
@@ -86,7 +78,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        suppressWarningAfterManualRequest = false
         requestNotificationPermissionIfNeeded()
     }
 
@@ -94,10 +85,26 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         if (!granted) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            requestNotificationPermissionFromUser()
         } else {
             showNotificationPermissionWarning = false
-            suppressWarningAfterManualRequest = false
+        }
+    }
+
+    private fun requestNotificationPermissionFromUser() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        val canShowSystemPrompt = !hasRequestedNotificationPermission ||
+            shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+
+        if (canShowSystemPrompt) {
+            hasRequestedNotificationPermission = true
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            }
+            startActivity(intent)
         }
     }
 }
