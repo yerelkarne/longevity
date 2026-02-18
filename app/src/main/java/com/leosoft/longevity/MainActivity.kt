@@ -15,7 +15,9 @@ import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
@@ -69,6 +72,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScaffold(vm: MainViewModel) {
     val navController = rememberNavController()
@@ -77,6 +81,17 @@ private fun MainScaffold(vm: MainViewModel) {
     val openQuickAdd = remember { mutableStateOf(false) }
 
     Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Longavity Coach",
+                        style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                        fontFamily = FontFamily.Cursive
+                    )
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { openQuickAdd.value = true }) {
                 Icon(Icons.Rounded.AddCircle, contentDescription = stringResource(R.string.add_record_fab_cd))
