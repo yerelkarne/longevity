@@ -63,6 +63,7 @@ import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
+import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
 
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
@@ -264,6 +265,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var weightText by remember { mutableStateOf("") }
     val genderKeys = listOf("male", "female", "unspecified")
     var genderIndex by remember { mutableStateOf(2) }
+    val weightGoalModes = listOf(WeightGoalMode.REACH_IDEAL, WeightGoalMode.MAINTAIN)
+    var selectedWeightGoalModeIndex by remember { mutableStateOf(0) }
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -288,7 +291,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val weight = weightText.toFloatOrNull()
     val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
     val selectedGender = genderKeys[genderIndex]
-    val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender) else null
+    val selectedWeightGoalMode = weightGoalModes[selectedWeightGoalModeIndex]
+    val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
     LaunchedEffect(age, height, weight, selectedGender) {
         if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
@@ -343,6 +347,17 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 onSelect = { genderIndex = it }
             )
         }
+        item {
+            ExposedDropdownSimple(
+                label = stringResource(R.string.me_goal_mode_label),
+                options = listOf(
+                    stringResource(R.string.me_goal_mode_reach_ideal),
+                    stringResource(R.string.me_goal_mode_maintain)
+                ),
+                selected = selectedWeightGoalModeIndex,
+                onSelect = { selectedWeightGoalModeIndex = it }
+            )
+        }
 
         targets?.let { t ->
             item {
@@ -354,6 +369,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             GoalTargetRow(stringResource(R.string.card_steps), "${t.steps}")
                             GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
                             GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
+                            GoalTargetRow(stringResource(R.string.me_target_ideal_weight), stringResource(R.string.me_target_ideal_weight_value, t.idealWeightKg))
+                            GoalTargetRow(stringResource(R.string.me_target_plan_type), weightPlanSummaryLabel(t.weightPlanSummary))
                         }
 
                         GoalTargetSection(title = stringResource(R.string.tab_macros)) {
@@ -403,7 +420,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 TextButton(onClick = {
                     if (!canCalculate || isCreatingGoals) return@TextButton
                     isCreatingGoals = true
-                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
+                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) { success ->
                         isCreatingGoals = false
                         showResetGoalsDialog = false
                         if (success) {
@@ -424,6 +441,14 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     }
 }
 
+
+
+@Composable
+private fun weightPlanSummaryLabel(plan: String): String = when (plan) {
+    "gain" -> stringResource(R.string.me_weight_plan_gain)
+    "lose" -> stringResource(R.string.me_weight_plan_lose)
+    else -> stringResource(R.string.me_weight_plan_maintain)
+}
 
 @Composable
 private fun GoalTargetSection(

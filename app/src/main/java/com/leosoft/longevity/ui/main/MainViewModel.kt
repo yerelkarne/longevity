@@ -45,6 +45,8 @@ data class OnboardingForm(
     val supplementsTarget: Int = 2
 )
 
+enum class WeightGoalMode { REACH_IDEAL, MAINTAIN }
+
 data class PersonalizedTargets(
     val waterMl: Int,
     val steps: Int,
@@ -57,7 +59,9 @@ data class PersonalizedTargets(
     val magnesiumMg: Int,
     val potassiumMg: Int,
     val vitaminDIu: Int,
-    val omega3Mg: Int
+    val omega3Mg: Int,
+    val idealWeightKg: Float,
+    val weightPlanSummary: String
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -130,7 +134,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun buildPersonalizedTargets(age: Int, heightCm: Int, weightKg: Float, gender: String): PersonalizedTargets {
+    fun buildPersonalizedTargets(age: Int, heightCm: Int, weightKg: Float, gender: String, goalMode: WeightGoalMode = WeightGoalMode.REACH_IDEAL): PersonalizedTargets {
         val activityFactor = when {
             age < 30 -> 1.6f
             age < 50 -> 1.5f
@@ -141,15 +145,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "female" -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 161f
             else -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 78f
         }
-        val estimatedCalories = (bmr * activityFactor).coerceAtLeast(1300f)
-        val protein = (weightKg * 1.4f).coerceIn(70f, 210f)
-        val fat = (estimatedCalories * 0.28f / 9f).coerceIn(40f, 120f)
-        val carbs = ((estimatedCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
-        val fiber = (estimatedCalories / 1000f * 14f).coerceIn(25f, 45f)
+        val maintenanceCalories = (bmr * activityFactor).coerceAtLeast(1300f)
+        val idealWeight = ((heightCm / 100f) * (heightCm / 100f) * 22f).coerceIn(45f, 120f)
+        val bmi = weightKg / ((heightCm / 100f) * (heightCm / 100f))
+
+        val calorieMultiplier = when (goalMode) {
+            WeightGoalMode.MAINTAIN -> 1f
+            WeightGoalMode.REACH_IDEAL -> when {
+                weightKg < idealWeight * 0.97f -> if (bmi < 18.5f) 1.18f else 1.12f
+                weightKg > idealWeight * 1.03f -> if (bmi >= 30f) 0.78f else 0.85f
+                else -> 1f
+            }
+        }
+        val targetCalories = (maintenanceCalories * calorieMultiplier).coerceIn(1300f, 3600f)
+
+        val protein = when (goalMode) {
+            WeightGoalMode.MAINTAIN -> (weightKg * 1.3f)
+            WeightGoalMode.REACH_IDEAL -> when {
+                weightKg > idealWeight * 1.03f -> idealWeight * 1.7f
+                weightKg < idealWeight * 0.97f -> idealWeight * 1.5f
+                else -> weightKg * 1.35f
+            }
+        }.coerceIn(70f, 220f)
+
+        val fatRatio = when {
+            calorieMultiplier < 1f -> 0.30f
+            calorieMultiplier > 1f -> 0.26f
+            else -> 0.28f
+        }
+        val fat = (targetCalories * fatRatio / 9f).coerceIn(40f, 120f)
+        val carbs = ((targetCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
+        val fiber = (targetCalories / 1000f * 14f).coerceIn(25f, 45f)
         val water = ((weightKg * 33f) + (heightCm * 2f)).toInt().coerceIn(1800, 4500)
         val steps = ((heightCm * 20f) + (age * 35f)).toInt().coerceIn(7000, 13000)
         val sleep = if (age < 18) 540 else if (age < 65) 480 else 450
         val iron = if (gender == "female" && age in 18..50) 18 else 8
+
+        val planSummary = when (goalMode) {
+            WeightGoalMode.MAINTAIN -> "maintain"
+            WeightGoalMode.REACH_IDEAL -> when {
+                calorieMultiplier > 1f -> "gain"
+                calorieMultiplier < 1f -> "lose"
+                else -> "maintain"
+            }
+        }
 
         return PersonalizedTargets(
             waterMl = water,
@@ -163,14 +202,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             magnesiumMg = if (gender == "male") 420 else 320,
             potassiumMg = 3500,
             vitaminDIu = 600,
-            omega3Mg = if (gender == "male") 1600 else 1100
+            omega3Mg = if (gender == "male") 1600 else 1100,
+            idealWeightKg = idealWeight,
+            weightPlanSummary = planSummary
         )
     }
 
-    fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
+    fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, goalMode: WeightGoalMode, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
         val success = runCatching {
             app.preferences.saveProfile(age, heightCm, weightKg, gender)
-            val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender)
+            val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender, goalMode)
             repository.saveGoals(
                 UserGoalsEntity(
                     proteinTarget = targets.proteinGrams,

@@ -197,4 +197,14 @@
     <string name="analysis_tab_report">Rapor</string>
     <string name="analysis_tab_trends">Trendler</string>
     <string name="goal_section_basic">Temel</string>
+
+    <string name="me_goal_mode_label">Hedef oluşturma yaklaşımı</string>
+    <string name="me_goal_mode_reach_ideal">İdeal kiloya ulaşmaya göre</string>
+    <string name="me_goal_mode_maintain">Mevcut kiloyu korumaya göre</string>
+    <string name="me_target_ideal_weight">İdeal kilo</string>
+    <string name="me_target_ideal_weight_value">%.1f kg</string>
+    <string name="me_target_plan_type">Plan tipi</string>
+    <string name="me_weight_plan_gain">Sağlıklı kilo artışı odaklı</string>
+    <string name="me_weight_plan_lose">Sağlıklı kilo kaybı odaklı</string>
+    <string name="me_weight_plan_maintain">Kilo koruma odaklı</string>
 </resources>
