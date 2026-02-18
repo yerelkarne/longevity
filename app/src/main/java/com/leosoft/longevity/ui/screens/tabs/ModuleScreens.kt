@@ -263,18 +263,22 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var weightText by remember { mutableStateOf("") }
     val genderKeys = listOf("male", "female", "unspecified")
     var genderIndex by remember { mutableStateOf(2) }
-    var initializedFromProfile by remember { mutableStateOf(false) }
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    LaunchedEffect(profile, initializedFromProfile) {
-        if (!initializedFromProfile) {
+    LaunchedEffect(profile) {
+        if (ageText.isBlank()) {
             ageText = profile.age.takeIf { it > 0 }?.toString().orEmpty()
+        }
+        if (heightText.isBlank()) {
             heightText = profile.heightCm.takeIf { it > 0 }?.toString().orEmpty()
+        }
+        if (weightText.isBlank()) {
             weightText = profile.weightKg.takeIf { it > 0f }?.let { if (it % 1f == 0f) it.toInt().toString() else it.toString() }.orEmpty()
+        }
+        if (genderIndex == 2) {
             genderIndex = genderKeys.indexOf(profile.gender).takeIf { it >= 0 } ?: 2
-            initializedFromProfile = true
         }
     }
 
@@ -285,8 +289,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val selectedGender = genderKeys[genderIndex]
     val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender) else null
 
-    LaunchedEffect(age, height, weight, selectedGender, initializedFromProfile) {
-        if (!initializedFromProfile) return@LaunchedEffect
+    LaunchedEffect(age, height, weight, selectedGender) {
         if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
             viewModel.saveProfile(age, height, weight, selectedGender)
         }
