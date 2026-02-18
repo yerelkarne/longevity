@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddCircle
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -46,9 +48,12 @@ import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
 
 class MainActivity : ComponentActivity() {
+    private var showNotificationPermissionWarning by mutableStateOf(false)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { }
+    ) { granted ->
+        showNotificationPermissionWarning = !granted
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +61,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             LongevityTheme {
                 val vm: MainViewModel = viewModel()
-                MainScaffold(vm)
+                MainScaffold(
+                    vm = vm,
+                    showNotificationPermissionWarning = showNotificationPermissionWarning,
+                    onDismissNotificationWarning = { showNotificationPermissionWarning = false }
+                )
             }
         }
     }
@@ -71,13 +80,19 @@ class MainActivity : ComponentActivity() {
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         if (!granted) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            showNotificationPermissionWarning = false
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainScaffold(vm: MainViewModel) {
+private fun MainScaffold(
+    vm: MainViewModel,
+    showNotificationPermissionWarning: Boolean,
+    onDismissNotificationWarning: () -> Unit
+) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -127,6 +142,18 @@ private fun MainScaffold(vm: MainViewModel) {
 
         if (openQuickAdd.value) {
             QuickAddDialog(viewModel = vm, onDismiss = { openQuickAdd.value = false })
+        }
+        if (showNotificationPermissionWarning) {
+            AlertDialog(
+                onDismissRequest = onDismissNotificationWarning,
+                title = { Text(stringResource(R.string.notification_permission_required_title)) },
+                text = { Text(stringResource(R.string.notification_permission_required_message)) },
+                confirmButton = {
+                    TextButton(onClick = onDismissNotificationWarning) {
+                        Text(stringResource(R.string.understood))
+                    }
+                }
+            )
         }
     }
 }
