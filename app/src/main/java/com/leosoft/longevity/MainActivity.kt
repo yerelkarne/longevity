@@ -50,10 +50,19 @@ import com.leosoft.longevity.ui.theme.LongevityTheme
 
 class MainActivity : ComponentActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
+    private var suppressWarningAfterManualRequest by mutableStateOf(false)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        showNotificationPermissionWarning = !granted
+        if (granted) {
+            showNotificationPermissionWarning = false
+            suppressWarningAfterManualRequest = false
+        } else if (suppressWarningAfterManualRequest) {
+            showNotificationPermissionWarning = false
+            suppressWarningAfterManualRequest = false
+        } else {
+            showNotificationPermissionWarning = true
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +75,10 @@ class MainActivity : ComponentActivity() {
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,
                     onDismissNotificationWarning = { showNotificationPermissionWarning = false },
-                    onRequestNotificationPermission = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                    onRequestNotificationPermission = {
+                        suppressWarningAfterManualRequest = true
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 )
             }
         }
@@ -74,6 +86,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        suppressWarningAfterManualRequest = false
         requestNotificationPermissionIfNeeded()
     }
 
@@ -84,6 +97,7 @@ class MainActivity : ComponentActivity() {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             showNotificationPermissionWarning = false
+            suppressWarningAfterManualRequest = false
         }
     }
 }
