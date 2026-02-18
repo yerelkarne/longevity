@@ -359,6 +359,24 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
             )
         }
 
+        item {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canCalculate && !isCreatingGoals,
+                onClick = {
+                    if (canCalculate) {
+                        showResetGoalsDialog = true
+                    }
+                }
+            ) {
+                if (isCreatingGoals) {
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.me_create_goals))
+                }
+            }
+        }
+
         targets?.let { t ->
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
@@ -388,24 +406,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             GoalTargetRow(stringResource(R.string.nutrient_omega3), "${t.omega3Mg} mg")
                         }
                     }
-                }
-            }
-        }
-
-        item {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canCalculate && !isCreatingGoals,
-                onClick = {
-                    if (canCalculate) {
-                        showResetGoalsDialog = true
-                    }
-                }
-            ) {
-                if (isCreatingGoals) {
-                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text(stringResource(R.string.me_create_goals))
                 }
             }
         }
