@@ -107,7 +107,7 @@ private fun MainScaffold(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = topBarColor),
                 title = {
                     Text(
-                        text = "Longavity Coach",
+                        text = "Longevity Coach",
                         style = MaterialTheme.typography.headlineMedium,
                         fontFamily = FontFamily.Cursive
                     )

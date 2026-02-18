@@ -175,6 +175,6 @@
     <string name="nutrient_mg_value">%.1f mg</string>
     <string name="nutrient_iu_value">%.1f IU</string>
     <string name="notification_permission_required_title">Bildirim izni gerekli</string>
-    <string name="notification_permission_required_message">Longavity Coach'u en verimli şekilde kullanabilmeniz için bildirimlere izin vermenizi öneririz. Bildirimler kapalı olduğunda hatırlatmalar ve önemli yönlendirmeler size zamanında ulaşmayabilir.</string>
+    <string name="notification_permission_required_message">Longevity Coach’u en verimli şekilde kullanabilmeniz için bildirimlere izin vermenizi öneririz. Bildirimler kapalı olduğunda hatırlatmalar ve önemli yönlendirmeler size zamanında ulaşmayabilir.</string>
     <string name="understood">Anladım</string>
 </resources>
