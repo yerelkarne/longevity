@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,12 +83,13 @@ private fun MainScaffold(vm: MainViewModel) {
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
 
-    val sharedBarColor = MaterialTheme.colorScheme.surface
+    val topBarColor = Color(0xFFEDE7F6)
+    val bottomBarColor = MaterialTheme.colorScheme.surface
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = sharedBarColor),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = topBarColor),
                 title = {
                     Text(
                         text = "Longavity Coach",
@@ -103,7 +105,7 @@ private fun MainScaffold(vm: MainViewModel) {
             }
         },
         bottomBar = {
-            NavigationBar(containerColor = sharedBarColor) {
+            NavigationBar(containerColor = bottomBarColor) {
                 bottomDestinations.forEach { destination ->
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
