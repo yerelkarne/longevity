@@ -65,7 +65,8 @@ class MainActivity : ComponentActivity() {
                 MainScaffold(
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,
-                    onDismissNotificationWarning = { showNotificationPermissionWarning = false }
+                    onDismissNotificationWarning = { showNotificationPermissionWarning = false },
+                    onRequestNotificationPermission = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
                 )
             }
         }
@@ -92,7 +93,8 @@ class MainActivity : ComponentActivity() {
 private fun MainScaffold(
     vm: MainViewModel,
     showNotificationPermissionWarning: Boolean,
-    onDismissNotificationWarning: () -> Unit
+    onDismissNotificationWarning: () -> Unit,
+    onRequestNotificationPermission: () -> Unit
 ) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
@@ -150,7 +152,10 @@ private fun MainScaffold(
                 title = { Text(stringResource(R.string.notification_permission_required_title)) },
                 text = { Text(stringResource(R.string.notification_permission_required_message)) },
                 confirmButton = {
-                    TextButton(onClick = onDismissNotificationWarning) {
+                    TextButton(onClick = {
+                        onDismissNotificationWarning()
+                        onRequestNotificationPermission()
+                    }) {
                         Text(stringResource(R.string.understood))
                     }
                 }
