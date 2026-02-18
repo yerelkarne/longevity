@@ -177,4 +177,24 @@
     <string name="notification_permission_required_title">Bildirim izni gerekli</string>
     <string name="notification_permission_required_message">Longevity Coach’u en verimli şekilde kullanabilmeniz için bildirimlere izin vermenizi öneririz. Bildirimler kapalı olduğunda hatırlatmalar ve önemli yönlendirmeler size zamanında ulaşmayabilir.</string>
     <string name="understood">İzin ekranını aç</string>
+
+    <string name="activity_tab_steps">Adım</string>
+    <string name="activity_tab_add_exercise">Egzersiz Ekle</string>
+    <string name="activity_tab_history">Geçmiş</string>
+    <string name="activity_tab_goals">Hedefler</string>
+    <string name="life_tab_sleep">Uyku</string>
+    <string name="life_tab_routines">Rutinler</string>
+    <string name="life_sleep_empty">Henüz uyku kaydı yok.</string>
+    <string name="life_sleep_bedtime">Yatış: %1$s</string>
+    <string name="life_sleep_waketime">Kalkış: %1$s</string>
+    <string name="life_sleep_duration">Süre: %1$s</string>
+    <string name="life_routines_intro">Rutin kayıtlarını buradan yönetebilirsin.</string>
+    <string name="life_routine_add">Rutin kaydı ekle</string>
+    <string name="life_routines_empty">Henüz rutin yok.</string>
+    <string name="life_routine_create_title">Rutin oluştur</string>
+    <string name="analysis_tab_score">Skor</string>
+    <string name="analysis_tab_bioage">BioAge</string>
+    <string name="analysis_tab_report">Rapor</string>
+    <string name="analysis_tab_trends">Trendler</string>
+    <string name="goal_section_basic">Temel</string>
 </resources>

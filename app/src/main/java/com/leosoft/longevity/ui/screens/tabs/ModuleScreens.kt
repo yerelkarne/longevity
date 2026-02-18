@@ -127,15 +127,15 @@ fun BeslenmeModule(viewModel: MainViewModel) {
     }
 }
 
-@Composable fun AktiviteModule() = ModuleTabLayout(listOf("Adım", "Egzersiz Ekle", "Geçmiş", "Hedefler")) { PlaceholderTab("Aktivite") }
+@Composable fun AktiviteModule() = ModuleTabLayout(listOf(stringResource(R.string.activity_tab_steps), stringResource(R.string.activity_tab_add_exercise), stringResource(R.string.activity_tab_history), stringResource(R.string.activity_tab_goals))) { PlaceholderTab(stringResource(R.string.nav_activity)) }
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
-    val tabs = listOf("Uyku", "Rutinler")
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> YasamUykuScreen(viewModel)
             1 -> YasamRutinlerScreen(viewModel)
-            else -> PlaceholderTab("Yaşam")
+            else -> PlaceholderTab(stringResource(R.string.nav_life))
         }
     }
 }
@@ -152,7 +152,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
         if (sleepLogs.isEmpty()) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Text("Henüz uyku kaydı yok.", modifier = Modifier.padding(16.dp))
+                    Text(stringResource(R.string.life_sleep_empty), modifier = Modifier.padding(16.dp))
                 }
             }
         } else {
@@ -160,9 +160,9 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(sleep.date.toString(), style = MaterialTheme.typography.titleSmall)
-                        Text("Yatış: ${sleep.bedtime.toLocalTime()}")
-                        Text("Kalkış: ${sleep.wakeTime.toLocalTime()}")
-                        Text("Süre: ${formatSleepDurationLabel(sleep.durationMinutes)}")
+                        Text(stringResource(R.string.life_sleep_bedtime, sleep.bedtime.toLocalTime().toString()))
+                        Text(stringResource(R.string.life_sleep_waketime, sleep.wakeTime.toLocalTime().toString()))
+                        Text(stringResource(R.string.life_sleep_duration, formatSleepDurationLabel(sleep.durationMinutes)))
                     }
                 }
             }
@@ -185,14 +185,14 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Rutin kayıtlarını buradan yönetebilirsin.")
-                    TextButton(onClick = { showAddDialog = true }) { Text("Rutin kaydı ekle") }
+                    Text(stringResource(R.string.life_routines_intro))
+                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.life_routine_add)) }
                 }
             }
         }
         if (reminders.isEmpty()) {
             item {
-                Text("Henüz rutin yok.")
+                Text(stringResource(R.string.life_routines_empty))
             }
         } else {
             items(reminders, key = { it.id }) { reminder ->
@@ -211,7 +211,7 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
 
     if (showAddDialog) {
         AddReminderDialog(
-            title = "Rutin oluştur",
+            title = stringResource(R.string.life_routine_create_title),
             onDismiss = { showAddDialog = false },
             onSave = { title, cadence, dailyTime, interval ->
                 scope.launch {
@@ -223,7 +223,7 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         )
     }
 }
-@Composable fun AnalizModule() = ModuleTabLayout(listOf("Skor", "BioAge", "Rapor", "Trendler")) { PlaceholderTab("Analiz") }
+@Composable fun AnalizModule() = ModuleTabLayout(listOf(stringResource(R.string.analysis_tab_score), stringResource(R.string.analysis_tab_bioage), stringResource(R.string.analysis_tab_report), stringResource(R.string.analysis_tab_trends))) { PlaceholderTab(stringResource(R.string.nav_analysis)) }
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
@@ -350,25 +350,25 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(stringResource(R.string.me_targets_title), style = MaterialTheme.typography.titleMedium)
 
-                        GoalTargetSection(title = "Temel") {
-                            GoalTargetRow("Adım", "${t.steps}")
-                            GoalTargetRow("Uyku", formatSleepDurationLabel(t.sleepMinutes))
-                            GoalTargetRow("Su", "${t.waterMl} ml")
+                        GoalTargetSection(title = stringResource(R.string.goal_section_basic)) {
+                            GoalTargetRow(stringResource(R.string.card_steps), "${t.steps}")
+                            GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
+                            GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
                         }
 
-                        GoalTargetSection(title = "Makrolar") {
-                            GoalTargetRow("Protein", "${t.proteinGrams.toInt()} g")
-                            GoalTargetRow("Karbonhidrat", "${t.carbsGrams.toInt()} g")
-                            GoalTargetRow("Yağ", "${t.fatGrams.toInt()} g")
-                            GoalTargetRow("Lif", "${t.fiberGrams.toInt()} g")
+                        GoalTargetSection(title = stringResource(R.string.tab_macros)) {
+                            GoalTargetRow(stringResource(R.string.nutrient_protein), "${t.proteinGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_carbs), "${t.carbsGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_fat), "${t.fatGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_fiber), "${t.fiberGrams.toInt()} g")
                         }
 
-                        GoalTargetSection(title = "Mikrolar") {
-                            GoalTargetRow("Demir", "${t.ironMg} mg")
-                            GoalTargetRow("Magnezyum", "${t.magnesiumMg} mg")
-                            GoalTargetRow("Potasyum", "${t.potassiumMg} mg")
-                            GoalTargetRow("D Vitamini", "${t.vitaminDIu} IU")
-                            GoalTargetRow("Omega-3", "${t.omega3Mg} mg")
+                        GoalTargetSection(title = stringResource(R.string.tab_micros)) {
+                            GoalTargetRow(stringResource(R.string.nutrient_iron), "${t.ironMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_magnesium), "${t.magnesiumMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_potassium), "${t.potassiumMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_vitamin_d), "${t.vitaminDIu} IU")
+                            GoalTargetRow(stringResource(R.string.nutrient_omega3), "${t.omega3Mg} mg")
                         }
                     }
                 }
