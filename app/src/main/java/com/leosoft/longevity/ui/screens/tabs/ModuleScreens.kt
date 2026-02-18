@@ -26,6 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -346,13 +347,29 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         targets?.let { t ->
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(stringResource(R.string.me_targets_title), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(R.string.me_target_activity, t.steps))
-                        Text(stringResource(R.string.me_target_sleep, formatSleepDurationLabel(t.sleepMinutes)))
-                        Text(stringResource(R.string.me_target_water, t.waterMl))
-                        Text(stringResource(R.string.me_target_macros, t.proteinGrams.toInt(), t.carbsGrams.toInt(), t.fatGrams.toInt(), t.fiberGrams.toInt()))
-                        Text(stringResource(R.string.me_target_micros, t.ironMg, t.magnesiumMg, t.potassiumMg, t.vitaminDIu, t.omega3Mg))
+
+                        GoalTargetSection(title = "Temel") {
+                            GoalTargetRow("Adım", "${t.steps}")
+                            GoalTargetRow("Uyku", formatSleepDurationLabel(t.sleepMinutes))
+                            GoalTargetRow("Su", "${t.waterMl} ml")
+                        }
+
+                        GoalTargetSection(title = "Makrolar") {
+                            GoalTargetRow("Protein", "${t.proteinGrams.toInt()} g")
+                            GoalTargetRow("Karbonhidrat", "${t.carbsGrams.toInt()} g")
+                            GoalTargetRow("Yağ", "${t.fatGrams.toInt()} g")
+                            GoalTargetRow("Lif", "${t.fiberGrams.toInt()} g")
+                        }
+
+                        GoalTargetSection(title = "Mikrolar") {
+                            GoalTargetRow("Demir", "${t.ironMg} mg")
+                            GoalTargetRow("Magnezyum", "${t.magnesiumMg} mg")
+                            GoalTargetRow("Potasyum", "${t.potassiumMg} mg")
+                            GoalTargetRow("D Vitamini", "${t.vitaminDIu} IU")
+                            GoalTargetRow("Omega-3", "${t.omega3Mg} mg")
+                        }
                     }
                 }
             }
@@ -407,6 +424,32 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     }
 }
 
+
+@Composable
+private fun GoalTargetSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FC)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(color = Color(0xFFE5E5EE))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun GoalTargetRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
 
 private enum class GoalCadence { HOURLY, DAILY, WEEKLY }
 
