@@ -16,6 +16,9 @@ interface LifeDao {
     @Query("SELECT * FROM sleep_logs WHERE date = :date ORDER BY wakeTime DESC LIMIT 1")
     fun observeSleep(date: LocalDate): Flow<SleepLogEntity?>
 
+    @Query("SELECT * FROM sleep_logs ORDER BY wakeTime DESC")
+    fun observeSleepLogs(): Flow<List<SleepLogEntity>>
+
     @Query("SELECT * FROM sleep_logs WHERE date = :date ORDER BY wakeTime DESC LIMIT 1")
     suspend fun getSleep(date: LocalDate): SleepLogEntity?
 }

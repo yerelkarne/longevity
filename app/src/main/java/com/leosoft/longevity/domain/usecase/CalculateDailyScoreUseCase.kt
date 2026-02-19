@@ -10,14 +10,17 @@ import kotlin.math.roundToInt
 class CalculateDailyScoreUseCase(
     private val calculateMacroTotalsUseCase: CalculateMacroTotalsUseCase
 ) {
-    private fun clamp(value: Float): Float = value.coerceIn(0f, 1f)
+    private fun clamp(value: Float): Float = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f
+
+    private fun safeRatio(actual: Float, target: Float): Float =
+        if (!actual.isFinite() || !target.isFinite() || target <= 0f) 0f else actual / target
 
     fun calculateBreakdown(dayData: DayData): ScoreBreakdown {
         val totals = calculateMacroTotalsUseCase(dayData.meals, dayData.foodsById)
         val goals = dayData.goals
 
         fun closeness(actual: Float, target: Float): Float {
-            val ratio = if (target <= 0f) 0f else actual / target
+            val ratio = safeRatio(actual, target)
             return clamp(1f - abs(1f - ratio))
         }
 
@@ -28,17 +31,17 @@ class CalculateDailyScoreUseCase(
         val nutritionNormalized = ((proteinC * 0.2f) + (carbsC * 0.2f) + (fatC * 0.2f) + (fiberC * 0.4f))
         val nutrition = nutritionNormalized * 35f
 
-        val hydration = clamp(dayData.waterMl / goals.waterTargetMl.toFloat()) * 15f
+        val hydration = clamp(safeRatio(dayData.waterMl.toFloat(), goals.waterTargetMl.toFloat())) * 15f
 
-        val stepsScore = clamp(dayData.steps / goals.stepsTarget.toFloat()) * 18f
+        val stepsScore = clamp(safeRatio(dayData.steps.toFloat(), goals.stepsTarget.toFloat())) * 18f
         val workoutBonus = dayData.workouts.sumOf { (it.durationMinutes * it.intensity).toDouble() }
             .toFloat().coerceAtMost(210f) / 210f * 7f
         val activity = stepsScore + workoutBonus
 
-        val sleepRatio = if (goals.sleepTargetMinutes == 0) 0f else dayData.sleep?.durationMinutes?.toFloat()?.div(goals.sleepTargetMinutes) ?: 0f
+        val sleepRatio = safeRatio(dayData.sleep?.durationMinutes?.toFloat() ?: 0f, goals.sleepTargetMinutes.toFloat())
         val sleep = clamp(1f - abs(1f - sleepRatio)) * 20f
 
-        val supplements = clamp(dayData.supplementsTaken / goals.supplementsPerDayTarget.toFloat()) * 5f
+        val supplements = clamp(safeRatio(dayData.supplementsTaken.toFloat(), goals.supplementsPerDayTarget.toFloat())) * 5f
 
         val map = linkedMapOf(
             "Beslenme" to nutrition,
@@ -54,7 +57,7 @@ class CalculateDailyScoreUseCase(
             activity = activity,
             sleep = sleep,
             supplements = supplements,
-            total = (nutrition + hydration + activity + sleep + supplements).coerceIn(0f, 100f),
+            total = (nutrition + hydration + activity + sleep + supplements).let { if (it.isFinite()) it else 0f }.coerceIn(0f, 100f),
             bestArea = map.maxBy { it.value }.key,
             weakestArea = map.minBy { it.value }.key
         )

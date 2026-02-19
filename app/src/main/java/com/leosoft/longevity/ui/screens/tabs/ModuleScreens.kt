@@ -26,6 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
+import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
 
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
@@ -126,9 +128,103 @@ fun BeslenmeModule(viewModel: MainViewModel) {
     }
 }
 
-@Composable fun AktiviteModule() = ModuleTabLayout(listOf("Adım", "Egzersiz Ekle", "Geçmiş", "Hedefler")) { PlaceholderTab("Aktivite") }
-@Composable fun YasamModule() = ModuleTabLayout(listOf("Uyku", "Rutinler", "Alışkanlıklar", "Hatırlatmalar")) { PlaceholderTab("Yaşam") }
-@Composable fun AnalizModule() = ModuleTabLayout(listOf("Skor", "BioAge", "Rapor", "Trendler")) { PlaceholderTab("Analiz") }
+@Composable fun AktiviteModule() = ModuleTabLayout(listOf(stringResource(R.string.activity_tab_steps), stringResource(R.string.activity_tab_add_exercise), stringResource(R.string.activity_tab_history), stringResource(R.string.activity_tab_goals))) { PlaceholderTab(stringResource(R.string.nav_activity)) }
+@Composable
+fun YasamModule(viewModel: MainViewModel) {
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines))
+    ModuleTabLayout(tabs) { page ->
+        when (page) {
+            0 -> YasamUykuScreen(viewModel)
+            1 -> YasamRutinlerScreen(viewModel)
+            else -> PlaceholderTab(stringResource(R.string.nav_life))
+        }
+    }
+}
+
+@Composable
+private fun YasamUykuScreen(viewModel: MainViewModel) {
+    val sleepLogs by viewModel.sleepLogs.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (sleepLogs.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.life_sleep_empty), modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            items(sleepLogs, key = { it.id }) { sleep ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(sleep.date.toString(), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.life_sleep_bedtime, sleep.bedtime.toLocalTime().toString()))
+                        Text(stringResource(R.string.life_sleep_waketime, sleep.wakeTime.toLocalTime().toString()))
+                        Text(stringResource(R.string.life_sleep_duration, formatSleepDurationLabel(sleep.durationMinutes)))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YasamRutinlerScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val reminders by viewModel.reminders.collectAsState()
+    val scope = rememberCoroutineScope()
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.life_routines_intro))
+                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.life_routine_add)) }
+                }
+            }
+        }
+        if (reminders.isEmpty()) {
+            item {
+                Text(stringResource(R.string.life_routines_empty))
+            }
+        } else {
+            items(reminders, key = { it.id }) { reminder ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(reminder.reminderType, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (reminder.cadence == "hourly") stringResource(R.string.reminder_hourly_every, reminder.intervalHours ?: 1)
+                            else stringResource(R.string.reminder_daily_at, reminder.reminderTime)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddReminderDialog(
+            title = stringResource(R.string.life_routine_create_title),
+            onDismiss = { showAddDialog = false },
+            onSave = { title, cadence, dailyTime, interval ->
+                scope.launch {
+                    val id = viewModel.addReminder(title, dailyTime, cadence, interval)
+                    ReminderAlarmScheduler.schedule(context, id, title, cadence, dailyTime, interval ?: 1)
+                    showAddDialog = false
+                }
+            }
+        )
+    }
+}
+@Composable fun AnalizModule() = ModuleTabLayout(listOf(stringResource(R.string.analysis_tab_score), stringResource(R.string.analysis_tab_bioage), stringResource(R.string.analysis_tab_report), stringResource(R.string.analysis_tab_trends))) { PlaceholderTab(stringResource(R.string.nav_analysis)) }
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
@@ -169,18 +265,24 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var weightText by remember { mutableStateOf("") }
     val genderKeys = listOf("male", "female", "unspecified")
     var genderIndex by remember { mutableStateOf(2) }
-    var initializedFromProfile by remember { mutableStateOf(false) }
+    val weightGoalModes = listOf(WeightGoalMode.REACH_IDEAL, WeightGoalMode.MAINTAIN)
+    var selectedWeightGoalModeIndex by remember { mutableStateOf(0) }
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    LaunchedEffect(profile, initializedFromProfile) {
-        if (!initializedFromProfile) {
+    LaunchedEffect(profile) {
+        if (ageText.isBlank()) {
             ageText = profile.age.takeIf { it > 0 }?.toString().orEmpty()
+        }
+        if (heightText.isBlank()) {
             heightText = profile.heightCm.takeIf { it > 0 }?.toString().orEmpty()
+        }
+        if (weightText.isBlank()) {
             weightText = profile.weightKg.takeIf { it > 0f }?.let { if (it % 1f == 0f) it.toInt().toString() else it.toString() }.orEmpty()
+        }
+        if (genderIndex == 2) {
             genderIndex = genderKeys.indexOf(profile.gender).takeIf { it >= 0 } ?: 2
-            initializedFromProfile = true
         }
     }
 
@@ -189,10 +291,10 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val weight = weightText.toFloatOrNull()
     val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
     val selectedGender = genderKeys[genderIndex]
-    val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender) else null
+    val selectedWeightGoalMode = weightGoalModes[selectedWeightGoalModeIndex]
+    val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
-    LaunchedEffect(age, height, weight, selectedGender, initializedFromProfile) {
-        if (!initializedFromProfile) return@LaunchedEffect
+    LaunchedEffect(age, height, weight, selectedGender) {
         if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
             viewModel.saveProfile(age, height, weight, selectedGender)
         }
@@ -245,20 +347,16 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 onSelect = { genderIndex = it }
             )
         }
-
-        targets?.let { t ->
-            item {
-                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.me_targets_title), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(R.string.me_target_activity, t.steps))
-                        Text(stringResource(R.string.me_target_sleep, formatSleepDurationLabel(t.sleepMinutes)))
-                        Text(stringResource(R.string.me_target_water, t.waterMl))
-                        Text(stringResource(R.string.me_target_macros, t.proteinGrams.toInt(), t.carbsGrams.toInt(), t.fatGrams.toInt(), t.fiberGrams.toInt()))
-                        Text(stringResource(R.string.me_target_micros, t.ironMg, t.magnesiumMg, t.potassiumMg, t.vitaminDIu, t.omega3Mg))
-                    }
-                }
-            }
+        item {
+            ExposedDropdownSimple(
+                label = stringResource(R.string.me_goal_mode_label),
+                options = listOf(
+                    stringResource(R.string.me_goal_mode_reach_ideal),
+                    stringResource(R.string.me_goal_mode_maintain)
+                ),
+                selected = selectedWeightGoalModeIndex,
+                onSelect = { selectedWeightGoalModeIndex = it }
+            )
         }
 
         item {
@@ -278,6 +376,39 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 }
             }
         }
+
+        targets?.let { t ->
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.me_targets_title), style = MaterialTheme.typography.titleMedium)
+
+                        GoalTargetSection(title = stringResource(R.string.goal_section_basic)) {
+                            GoalTargetRow(stringResource(R.string.card_steps), "${t.steps}")
+                            GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
+                            GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
+                            GoalTargetRow(stringResource(R.string.me_target_ideal_weight), stringResource(R.string.me_target_ideal_weight_value, t.idealWeightKg))
+                            GoalTargetRow(stringResource(R.string.me_target_plan_type), weightPlanSummaryLabel(t.weightPlanSummary))
+                        }
+
+                        GoalTargetSection(title = stringResource(R.string.tab_macros)) {
+                            GoalTargetRow(stringResource(R.string.nutrient_protein), "${t.proteinGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_carbs), "${t.carbsGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_fat), "${t.fatGrams.toInt()} g")
+                            GoalTargetRow(stringResource(R.string.nutrient_fiber), "${t.fiberGrams.toInt()} g")
+                        }
+
+                        GoalTargetSection(title = stringResource(R.string.tab_micros)) {
+                            GoalTargetRow(stringResource(R.string.nutrient_iron), "${t.ironMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_magnesium), "${t.magnesiumMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_potassium), "${t.potassiumMg} mg")
+                            GoalTargetRow(stringResource(R.string.nutrient_vitamin_d), "${t.vitaminDIu} IU")
+                            GoalTargetRow(stringResource(R.string.nutrient_omega3), "${t.omega3Mg} mg")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showResetGoalsDialog) {
@@ -289,7 +420,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 TextButton(onClick = {
                     if (!canCalculate || isCreatingGoals) return@TextButton
                     isCreatingGoals = true
-                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender) { success ->
+                    viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) { success ->
                         isCreatingGoals = false
                         showResetGoalsDialog = false
                         if (success) {
@@ -310,6 +441,40 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     }
 }
 
+
+
+@Composable
+private fun weightPlanSummaryLabel(plan: String): String = when (plan) {
+    "gain" -> stringResource(R.string.me_weight_plan_gain)
+    "lose" -> stringResource(R.string.me_weight_plan_lose)
+    else -> stringResource(R.string.me_weight_plan_maintain)
+}
+
+@Composable
+private fun GoalTargetSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FC)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(color = Color(0xFFE5E5EE))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun GoalTargetRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
 
 private enum class GoalCadence { HOURLY, DAILY, WEEKLY }
 
