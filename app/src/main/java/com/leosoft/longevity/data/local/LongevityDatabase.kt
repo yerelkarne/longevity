@@ -45,7 +45,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         UserGoalsEntity::class,
         DailyScoreEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

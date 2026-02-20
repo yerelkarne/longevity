@@ -20,6 +20,12 @@ interface ActivityDao {
     @Query("SELECT * FROM steps_logs WHERE date = :date LIMIT 1")
     suspend fun getSteps(date: LocalDate): StepsLogEntity?
 
+    @Query("SELECT * FROM steps_logs WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun observeStepsBetween(startDate: LocalDate, endDate: LocalDate): Flow<List<StepsLogEntity>>
+
+    @Query("SELECT COALESCE(SUM(steps), 0) FROM steps_logs WHERE date BETWEEN :startDate AND :endDate")
+    fun observeStepsTotalBetween(startDate: LocalDate, endDate: LocalDate): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkout(log: WorkoutLogEntity)
 

@@ -207,4 +207,27 @@
     <string name="me_weight_plan_gain">Sağlıklı kilo artışı odaklı</string>
     <string name="me_weight_plan_lose">Sağlıklı kilo kaybı odaklı</string>
     <string name="me_weight_plan_maintain">Kilo koruma odaklı</string>
+
+    <string name="activity_permission_title">Fiziksel aktivite izni gerekli</string>
+    <string name="activity_permission_message">Adım takibi için fiziksel aktivite izni gerekiyor. Reddederseniz yalnızca uygulama açıkken sınırlı ölçüm yapılır.</string>
+    <string name="today_steps_label">Bugünkü Adım</string>
+    <string name="steps_goal_progress">%1$d / %2$d adım</string>
+    <string name="custom_goal">Özel hedef</string>
+    <string name="enable_background">Arka planı aç</string>
+    <string name="disable_background">Arka planı kapat</string>
+    <string name="step_tracking_on">Adım takibi aktif</string>
+    <string name="step_tracking_off">Adım takibi kapalı (yalnızca uygulama açıkken)</string>
+    <string name="step_tracking_channel_name">Adım Takibi</string>
+    <string name="step_tracking_active_title">Adım takibi aktif</string>
+    <string name="step_tracking_active_message">Longevity adımlarınızı arka planda izliyor.</string>
+    <string name="estimated_tracking_info">Cihazınızda adım sensörü yok, tahmini ölçüm kullanılıyor.</string>
+    <string name="battery_optimization_hint">Pil optimizasyonu adım takibini kısıtlayabilir. Arka plan takibi için pil optimizasyonunu kapatmanız önerilir.</string>
+    <string name="monthly_total_steps">Aylık toplam adım: %1$d</string>
+    <string name="activity_add_hint">Egzersiz ekleme için + butonunu kullanın.</string>
+    <string name="longevity_integration_title">Longevity entegrasyonu</string>
+    <string name="goal_reached_streak">Hedef tamamlandı: streak arttı ve motivasyon bildirimi hazır.</string>
+    <string name="goal_not_reached">Günlük adım hedefi henüz tamamlanmadı.</string>
+    <string name="goal_badge_message">Görev tamamlandı rozeti kazanıldı.</string>
+    <string name="activity_goal_sync_info">Adım hedefi Ben sekmesindeki hedeflerden otomatik alınır: %1$d</string>
+
 </resources>

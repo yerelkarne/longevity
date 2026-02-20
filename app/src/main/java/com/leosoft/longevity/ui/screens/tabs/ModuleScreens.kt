@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -128,7 +129,134 @@ fun BeslenmeModule(viewModel: MainViewModel) {
     }
 }
 
-@Composable fun AktiviteModule() = ModuleTabLayout(listOf(stringResource(R.string.activity_tab_steps), stringResource(R.string.activity_tab_add_exercise), stringResource(R.string.activity_tab_history), stringResource(R.string.activity_tab_goals))) { PlaceholderTab(stringResource(R.string.nav_activity)) }
+@Composable
+fun AktiviteModule(viewModel: MainViewModel) {
+    val tabs = listOf(
+        stringResource(R.string.activity_tab_steps),
+        stringResource(R.string.activity_tab_add_exercise),
+        stringResource(R.string.activity_tab_history),
+        stringResource(R.string.activity_tab_goals)
+    )
+    ModuleTabLayout(tabs) { page ->
+        when (page) {
+            0 -> ActivityStepsScreen(viewModel)
+            1 -> PlaceholderTab(stringResource(R.string.activity_add_hint))
+            2 -> ActivityHistoryScreen(viewModel)
+            3 -> ActivityGoalsScreen(viewModel)
+            else -> PlaceholderTab(stringResource(R.string.nav_activity))
+        }
+    }
+}
+
+@Composable
+private fun ActivityStepsScreen(viewModel: MainViewModel) {
+    val dashboard by viewModel.dashboard.collectAsState()
+    val state by viewModel.stepTrackingState.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
+    val steps = dashboard?.steps ?: 0
+    val goal = userGoals?.stepsTarget ?: 10000
+    val progress = (steps / goal.toFloat()).coerceIn(0f, 1f)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = Color(0xFF6A1B9A))
+                    Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF2D2A32))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(10.dp),
+                        color = Color(0xFF7E57C2),
+                        trackColor = Color(0xFFEDE7F6)
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF6A1B9A))
+                    }
+                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = Color(0xFF5E35B1))
+                }
+            }
+        }
+
+        if (viewModel.usesEstimatedTracking) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+                ) {
+                    Text(stringResource(R.string.estimated_tracking_info), modifier = Modifier.padding(12.dp))
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
+                        Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(stringResource(R.string.battery_optimization_hint), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun ActivityHistoryScreen(viewModel: MainViewModel) {
+    val weekly by viewModel.weeklySteps.collectAsState()
+    val monthly by viewModel.monthlyStepsTotal.collectAsState()
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text(stringResource(R.string.monthly_total_steps, monthly), style = MaterialTheme.typography.titleMedium) }
+        items(weekly, key = { it.date.toString() }) { row ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(row.date.toString())
+                    Text(row.steps.toString())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityGoalsScreen(viewModel: MainViewModel) {
+    val dashboard by viewModel.dashboard.collectAsState()
+    val steps = dashboard?.steps ?: 0
+    val reached = steps >= 10000
+    Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.longevity_integration_title))
+            Text(if (reached) stringResource(R.string.goal_reached_streak) else stringResource(R.string.goal_not_reached))
+            if (reached) Text(stringResource(R.string.goal_badge_message))
+        }
+    }
+}
+
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
     val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines))
