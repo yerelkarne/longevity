@@ -150,12 +150,13 @@ class HealthConnectAdapter(private val context: Context) {
                 .invoke(null, context) as Int
         }.getOrNull()
 
-        if (defaultStatus != null) {
-            return defaultStatus
+        val statuses = buildList {
+            defaultStatus?.let(::add)
+            addAll(
+                listOf(PROVIDER_PACKAGE, PLATFORM_PROVIDER_PACKAGE)
+                    .map { pkg -> HealthConnectClient.getSdkStatus(context, pkg) }
+            )
         }
-
-        val statuses = listOf(PROVIDER_PACKAGE, PLATFORM_PROVIDER_PACKAGE)
-            .map { pkg -> HealthConnectClient.getSdkStatus(context, pkg) }
 
         return when {
             statuses.any { it == HealthConnectClient.SDK_AVAILABLE } -> HealthConnectClient.SDK_AVAILABLE
