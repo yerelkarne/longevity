@@ -57,7 +57,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
-import com.leosoft.longevity.data.local.entity.ConflictResolution
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
@@ -390,30 +389,6 @@ fun SettingsModule(viewModel: MainViewModel) {
         item { ScopeToggle(stringResource(R.string.card_steps), prefs.stepsEnabled) { viewModel.setHealthScope("steps", it) } }
         item { ScopeToggle(stringResource(R.string.activity_tab_add_exercise), prefs.exerciseEnabled) { viewModel.setHealthScope("exercise", it) } }
         item { ScopeToggle(stringResource(R.string.nav_nutrition), prefs.nutritionEnabled) { viewModel.setHealthScope("nutrition", it) } }
-        item {
-            ExposedDropdownSimple(
-                label = stringResource(R.string.settings_conflict_rule),
-                options = listOf(
-                    stringResource(R.string.settings_conflict_last_write_wins),
-                    stringResource(R.string.settings_conflict_local_priority),
-                    stringResource(R.string.settings_conflict_hc_priority)
-                ),
-                selected = when (prefs.conflictResolution) {
-                    ConflictResolution.LAST_WRITE_WINS -> 0
-                    ConflictResolution.LOCAL_PRIORITY -> 1
-                    ConflictResolution.HEALTH_CONNECT_PRIORITY -> 2
-                },
-                onSelect = { selectedRuleIndex ->
-                    viewModel.setConflictRule(
-                        when (selectedRuleIndex) {
-                            1 -> ConflictResolution.LOCAL_PRIORITY
-                            2 -> ConflictResolution.HEALTH_CONNECT_PRIORITY
-                            else -> ConflictResolution.LAST_WRITE_WINS
-                        }
-                    )
-                }
-            )
-        }
     }
 }
 

@@ -422,10 +422,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setConflictRule(rule: ConflictResolution) = viewModelScope.launch {
-        app.preferences.updateHealthSyncPreferences { it.copy(conflictResolution = rule) }
-    }
-
     fun syncNow() = viewModelScope.launch {
         val settings = healthSyncPreferences.value
         if (!settings.enabled) return@launch
@@ -436,7 +432,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 steps = settings.stepsEnabled,
                 exercise = settings.exerciseEnabled,
                 nutrition = settings.nutritionEnabled,
-                conflictResolution = settings.conflictResolution,
+                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
                 importDays = 30
             )
         )
