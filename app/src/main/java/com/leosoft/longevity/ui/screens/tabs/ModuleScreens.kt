@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,6 +58,7 @@ import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.reminders.ReminderAlarmScheduler
+import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
@@ -126,7 +128,92 @@ fun BeslenmeModule(viewModel: MainViewModel) {
     }
 }
 
-@Composable fun AktiviteModule() = ModuleTabLayout(listOf("Adım", "Egzersiz Ekle", "Geçmiş", "Hedefler")) { PlaceholderTab("Aktivite") }
+@Composable
+fun AktiviteModule(
+    viewModel: MainViewModel,
+    activityRecognitionGranted: Boolean,
+    backgroundTrackingEnabled: Boolean,
+    onBackgroundTrackingToggle: (Boolean) -> Unit
+) {
+    val dashboard by viewModel.dashboard.collectAsState()
+    val weekly by viewModel.stepHistoryWeekly.collectAsState()
+    val monthlyTotal by viewModel.monthlyStepTotal.collectAsState()
+    val fallback by viewModel.stepSensorFallback.collectAsState()
+    val currentSteps = dashboard?.steps ?: 0
+    val goal = dashboard?.score?.let { 10000 } ?: 10000
+    val progress = (currentSteps.toFloat() / goal.toFloat()).coerceIn(0f, 1f)
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.today_steps_big_title), style = MaterialTheme.typography.titleLarge)
+                    Text(currentSteps.toString(), style = MaterialTheme.typography.displaySmall)
+                    Text(stringResource(R.string.goal_progress_text, currentSteps, goal))
+                    androidx.compose.material3.LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(5000, 10000, 15000).forEach { value ->
+                    Button(onClick = { viewModel.updateGoal("steps", value) }) {
+                        Text("$value")
+                    }
+                }
+            }
+        }
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.steps_permission_reason))
+                    if (!activityRecognitionGranted) {
+                        Text(stringResource(R.string.steps_permission_denied_limited))
+                    }
+                    if (fallback) {
+                        Text(stringResource(R.string.steps_fallback_info))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.step_tracking_active_title))
+                        Switch(checked = backgroundTrackingEnabled, onCheckedChange = onBackgroundTrackingToggle)
+                    }
+                    Text(stringResource(R.string.battery_optimization_hint))
+                }
+            }
+        }
+        item {
+            Text(stringResource(R.string.steps_last_7_days), style = MaterialTheme.typography.titleMedium)
+        }
+        items(weekly) { log ->
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    val day = when (log.date.dayOfWeek) {
+                        DayOfWeek.MONDAY -> "Pzt"
+                        DayOfWeek.TUESDAY -> "Sal"
+                        DayOfWeek.WEDNESDAY -> "Çar"
+                        DayOfWeek.THURSDAY -> "Per"
+                        DayOfWeek.FRIDAY -> "Cum"
+                        DayOfWeek.SATURDAY -> "Cmt"
+                        DayOfWeek.SUNDAY -> "Paz"
+                    }
+                    Text(day)
+                    Text("${log.steps} adım")
+                }
+            }
+        }
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(stringResource(R.string.monthly_total_steps, monthlyTotal))
+                }
+            }
+        }
+    }
+}
 @Composable fun YasamModule() = ModuleTabLayout(listOf("Uyku", "Rutinler", "Alışkanlıklar", "Hatırlatmalar")) { PlaceholderTab("Yaşam") }
 @Composable fun AnalizModule() = ModuleTabLayout(listOf("Skor", "BioAge", "Rapor", "Trendler")) { PlaceholderTab("Analiz") }
 

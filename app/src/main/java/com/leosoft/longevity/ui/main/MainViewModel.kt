@@ -1,6 +1,8 @@
 package com.leosoft.longevity.ui.main
 
 import android.app.Application
+import android.content.Intent
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
@@ -13,6 +15,8 @@ import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
+import com.leosoft.longevity.steps.PedometerTracker
+import com.leosoft.longevity.steps.StepTrackingService
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,6 +66,7 @@ data class PersonalizedTargets(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as LongevityApp
     private val repository = app.repository
+    private val pedometerTracker = PedometerTracker(application, repository, app.preferences, viewModelScope)
 
     val dashboard: StateFlow<DashboardSummary?> = repository.observeDashboard(LocalDate.now())
         .map { it }
@@ -101,6 +106,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
+
+    val stepHistoryWeekly = repository.observeStepsRange(LocalDate.now().minusDays(6), LocalDate.now())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val monthlyStepTotal = repository.observeStepsTotalRange(
+        LocalDate.now().withDayOfMonth(1),
+        LocalDate.now()
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val stepSensorFallback = app.preferences.stepSensorPreferences
+        .map { it.fallbackMode || !pedometerTracker.hasStepCounterSensor() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), !pedometerTracker.hasStepCounterSensor())
 
     init {
         ensureCoreFoods()
@@ -279,7 +296,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(selectedNutritionDate.value, ml) }
 
     fun addSteps(steps: Int) = viewModelScope.launch {
-        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, goal = 10000, updatedAt = LocalDateTime.now()))
     }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
@@ -312,6 +329,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {
         repository.updateGoal(goalType, value)
+    }
+
+
+    fun startPedometerForegroundOnly(forceFallback: Boolean) {
+        pedometerTracker.startTracking(forceFallback)
+    }
+
+    fun stopPedometerForegroundOnly() {
+        pedometerTracker.stopTracking()
+    }
+
+    fun setBackgroundTrackingEnabled(enabled: Boolean) {
+        val context = getApplication<Application>()
+        val intent = Intent(context, StepTrackingService::class.java)
+        if (enabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } else {
+            context.stopService(intent)
+        }
     }
 
     fun ensureCoreFoods() = viewModelScope.launch {

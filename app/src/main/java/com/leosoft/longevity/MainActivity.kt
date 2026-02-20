@@ -9,10 +9,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -21,10 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,17 +41,26 @@ import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
 
 class MainActivity : ComponentActivity() {
+    private var activityRecognitionGranted: Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+    private lateinit var vm: MainViewModel
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
 
+    private val activityPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        activityRecognitionGranted = granted
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        vm = ViewModelProvider(this)[MainViewModel::class.java]
         setContent {
             LongevityTheme {
-                val vm: MainViewModel = viewModel()
-                MainScaffold(vm)
+                MainScaffold(vm, activityRecognitionGranted)
             }
         }
     }
@@ -58,23 +68,43 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
+        requestActivityRecognitionPermissionIfNeeded()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        vm.startPedometerForegroundOnly(forceFallback = !activityRecognitionGranted)
+    }
+
+    override fun onPause() {
+        vm.stopPedometerForegroundOnly()
+        super.onPause()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (!granted) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    private fun requestActivityRecognitionPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            activityRecognitionGranted = true
+            return
         }
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+        activityRecognitionGranted = granted
+        if (!granted) activityPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
     }
 }
 
 @Composable
-private fun MainScaffold(vm: MainViewModel) {
+private fun MainScaffold(vm: MainViewModel, activityRecognitionGranted: Boolean) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
+    var backgroundTrackingEnabled by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
@@ -98,7 +128,17 @@ private fun MainScaffold(vm: MainViewModel) {
         NavHost(navController = navController, startDestination = bottomDestinations.first().route, modifier = Modifier.padding(padding)) {
             composable("gunum") { GunumModule(vm) }
             composable("beslenme") { BeslenmeModule(vm) }
-            composable("aktivite") { AktiviteModule() }
+            composable("aktivite") {
+                AktiviteModule(
+                    viewModel = vm,
+                    activityRecognitionGranted = activityRecognitionGranted,
+                    backgroundTrackingEnabled = backgroundTrackingEnabled,
+                    onBackgroundTrackingToggle = {
+                        backgroundTrackingEnabled = it
+                        vm.setBackgroundTrackingEnabled(it)
+                    }
+                )
+            }
             composable("yasam") { YasamModule() }
             composable("analiz") { AnalizModule() }
         }
