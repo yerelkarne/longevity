@@ -151,6 +151,17 @@ class LongevityRepositoryImpl(
         recalculateScore(log.date)
     }
 
+    override fun observeWeeklySteps(endDate: LocalDate): Flow<List<StepsLogEntity>> {
+        val start = endDate.minusDays(6)
+        return activityDao.observeStepsBetween(start, endDate)
+    }
+
+    override fun observeMonthlyStepsTotal(monthDate: LocalDate): Flow<Int> {
+        val start = monthDate.withDayOfMonth(1)
+        val end = monthDate.withDayOfMonth(monthDate.lengthOfMonth())
+        return activityDao.observeStepsTotalBetween(start, end)
+    }
+
     override suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean) {
         supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = supplementId, taken = taken))
         recalculateScore(date)

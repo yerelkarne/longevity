@@ -35,12 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
@@ -53,15 +54,30 @@ import com.leosoft.longevity.ui.theme.LongevityTheme
 
 class MainActivity : ComponentActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
+    private var showActivityPermissionWarning by mutableStateOf(false)
     private var hasRequestedNotificationPermission = false
+    private var hasRequestedActivityPermission = false
+    private lateinit var trackerManager: StepTrackerManager
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         showNotificationPermissionWarning = !granted
     }
 
+    private val activityPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showActivityPermissionWarning = !granted
+        if (granted) {
+            trackerManager.start()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val app = application as LongevityApp
+        trackerManager = StepTrackerManager(this, app.repository, app.preferences)
         enableEdgeToEdge()
         setContent {
             LongevityTheme {
@@ -69,8 +85,11 @@ class MainActivity : ComponentActivity() {
                 MainScaffold(
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,
+                    showActivityPermissionWarning = showActivityPermissionWarning,
                     onDismissNotificationWarning = { showNotificationPermissionWarning = false },
-                    onRequestNotificationPermission = { requestNotificationPermissionFromUser() }
+                    onDismissActivityWarning = { showActivityPermissionWarning = false },
+                    onRequestNotificationPermission = { requestNotificationPermissionFromUser() },
+                    onRequestActivityPermission = { requestActivityPermissionFromUser() }
                 )
             }
         }
@@ -79,6 +98,40 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
+        requestActivityPermissionIfNeeded()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (hasActivityPermission() || trackerManager.usesEstimatedTracking) {
+            trackerManager.start()
+        }
+    }
+
+    override fun onPause() {
+        trackerManager.stop()
+        super.onPause()
+    }
+
+    private fun hasActivityPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return true
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestActivityPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        if (!hasActivityPermission()) requestActivityPermissionFromUser()
+    }
+
+    private fun requestActivityPermissionFromUser() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val canShowSystemPrompt = !hasRequestedActivityPermission || shouldShowRequestPermissionRationale(Manifest.permission.ACTIVITY_RECOGNITION)
+        if (canShowSystemPrompt) {
+            hasRequestedActivityPermission = true
+            activityPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+        } else {
+            showActivityPermissionWarning = true
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -114,8 +167,11 @@ class MainActivity : ComponentActivity() {
 private fun MainScaffold(
     vm: MainViewModel,
     showNotificationPermissionWarning: Boolean,
+    showActivityPermissionWarning: Boolean,
     onDismissNotificationWarning: () -> Unit,
-    onRequestNotificationPermission: () -> Unit
+    onDismissActivityWarning: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
+    onRequestActivityPermission: () -> Unit
 ) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
@@ -159,7 +215,7 @@ private fun MainScaffold(
         NavHost(navController = navController, startDestination = bottomDestinations.first().route, modifier = Modifier.padding(padding)) {
             composable("gunum") { GunumModule(vm) }
             composable("beslenme") { BeslenmeModule(vm) }
-            composable("aktivite") { AktiviteModule() }
+            composable("aktivite") { AktiviteModule(vm) }
             composable("yasam") { YasamModule(vm) }
             composable("analiz") { AnalizModule() }
         }
@@ -176,6 +232,21 @@ private fun MainScaffold(
                     TextButton(onClick = {
                         onDismissNotificationWarning()
                         onRequestNotificationPermission()
+                    }) {
+                        Text(stringResource(R.string.understood))
+                    }
+                }
+            )
+        }
+        if (showActivityPermissionWarning) {
+            AlertDialog(
+                onDismissRequest = onDismissActivityWarning,
+                title = { Text(stringResource(R.string.activity_permission_title)) },
+                text = { Text(stringResource(R.string.activity_permission_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDismissActivityWarning()
+                        onRequestActivityPermission()
                     }) {
                         Text(stringResource(R.string.understood))
                     }

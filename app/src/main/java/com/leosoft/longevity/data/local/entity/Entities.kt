@@ -88,6 +88,9 @@ data class SleepLogEntity(
 data class StepsLogEntity(
     @PrimaryKey val date: LocalDate,
     val steps: Int,
+    val goal: Int = 10000,
+    val distanceKm: Float? = null,
+    val caloriesEst: Float? = null,
     val updatedAt: LocalDateTime
 )
 

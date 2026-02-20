@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
+import android.content.Intent
 import com.leosoft.longevity.data.local.ProfilePreferences
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
@@ -14,6 +15,8 @@ import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
+import com.leosoft.longevity.steps.StepTrackerManager
+import com.leosoft.longevity.steps.StepTrackingService
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,6 +111,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
+
+    val weeklySteps = repository.observeWeeklySteps(LocalDate.now())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val monthlyStepsTotal = repository.observeMonthlyStepsTotal(LocalDate.now())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val stepTrackingState = app.preferences.stepTrackingState
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.leosoft.longevity.data.local.StepTrackingState())
+
+    val usesEstimatedTracking = StepTrackerManager(application, repository, app.preferences).usesEstimatedTracking
 
     init {
         ensureCoreFoods()
@@ -356,6 +370,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateGoal(goalType: String, value: Int) = viewModelScope.launch {
         repository.updateGoal(goalType, value)
+    }
+
+    fun setStepsGoal(goal: Int) = viewModelScope.launch {
+        repository.updateGoal("steps", goal)
+    }
+
+    fun setForegroundStepTracking(enabled: Boolean) = viewModelScope.launch {
+        app.preferences.setForegroundTrackingEnabled(enabled)
+        val intent = Intent(getApplication(), StepTrackingService::class.java)
+        if (enabled) getApplication<Application>().startForegroundService(intent)
+        else getApplication<Application>().stopService(intent)
     }
 
     fun ensureCoreFoods() = viewModelScope.launch {
