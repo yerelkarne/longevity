@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.leosoft.longevity.data.local.entity.ConflictResolution
 import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -29,6 +31,17 @@ data class StepTrackingState(
     val isForegroundTrackingEnabled: Boolean = false
 )
 
+data class HealthSyncPreferences(
+    val enabled: Boolean = false,
+    val hydrationEnabled: Boolean = true,
+    val sleepEnabled: Boolean = true,
+    val stepsEnabled: Boolean = true,
+    val exerciseEnabled: Boolean = true,
+    val nutritionEnabled: Boolean = true,
+    val conflictResolution: ConflictResolution = ConflictResolution.LAST_WRITE_WINS,
+    val lastSyncAt: LocalDateTime? = null
+)
+
 class AppPreferences(private val context: Context) {
     private val onboardingKey = booleanPreferencesKey("onboarding_done")
     private val ageKey = intPreferencesKey("profile_age")
@@ -40,6 +53,14 @@ class AppPreferences(private val context: Context) {
     private val baselineRawValueKey = longPreferencesKey("step_counter_baseline_raw")
     private val lastRawSensorValueKey = longPreferencesKey("step_counter_last_raw")
     private val foregroundTrackingEnabledKey = booleanPreferencesKey("steps_foreground_enabled")
+    private val hcSyncEnabledKey = booleanPreferencesKey("hc_sync_enabled")
+    private val hcHydrationEnabledKey = booleanPreferencesKey("hc_hydration_enabled")
+    private val hcSleepEnabledKey = booleanPreferencesKey("hc_sleep_enabled")
+    private val hcStepsEnabledKey = booleanPreferencesKey("hc_steps_enabled")
+    private val hcExerciseEnabledKey = booleanPreferencesKey("hc_exercise_enabled")
+    private val hcNutritionEnabledKey = booleanPreferencesKey("hc_nutrition_enabled")
+    private val hcConflictRuleKey = stringPreferencesKey("hc_conflict_rule")
+    private val hcLastSyncAtKey = stringPreferencesKey("hc_last_sync_at")
 
     val onboardingDone: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[onboardingKey] ?: false }
 
@@ -58,6 +79,19 @@ class AppPreferences(private val context: Context) {
             baselineRawValue = prefs[baselineRawValueKey],
             lastRawSensorValue = prefs[lastRawSensorValueKey],
             isForegroundTrackingEnabled = prefs[foregroundTrackingEnabledKey] ?: false
+        )
+    }
+
+    val healthSyncPreferences: Flow<HealthSyncPreferences> = context.dataStore.data.map { prefs ->
+        HealthSyncPreferences(
+            enabled = prefs[hcSyncEnabledKey] ?: false,
+            hydrationEnabled = prefs[hcHydrationEnabledKey] ?: true,
+            sleepEnabled = prefs[hcSleepEnabledKey] ?: true,
+            stepsEnabled = prefs[hcStepsEnabledKey] ?: true,
+            exerciseEnabled = prefs[hcExerciseEnabledKey] ?: true,
+            nutritionEnabled = prefs[hcNutritionEnabledKey] ?: true,
+            conflictResolution = prefs[hcConflictRuleKey]?.let(ConflictResolution::valueOf) ?: ConflictResolution.LAST_WRITE_WINS,
+            lastSyncAt = prefs[hcLastSyncAtKey]?.let(LocalDateTime::parse)
         )
     }
 
@@ -90,6 +124,21 @@ class AppPreferences(private val context: Context) {
     suspend fun setForegroundTrackingEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[foregroundTrackingEnabledKey] = enabled
+        }
+    }
+
+    suspend fun updateHealthSyncPreferences(update: (HealthSyncPreferences) -> HealthSyncPreferences) {
+        val current = healthSyncPreferences.first()
+        val next = update(current)
+        context.dataStore.edit { prefs ->
+            prefs[hcSyncEnabledKey] = next.enabled
+            prefs[hcHydrationEnabledKey] = next.hydrationEnabled
+            prefs[hcSleepEnabledKey] = next.sleepEnabled
+            prefs[hcStepsEnabledKey] = next.stepsEnabled
+            prefs[hcExerciseEnabledKey] = next.exerciseEnabled
+            prefs[hcNutritionEnabledKey] = next.nutritionEnabled
+            prefs[hcConflictRuleKey] = next.conflictResolution.name
+            next.lastSyncAt?.let { prefs[hcLastSyncAtKey] = it.toString() } ?: prefs.remove(hcLastSyncAtKey)
         }
     }
 

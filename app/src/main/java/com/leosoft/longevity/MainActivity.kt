@@ -45,10 +45,10 @@ import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
-import com.leosoft.longevity.ui.screens.tabs.AnalizModule
 import com.leosoft.longevity.ui.screens.tabs.BeslenmeModule
 import com.leosoft.longevity.ui.screens.tabs.GunumModule
 import com.leosoft.longevity.ui.screens.tabs.QuickAddDialog
+import com.leosoft.longevity.ui.screens.tabs.SettingsModule
 import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
 
@@ -217,7 +217,7 @@ private fun MainScaffold(
             composable("beslenme") { BeslenmeModule(vm) }
             composable("aktivite") { AktiviteModule(vm) }
             composable("yasam") { YasamModule(vm) }
-            composable("analiz") { AnalizModule() }
+            composable("ayarlar") { SettingsModule(vm) }
         }
 
         if (openQuickAdd.value) {
