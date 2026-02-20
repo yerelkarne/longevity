@@ -398,14 +398,14 @@ fun SettingsModule(viewModel: MainViewModel) {
                     stringResource(R.string.settings_conflict_local_priority),
                     stringResource(R.string.settings_conflict_hc_priority)
                 ),
-                selectedIndex = when (prefs.conflictResolution) {
+                selected = when (prefs.conflictResolution) {
                     ConflictResolution.LAST_WRITE_WINS -> 0
                     ConflictResolution.LOCAL_PRIORITY -> 1
                     ConflictResolution.HEALTH_CONNECT_PRIORITY -> 2
                 },
-                onSelected = {
+                onSelect = { selectedRuleIndex ->
                     viewModel.setConflictRule(
-                        when (it) {
+                        when (selectedRuleIndex) {
                             1 -> ConflictResolution.LOCAL_PRIORITY
                             2 -> ConflictResolution.HEALTH_CONNECT_PRIORITY
                             else -> ConflictResolution.LAST_WRITE_WINS

@@ -20,6 +20,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 class HealthConnectAdapter(private val context: Context) {
     private val client: HealthConnectClient? by lazy {
@@ -48,24 +49,43 @@ class HealthConnectAdapter(private val context: Context) {
     )
 
     suspend fun insertSteps(start: Instant, end: Instant, count: Long): String? {
-        val record = StepsRecord(startTime = start, endTime = end, count = count)
+        val record = StepsRecord(
+            startTime = start,
+            startZoneOffset = zoneOffsetAt(start),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
+            count = count
+        )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
     }
 
     suspend fun insertHydration(time: Instant, amountMl: Double): String? {
-        val record = HydrationRecord(startTime = time, endTime = time, volume = Volume.milliliters(amountMl))
+        val record = HydrationRecord(
+            startTime = time,
+            startZoneOffset = zoneOffsetAt(time),
+            endTime = time,
+            endZoneOffset = zoneOffsetAt(time),
+            volume = Volume.milliliters(amountMl)
+        )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
     }
 
     suspend fun insertSleep(start: Instant, end: Instant): String? {
-        val record = SleepSessionRecord(startTime = start, endTime = end)
+        val record = SleepSessionRecord(
+            startTime = start,
+            startZoneOffset = zoneOffsetAt(start),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end)
+        )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
     }
 
     suspend fun insertExercise(start: Instant, end: Instant, type: WorkoutType, notes: String): String? {
         val record = ExerciseSessionRecord(
             startTime = start,
+            startZoneOffset = zoneOffsetAt(start),
             endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
             exerciseType = workoutToHealthType(type),
             notes = notes
         )
@@ -75,7 +95,9 @@ class HealthConnectAdapter(private val context: Context) {
     suspend fun insertNutrition(time: Instant, protein: Double, carbs: Double, fat: Double, calories: Double): String? {
         val record = NutritionRecord(
             startTime = time,
+            startZoneOffset = zoneOffsetAt(time),
             endTime = time,
+            endZoneOffset = zoneOffsetAt(time),
             protein = Mass.grams(protein),
             totalCarbohydrate = Mass.grams(carbs),
             totalFat = Mass.grams(fat),
@@ -102,6 +124,9 @@ class HealthConnectAdapter(private val context: Context) {
     fun dayStart(date: LocalDate): Instant = date.atStartOfDay(ZoneId.systemDefault()).toInstant()
     fun dayEnd(date: LocalDate): Instant = date.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant()
     fun instantToLocalDateTime(value: Instant): LocalDateTime = LocalDateTime.ofInstant(value, ZoneId.systemDefault())
+
+    private fun zoneOffsetAt(instant: Instant): ZoneOffset =
+        ZoneId.systemDefault().rules.getOffset(instant)
 
     private fun workoutToHealthType(type: WorkoutType): Int = when (type) {
         WorkoutType.WALKING -> ExerciseSessionRecord.EXERCISE_TYPE_WALKING
