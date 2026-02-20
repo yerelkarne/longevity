@@ -27,9 +27,9 @@ class HealthConnectAdapter(private val context: Context) {
         if (isAvailable()) HealthConnectClient.getOrCreate(context) else null
     }
 
-    fun isAvailable(): Boolean = sdkStatuses().any { it == HealthConnectClient.SDK_AVAILABLE }
+    fun isAvailable(): Boolean = sdkStatus() == HealthConnectClient.SDK_AVAILABLE
 
-    fun isInstallable(): Boolean = !isAvailable() && sdkStatuses().any { it == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED }
+    fun isInstallable(): Boolean = sdkStatus() == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
 
     fun permissionsContract() = PermissionController.createRequestPermissionResultContract()
 
@@ -143,9 +143,24 @@ class HealthConnectAdapter(private val context: Context) {
         private const val PLATFORM_PROVIDER_PACKAGE = "com.android.healthconnect"
     }
 
-    private fun sdkStatuses(): List<Int> {
-        return listOf(PROVIDER_PACKAGE, PLATFORM_PROVIDER_PACKAGE)
+    private fun sdkStatus(): Int {
+        val defaultStatus = runCatching {
+            HealthConnectClient::class.java
+                .getMethod("getSdkStatus", Context::class.java)
+                .invoke(null, context) as Int
+        }.getOrNull()
+
+        if (defaultStatus != null) {
+            return defaultStatus
+        }
+
+        val statuses = listOf(PROVIDER_PACKAGE, PLATFORM_PROVIDER_PACKAGE)
             .map { pkg -> HealthConnectClient.getSdkStatus(context, pkg) }
-            .distinct()
+
+        return when {
+            statuses.any { it == HealthConnectClient.SDK_AVAILABLE } -> HealthConnectClient.SDK_AVAILABLE
+            statuses.any { it == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED } -> HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+            else -> HealthConnectClient.SDK_UNAVAILABLE
+        }
     }
 }
