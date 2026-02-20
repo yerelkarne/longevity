@@ -130,7 +130,10 @@ class MainActivity : ComponentActivity() {
             hasRequestedActivityPermission = true
             activityPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
         } else {
-            showActivityPermissionWarning = true
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            }
+            startActivity(intent)
         }
     }
 
