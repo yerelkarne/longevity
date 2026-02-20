@@ -174,4 +174,15 @@
     <string name="nutrient_grams_value">%.1f g</string>
     <string name="nutrient_mg_value">%.1f mg</string>
     <string name="nutrient_iu_value">%.1f IU</string>
+
+    <string name="today_steps_big_title">Bugünkü Adım</string>
+    <string name="steps_permission_reason">Adım takibi için fiziksel aktivite izni gerekir.</string>
+    <string name="steps_permission_denied_limited">İzin reddedildi. Uygulama açıkken sınırlı ölçüm yapılır.</string>
+    <string name="steps_fallback_info">Cihazınızda adım sensörü yok, tahmini ölçüm kullanılıyor.</string>
+    <string name="step_tracking_active_title">Adım takibi aktif</string>
+    <string name="step_tracking_active_text">Arka planda adımlar izleniyor.</string>
+    <string name="battery_optimization_hint">Pil optimizasyonu açıksa arka plan ölçümü kesilebilir.</string>
+    <string name="steps_last_7_days">Son 7 Gün</string>
+    <string name="monthly_total_steps">Aylık toplam adım: %1$d</string>
+
 </resources>

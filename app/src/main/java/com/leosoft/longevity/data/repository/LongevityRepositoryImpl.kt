@@ -147,9 +147,16 @@ class LongevityRepositoryImpl(
     override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
 
     override suspend fun addSteps(log: StepsLogEntity) {
-        activityDao.upsertSteps(log)
+        val goals = goalsDao.getGoals() ?: defaultGoals()
+        activityDao.upsertSteps(log.copy(goal = goals.stepsTarget, updatedAt = LocalDateTime.now()))
         recalculateScore(log.date)
     }
+
+    override fun observeStepsRange(startDate: LocalDate, endDate: LocalDate): Flow<List<StepsLogEntity>> =
+        activityDao.observeStepsRange(startDate, endDate)
+
+    override fun observeStepsTotalRange(startDate: LocalDate, endDate: LocalDate): Flow<Int> =
+        activityDao.observeTotalStepsRange(startDate, endDate)
 
     override suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean) {
         supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = supplementId, taken = taken))
