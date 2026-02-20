@@ -23,7 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -170,48 +170,57 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = Color(0xFF6A1B9A))
-                    Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF3A3A3A))
-                    CircularProgressIndicator(
+                    Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF2D2A32))
+                    LinearProgressIndicator(
                         progress = { progress },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(10.dp),
                         color = Color(0xFF7E57C2),
                         trackColor = Color(0xFFEDE7F6)
                     )
-                    Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF6A1B9A))
+                    }
                     Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = Color(0xFF5E35B1))
-
-                    if (viewModel.usesEstimatedTracking) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
-                        ) {
-                            Text(stringResource(R.string.estimated_tracking_info), modifier = Modifier.padding(12.dp))
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
-                    ) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
-                                Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
-                            }
-                        }
-                    }
-
-                    Text(stringResource(R.string.battery_optimization_hint), style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
+
+        if (viewModel.usesEstimatedTracking) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+                ) {
+                    Text(stringResource(R.string.estimated_tracking_info), modifier = Modifier.padding(12.dp))
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
+                        Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(stringResource(R.string.battery_optimization_hint), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
