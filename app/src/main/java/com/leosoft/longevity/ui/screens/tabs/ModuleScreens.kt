@@ -358,12 +358,16 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
-    var hasPermissions by remember { mutableStateOf(false) }
+    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) { granted ->
-        hasPermissions = granted.containsAll(viewModel.healthConnectPermissions)
+        val permissionGranted = granted.containsAll(viewModel.healthConnectPermissions)
+        if (permissionGranted) {
+            viewModel.setHealthSyncEnabled(true)
+        }
+        viewModel.refreshHealthPermissions()
     }
 
-    LaunchedEffect(Unit) { hasPermissions = viewModel.hasHealthPermissions() }
+    LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text(stringResource(R.string.settings_health_title), style = MaterialTheme.typography.titleLarge) }
@@ -373,7 +377,18 @@ fun SettingsModule(viewModel: MainViewModel) {
                     Text(stringResource(R.string.settings_health_disclosure))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(stringResource(R.string.settings_health_connect))
-                        Switch(checked = prefs.enabled, onCheckedChange = { viewModel.setHealthSyncEnabled(it) })
+                        Switch(
+                            checked = prefs.enabled,
+                            onCheckedChange = { enabled ->
+                                if (!enabled) {
+                                    viewModel.setHealthSyncEnabled(false)
+                                } else if (viewModel.healthConnectAvailable && !hasPermissions) {
+                                    launcher.launch(viewModel.healthConnectPermissions)
+                                } else {
+                                    viewModel.setHealthSyncEnabled(true)
+                                }
+                            }
+                        )
                     }
                     if (!viewModel.healthConnectAvailable) {
                         Text(if (viewModel.healthConnectInstallable) stringResource(R.string.settings_hc_install_required) else stringResource(R.string.settings_hc_unavailable))
@@ -406,9 +421,10 @@ private fun ScopeToggle(title: String, checked: Boolean, onChange: (Boolean) -> 
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data by viewModel.dashboard.collectAsState()
     val healthPrefs by viewModel.healthSyncPreferences.collectAsState()
+    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
     val healthLabel = when {
         !healthPrefs.enabled -> stringResource(R.string.hc_status_off)
-        viewModel.healthConnectAvailable -> stringResource(R.string.hc_status_connected)
+        viewModel.healthConnectAvailable && hasPermissions -> stringResource(R.string.hc_status_connected)
         else -> stringResource(R.string.hc_status_no_permission)
     }
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

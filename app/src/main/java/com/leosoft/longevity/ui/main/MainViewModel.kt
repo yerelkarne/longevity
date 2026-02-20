@@ -134,11 +134,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val healthConnectAvailable: Boolean get() = healthConnectAdapter.isAvailable()
     val healthConnectInstallable: Boolean get() = healthConnectAdapter.isInstallable()
     val healthConnectPermissions = healthConnectAdapter.allPermissions
+    private val _healthPermissionsGranted = MutableStateFlow(false)
+    val healthPermissionsGranted: StateFlow<Boolean> = _healthPermissionsGranted
 
     val usesEstimatedTracking = StepTrackerManager(application, repository, app.preferences).usesEstimatedTracking
 
     init {
         ensureCoreFoods()
+        refreshHealthPermissions()
     }
 
     fun completeOnboarding(form: OnboardingForm) {
@@ -403,6 +406,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun hasHealthPermissions(): Boolean = healthConnectAdapter.grantedPermissions().containsAll(healthConnectPermissions)
 
+    fun refreshHealthPermissions() = viewModelScope.launch {
+        _healthPermissionsGranted.value = hasHealthPermissions()
+    }
+
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
@@ -425,6 +432,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun syncNow() = viewModelScope.launch {
         val settings = healthSyncPreferences.value
         if (!settings.enabled) return@launch
+        if (!hasHealthPermissions()) {
+            _healthPermissionsGranted.value = false
+            return@launch
+        }
+        _healthPermissionsGranted.value = true
         repository.syncWithHealthConnect(
             com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
                 hydration = settings.hydrationEnabled,
