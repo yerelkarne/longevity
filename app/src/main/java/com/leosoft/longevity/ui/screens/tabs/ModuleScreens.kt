@@ -151,35 +151,65 @@ fun AktiviteModule(viewModel: MainViewModel) {
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val state by viewModel.stepTrackingState.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
     val steps = dashboard?.steps ?: 0
-    val goal = dashboard?.score?.let { 10000 } ?: 10000
+    val goal = userGoals?.stepsTarget ?: 10000
     val progress = (steps / goal.toFloat()).coerceIn(0f, 1f)
-    var customGoal by remember { mutableStateOf("") }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium)
-                    Text("$steps", style = MaterialTheme.typography.headlineLarge)
-                    CircularProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                    Text(stringResource(R.string.steps_goal_progress, steps, goal))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = Color(0xFF6A1B9A))
+                    Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF3A3A3A))
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF7E57C2),
+                        trackColor = Color(0xFFEDE7F6)
+                    )
+                    Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = Color(0xFF5E35B1))
+
                     if (viewModel.usesEstimatedTracking) {
-                        Text(stringResource(R.string.estimated_tracking_info))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+                        ) {
+                            Text(stringResource(R.string.estimated_tracking_info), modifier = Modifier.padding(12.dp))
+                        }
                     }
-                    Text(if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { viewModel.setStepsGoal(5000) }) { Text("5000") }
-                        Button(onClick = { viewModel.setStepsGoal(10000) }) { Text("10000") }
-                        Button(onClick = { viewModel.setStepsGoal(15000) }) { Text("15000") }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
+                                Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
+                            }
+                        }
                     }
-                    OutlinedTextField(value = customGoal, onValueChange = { customGoal = it }, label = { Text(stringResource(R.string.custom_goal)) })
-                    Button(onClick = { viewModel.setStepsGoal(customGoal.toIntOrNull() ?: goal) }) { Text(stringResource(R.string.save)) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
-                        Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
-                    }
-                    Text(stringResource(R.string.battery_optimization_hint))
+
+                    Text(stringResource(R.string.battery_optimization_hint), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

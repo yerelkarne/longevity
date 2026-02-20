@@ -228,5 +228,6 @@
     <string name="goal_reached_streak">Hedef tamamlandı: streak arttı ve motivasyon bildirimi hazır.</string>
     <string name="goal_not_reached">Günlük adım hedefi henüz tamamlanmadı.</string>
     <string name="goal_badge_message">Görev tamamlandı rozeti kazanıldı.</string>
+    <string name="activity_goal_sync_info">Adım hedefi Ben sekmesindeki hedeflerden otomatik alınır: %1$d</string>
 
 </resources>

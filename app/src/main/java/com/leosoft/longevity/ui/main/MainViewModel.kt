@@ -112,6 +112,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
 
+    val userGoals: StateFlow<UserGoalsEntity?> = repository.observeGoals()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val weeklySteps = repository.observeWeeklySteps(LocalDate.now())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
