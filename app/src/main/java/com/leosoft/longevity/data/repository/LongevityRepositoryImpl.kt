@@ -9,15 +9,18 @@ import com.leosoft.longevity.data.local.dao.ScoresDao
 import com.leosoft.longevity.data.local.dao.SupplementsDao
 import com.leosoft.longevity.data.local.dao.WaterDao
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
+import com.leosoft.longevity.data.local.entity.ConflictResolution
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.RecordSource
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
+import com.leosoft.longevity.data.local.entity.SyncState
 import com.leosoft.longevity.data.local.entity.TaskLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
@@ -32,6 +35,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -58,6 +62,7 @@ class LongevityRepositoryImpl(
     private val goalsDao: GoalsDao,
     private val scoresDao: ScoresDao,
     private val quickAddDao: QuickAddDao,
+    private val healthConnectAdapter: HealthConnectAdapter,
     private val calculateDailyScore: CalculateDailyScoreUseCase,
     private val calculateMacroTotals: CalculateMacroTotalsUseCase
 ) : LongevityRepository {
@@ -87,7 +92,8 @@ class LongevityRepositoryImpl(
                     potassiumMg = nutrientValuePerGram(food.potassiumMg, entry.grams),
                     vitaminDUi = nutrientValuePerGram(food.vitaminDUi, entry.grams),
                     omega3Mg = nutrientValuePerGram(food.omega3Mg, entry.grams),
-                    createdAt = LocalDateTime.now()
+                    createdAt = LocalDateTime.now(),
+                    syncState = SyncState.PENDING_UPLOAD
                 )
             )
         }
@@ -113,7 +119,8 @@ class LongevityRepositoryImpl(
                     potassiumMg = nutrientValuePerGram(food.potassiumMg, entry.grams),
                     vitaminDUi = nutrientValuePerGram(food.vitaminDUi, entry.grams),
                     omega3Mg = nutrientValuePerGram(food.omega3Mg, entry.grams),
-                    createdAt = LocalDateTime.now()
+                    createdAt = LocalDateTime.now(),
+                    syncState = SyncState.PENDING_UPLOAD
                 )
             )
         }
@@ -140,14 +147,14 @@ class LongevityRepositoryImpl(
     }
 
     override suspend fun addWater(date: LocalDate, amountMl: Int) {
-        waterDao.insert(WaterLogEntity(date = date, time = LocalDateTime.now(), amountMl = amountMl))
+        waterDao.insert(WaterLogEntity(date = date, time = LocalDateTime.now(), amountMl = amountMl, syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(date)
     }
 
     override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
 
     override suspend fun addSteps(log: StepsLogEntity) {
-        activityDao.upsertSteps(log)
+        activityDao.upsertSteps(log.copy(syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(log.date)
     }
 
@@ -177,13 +184,118 @@ class LongevityRepositoryImpl(
         val bedDateTime = LocalDateTime.of(date, bed)
         val wakeDateTime = LocalDateTime.of(if (wake.isBefore(bed)) date.plusDays(1) else date, wake)
         val duration = Duration.between(bedDateTime, wakeDateTime).toMinutes().toInt().coerceAtLeast(0)
-        lifeDao.insertSleepLog(SleepLogEntity(date = date, bedtime = bedDateTime, wakeTime = wakeDateTime, durationMinutes = duration))
+        lifeDao.insertSleepLog(SleepLogEntity(date = date, bedtime = bedDateTime, wakeTime = wakeDateTime, durationMinutes = duration, syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(date)
     }
 
     override suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) {
-        activityDao.insertWorkout(WorkoutLogEntity(date = date, time = LocalDateTime.now(), type = type, durationMinutes = durationMinutes, intensity = intensity, notes = notes))
+        activityDao.insertWorkout(WorkoutLogEntity(date = date, time = LocalDateTime.now(), type = type, durationMinutes = durationMinutes, intensity = intensity, notes = notes, syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(date)
+    }
+
+    override suspend fun syncWithHealthConnect(options: LongevityRepository.ExternalSyncOptions): LongevityRepository.ExternalSyncResult {
+        if (!healthConnectAdapter.isAvailable()) {
+            return LongevityRepository.ExternalSyncResult(0, 0, 0, "Health Connect kullanılamıyor")
+        }
+        return runCatching {
+            val now = LocalDateTime.now()
+            var uploaded = 0
+            var imported = 0
+
+            if (options.steps) {
+                activityDao.getPendingStepUploads().forEach { step ->
+                    val start = step.date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                    val end = step.date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+                    val id = healthConnectAdapter.insertSteps(start, end, step.steps.toLong())
+                    if (id != null) {
+                        activityDao.updateStepSyncState(step.date, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+            if (options.hydration) {
+                waterDao.getPendingUploads().forEach { item ->
+                    val id = healthConnectAdapter.insertHydration(item.time.atZone(ZoneId.systemDefault()).toInstant(), item.amountMl.toDouble())
+                    if (id != null) {
+                        waterDao.updateSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+            if (options.sleep) {
+                lifeDao.getPendingUploads().forEach { item ->
+                    val id = healthConnectAdapter.insertSleep(item.bedtime.atZone(ZoneId.systemDefault()).toInstant(), item.wakeTime.atZone(ZoneId.systemDefault()).toInstant())
+                    if (id != null) {
+                        lifeDao.updateSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+            if (options.exercise) {
+                activityDao.getPendingWorkoutUploads().forEach { item ->
+                    val start = item.time.atZone(ZoneId.systemDefault()).toInstant()
+                    val end = item.time.plusMinutes(item.durationMinutes.toLong()).atZone(ZoneId.systemDefault()).toInstant()
+                    val id = healthConnectAdapter.insertExercise(start, end, item.type, item.notes)
+                    if (id != null) {
+                        activityDao.updateWorkoutSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+            if (options.nutrition) {
+                nutritionDao.getPendingNutritionUploads().forEach { item ->
+                    val calories = ((item.protein + item.carbs) * 4f + (item.fat * 9f)).toDouble()
+                    val id = healthConnectAdapter.insertNutrition(
+                        item.createdAt.atZone(ZoneId.systemDefault()).toInstant(),
+                        item.protein.toDouble(),
+                        item.carbs.toDouble(),
+                        item.fat.toDouble(),
+                        calories
+                    )
+                    if (id != null) {
+                        nutritionDao.updateNutritionSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+
+            val importStartDate = LocalDate.now().minusDays(options.importDays)
+            val start = healthConnectAdapter.dayStart(importStartDate)
+            val end = healthConnectAdapter.dayEnd(LocalDate.now())
+
+            if (options.steps) {
+                healthConnectAdapter.readSteps(start, end).forEach { record ->
+                    val date = healthConnectAdapter.instantToLocalDateTime(record.endTime).toLocalDate()
+                    val existing = activityDao.getSteps(date)
+                    if (existing == null || shouldApplyRemote(existing.updatedAt, record.metadata.lastModifiedTime, options.conflictResolution)) {
+                        activityDao.upsertSteps(
+                            StepsLogEntity(
+                                date = date,
+                                steps = record.count.toInt(),
+                                goal = existing?.goal ?: 10000,
+                                updatedAt = healthConnectAdapter.instantToLocalDateTime(record.metadata.lastModifiedTime),
+                                source = RecordSource.HEALTH_CONNECT,
+                                syncState = SyncState.SYNCED,
+                                hcRecordId = record.metadata.id,
+                                lastSyncedAt = now
+                            )
+                        )
+                        imported++
+                    }
+                }
+            }
+            LongevityRepository.ExternalSyncResult(uploaded, imported, 0)
+        }.getOrElse {
+            LongevityRepository.ExternalSyncResult(0, 0, 0, it.message)
+        }
+    }
+
+    private fun shouldApplyRemote(localUpdatedAt: LocalDateTime, remoteUpdatedAt: java.time.Instant, rule: ConflictResolution): Boolean {
+        return when (rule) {
+            ConflictResolution.LOCAL_PRIORITY -> false
+            ConflictResolution.HEALTH_CONNECT_PRIORITY -> true
+            ConflictResolution.LAST_WRITE_WINS -> remoteUpdatedAt.isAfter(localUpdatedAt.atZone(ZoneId.systemDefault()).toInstant())
+        }
     }
 
     override suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?) {

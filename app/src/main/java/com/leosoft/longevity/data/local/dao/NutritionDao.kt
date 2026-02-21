@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.SyncState
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -47,6 +48,15 @@ interface NutritionDao {
 
     @Query("DELETE FROM meal_nutrition_records WHERE mealEntryId = :mealEntryId")
     suspend fun deleteMealNutritionRecordByMealEntryId(mealEntryId: Long)
+
+    @Query("SELECT * FROM meal_nutrition_records WHERE syncState = 'PENDING_UPLOAD'")
+    suspend fun getPendingNutritionUploads(): List<MealNutritionRecordEntity>
+
+    @Query("SELECT * FROM meal_nutrition_records WHERE date BETWEEN :startDate AND :endDate")
+    suspend fun getNutritionBetween(startDate: LocalDate, endDate: LocalDate): List<MealNutritionRecordEntity>
+
+    @Query("UPDATE meal_nutrition_records SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
+    suspend fun updateNutritionSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
 
     @Transaction
     suspend fun seedFoodsIfEmpty() {

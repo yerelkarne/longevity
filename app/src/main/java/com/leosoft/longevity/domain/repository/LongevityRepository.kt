@@ -1,6 +1,7 @@
 package com.leosoft.longevity.domain.repository
 
 import com.leosoft.longevity.data.local.entity.DailyScoreEntity
+import com.leosoft.longevity.data.local.entity.ConflictResolution
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
@@ -17,6 +18,22 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 interface LongevityRepository {
+    data class ExternalSyncOptions(
+        val hydration: Boolean,
+        val sleep: Boolean,
+        val steps: Boolean,
+        val exercise: Boolean,
+        val nutrition: Boolean,
+        val conflictResolution: ConflictResolution,
+        val importDays: Long = 7
+    )
+
+    data class ExternalSyncResult(
+        val uploaded: Int,
+        val imported: Int,
+        val conflicts: Int,
+        val error: String? = null
+    )
     fun observeGoals(): Flow<UserGoalsEntity?>
     suspend fun saveGoals(goals: UserGoalsEntity)
 
@@ -56,4 +73,5 @@ interface LongevityRepository {
 
     suspend fun recalculateScore(date: LocalDate)
     suspend fun ensureCoreFoods()
+    suspend fun syncWithHealthConnect(options: ExternalSyncOptions): ExternalSyncResult
 }

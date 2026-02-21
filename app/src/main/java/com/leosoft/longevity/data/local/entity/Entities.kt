@@ -47,7 +47,11 @@ data class MealNutritionRecordEntity(
     val potassiumMg: Float,
     val vitaminDUi: Float,
     val omega3Mg: Float,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
 )
 
 @Entity(tableName = "water_logs")
@@ -55,7 +59,11 @@ data class WaterLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
     val time: LocalDateTime,
-    val amountMl: Int
+    val amountMl: Int,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
 )
 
 @Entity(tableName = "supplements")
@@ -81,7 +89,11 @@ data class SleepLogEntity(
     val date: LocalDate,
     val bedtime: LocalDateTime,
     val wakeTime: LocalDateTime,
-    val durationMinutes: Int
+    val durationMinutes: Int,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
 )
 
 @Entity(tableName = "steps_logs")
@@ -91,7 +103,11 @@ data class StepsLogEntity(
     val goal: Int = 10000,
     val distanceKm: Float? = null,
     val caloriesEst: Float? = null,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
 )
 
 @Entity(tableName = "workout_logs")
@@ -102,7 +118,11 @@ data class WorkoutLogEntity(
     val type: WorkoutType,
     val durationMinutes: Int,
     val intensity: Int,
-    val notes: String = ""
+    val notes: String = "",
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
 )
 
 @Entity(tableName = "task_logs")

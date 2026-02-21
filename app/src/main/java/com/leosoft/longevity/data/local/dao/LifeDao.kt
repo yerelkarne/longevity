@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.leosoft.longevity.data.local.entity.SyncState
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -21,4 +22,13 @@ interface LifeDao {
 
     @Query("SELECT * FROM sleep_logs WHERE date = :date ORDER BY wakeTime DESC LIMIT 1")
     suspend fun getSleep(date: LocalDate): SleepLogEntity?
+
+    @Query("SELECT * FROM sleep_logs WHERE syncState = 'PENDING_UPLOAD'")
+    suspend fun getPendingUploads(): List<SleepLogEntity>
+
+    @Query("SELECT * FROM sleep_logs WHERE date BETWEEN :startDate AND :endDate")
+    suspend fun getBetween(startDate: LocalDate, endDate: LocalDate): List<SleepLogEntity>
+
+    @Query("UPDATE sleep_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
+    suspend fun updateSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
 }

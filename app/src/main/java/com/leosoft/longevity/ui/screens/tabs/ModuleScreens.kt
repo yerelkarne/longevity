@@ -19,7 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -352,12 +355,80 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         )
     }
 }
-@Composable fun AnalizModule() = ModuleTabLayout(listOf(stringResource(R.string.analysis_tab_score), stringResource(R.string.analysis_tab_bioage), stringResource(R.string.analysis_tab_report), stringResource(R.string.analysis_tab_trends))) { PlaceholderTab(stringResource(R.string.nav_analysis)) }
+@Composable
+fun SettingsModule(viewModel: MainViewModel) {
+    val prefs by viewModel.healthSyncPreferences.collectAsState()
+    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
+    val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) { granted ->
+        val permissionGranted = granted.containsAll(viewModel.healthConnectPermissions)
+        if (permissionGranted) {
+            viewModel.setHealthSyncEnabled(true)
+        }
+        viewModel.refreshHealthPermissions()
+    }
+
+    LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
+
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text(stringResource(R.string.settings_health_title), style = MaterialTheme.typography.titleLarge) }
+        item {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.settings_health_disclosure))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.settings_health_connect))
+                        Switch(
+                            checked = prefs.enabled,
+                            onCheckedChange = { enabled ->
+                                if (!enabled) {
+                                    viewModel.setHealthSyncEnabled(false)
+                                } else if (viewModel.healthConnectAvailable && !hasPermissions) {
+                                    launcher.launch(viewModel.healthConnectPermissions)
+                                } else {
+                                    viewModel.setHealthSyncEnabled(true)
+                                }
+                            }
+                        )
+                    }
+                    if (!viewModel.healthConnectAvailable) {
+                        Text(if (viewModel.healthConnectInstallable) stringResource(R.string.settings_hc_install_required) else stringResource(R.string.settings_hc_unavailable))
+                    }
+                    Button(onClick = { launcher.launch(viewModel.healthConnectPermissions) }, enabled = viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_manage_permissions)) }
+                    Button(onClick = { viewModel.syncNow() }, enabled = prefs.enabled && hasPermissions && viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_sync_now)) }
+                    Text(stringResource(R.string.settings_last_sync, prefs.lastSyncAt?.toString() ?: "-"))
+                }
+            }
+        }
+        item { ScopeToggle(stringResource(R.string.tab_water), prefs.hydrationEnabled) { viewModel.setHealthScope("water", it) } }
+        item { ScopeToggle(stringResource(R.string.card_sleep), prefs.sleepEnabled) { viewModel.setHealthScope("sleep", it) } }
+        item { ScopeToggle(stringResource(R.string.card_steps), prefs.stepsEnabled) { viewModel.setHealthScope("steps", it) } }
+        item { ScopeToggle(stringResource(R.string.activity_tab_add_exercise), prefs.exerciseEnabled) { viewModel.setHealthScope("exercise", it) } }
+        item { ScopeToggle(stringResource(R.string.nav_nutrition), prefs.nutritionEnabled) { viewModel.setHealthScope("nutrition", it) } }
+    }
+}
+
+@Composable
+private fun ScopeToggle(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title)
+            Switch(checked = checked, onCheckedChange = onChange)
+        }
+    }
+}
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data by viewModel.dashboard.collectAsState()
+    val healthPrefs by viewModel.healthSyncPreferences.collectAsState()
+    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
+    val healthLabel = when {
+        !healthPrefs.enabled -> stringResource(R.string.hc_status_off)
+        viewModel.healthConnectAvailable && hasPermissions -> stringResource(R.string.hc_status_connected)
+        else -> stringResource(R.string.hc_status_no_permission)
+    }
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { AssistChip(onClick = {}, label = { Text(healthLabel) }) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))

@@ -27,6 +27,7 @@
     <string name="nav_activity">Aktivite</string>
     <string name="nav_life">Yaşam</string>
     <string name="nav_analysis">Analiz</string>
+    <string name="nav_settings">Ayarlar</string>
     <string name="tab_tasks">Hedefler</string>
     <string name="tab_reminders">Hatırlatmalar</string>
     <string name="tab_score">Skor</string>
@@ -229,5 +230,22 @@
     <string name="goal_not_reached">Günlük adım hedefi henüz tamamlanmadı.</string>
     <string name="goal_badge_message">Görev tamamlandı rozeti kazanıldı.</string>
     <string name="activity_goal_sync_info">Adım hedefi Ben sekmesindeki hedeflerden otomatik alınır: %1$d</string>
+
+
+    <string name="settings_health_title">Health Connect</string>
+    <string name="settings_health_disclosure">Health Connect bağlandığında su, uyku, adım, egzersiz ve beslenme (kalori/makro) verileri kullanıcı onayıyla okunur/yazılır. Takviyeler ve mikrolar yalnızca uygulama içinde kalır.</string>
+    <string name="settings_health_connect">Health Connect’i bağla</string>
+    <string name="settings_manage_permissions">İzinleri yönet</string>
+    <string name="settings_sync_now">Şimdi senkronize et</string>
+    <string name="settings_last_sync">Son senkron: %1$s</string>
+    <string name="settings_conflict_rule">Çakışma kuralı</string>
+    <string name="settings_conflict_last_write_wins">En yeni güncelleme kazanır</string>
+    <string name="settings_conflict_local_priority">LOCAL öncelikli</string>
+    <string name="settings_conflict_hc_priority">Health Connect öncelikli</string>
+    <string name="settings_hc_install_required">Health Connect kurulumu/ güncellemesi gerekli.</string>
+    <string name="settings_hc_unavailable">Health Connect bu cihazda kullanılamıyor.</string>
+    <string name="hc_status_connected">HC: Bağlı</string>
+    <string name="hc_status_off">HC: Kapalı</string>
+    <string name="hc_status_no_permission">HC: İzin yok</string>
 
 </resources>

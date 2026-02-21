@@ -1,10 +1,12 @@
 package com.leosoft.longevity.data.local
 
 import android.content.Context
+import androidx.room.migration.Migration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.leosoft.longevity.data.local.dao.ActivityDao
 import com.leosoft.longevity.data.local.dao.GoalsDao
 import com.leosoft.longevity.data.local.dao.LifeDao
@@ -45,7 +47,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         UserGoalsEntity::class,
         DailyScoreEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -64,6 +66,17 @@ abstract class LongevityDatabase : RoomDatabase() {
             context,
             LongevityDatabase::class.java,
             "longevity.db"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(MIGRATION_6_7).build()
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                listOf("water_logs", "sleep_logs", "steps_logs", "workout_logs", "meal_nutrition_records").forEach { table ->
+                    database.execSQL("ALTER TABLE $table ADD COLUMN source TEXT NOT NULL DEFAULT 'LOCAL'")
+                    database.execSQL("ALTER TABLE $table ADD COLUMN syncState TEXT NOT NULL DEFAULT 'NONE'")
+                    database.execSQL("ALTER TABLE $table ADD COLUMN hcRecordId TEXT")
+                    database.execSQL("ALTER TABLE $table ADD COLUMN lastSyncedAt TEXT")
+                }
+            }
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.leosoft.longevity
 import android.app.Application
 import com.leosoft.longevity.data.local.AppPreferences
 import com.leosoft.longevity.data.local.LongevityDatabase
+import com.leosoft.longevity.data.repository.HealthConnectAdapter
 import com.leosoft.longevity.data.repository.LongevityRepositoryImpl
 import com.leosoft.longevity.domain.repository.LongevityRepository
 import com.leosoft.longevity.domain.usecase.CalculateDailyScoreUseCase
@@ -31,6 +32,7 @@ class LongevityApp : Application() {
             goalsDao = db.goalsDao(),
             scoresDao = db.scoresDao(),
             quickAddDao = db.quickAddDao(),
+            healthConnectAdapter = HealthConnectAdapter(this),
             calculateDailyScore = CalculateDailyScoreUseCase(macroUseCase),
             calculateMacroTotals = macroUseCase
         )

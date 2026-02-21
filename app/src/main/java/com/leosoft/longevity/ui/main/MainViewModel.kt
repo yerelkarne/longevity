@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.leosoft.longevity.LongevityApp
 import android.content.Intent
 import com.leosoft.longevity.data.local.ProfilePreferences
+import com.leosoft.longevity.data.local.HealthSyncPreferences
+import com.leosoft.longevity.data.local.entity.ConflictResolution
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
@@ -17,6 +19,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.steps.StepTrackingService
+import com.leosoft.longevity.data.repository.HealthConnectAdapter
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +73,7 @@ data class PersonalizedTargets(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as LongevityApp
     private val repository = app.repository
+    private val healthConnectAdapter = HealthConnectAdapter(application)
 
     val dashboard: StateFlow<DashboardSummary?> = repository.observeDashboard(LocalDate.now())
         .map { it }
@@ -124,10 +128,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val stepTrackingState = app.preferences.stepTrackingState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.leosoft.longevity.data.local.StepTrackingState())
 
+    val healthSyncPreferences: StateFlow<HealthSyncPreferences> = app.preferences.healthSyncPreferences
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HealthSyncPreferences())
+
+    val healthConnectAvailable: Boolean get() = healthConnectAdapter.isAvailable()
+    val healthConnectInstallable: Boolean get() = healthConnectAdapter.isInstallable()
+    val healthConnectPermissions = healthConnectAdapter.allPermissions
+    private val _healthPermissionsGranted = MutableStateFlow(false)
+    val healthPermissionsGranted: StateFlow<Boolean> = _healthPermissionsGranted
+
     val usesEstimatedTracking = StepTrackerManager(application, repository, app.preferences).usesEstimatedTracking
 
     init {
         ensureCoreFoods()
+        refreshHealthPermissions()
     }
 
     fun completeOnboarding(form: OnboardingForm) {
@@ -388,5 +402,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun ensureCoreFoods() = viewModelScope.launch {
         repository.ensureCoreFoods()
+    }
+
+    suspend fun hasHealthPermissions(): Boolean = healthConnectAdapter.grantedPermissions().containsAll(healthConnectPermissions)
+
+    fun refreshHealthPermissions() = viewModelScope.launch {
+        _healthPermissionsGranted.value = hasHealthPermissions()
+    }
+
+    fun permissionsContract() = healthConnectAdapter.permissionsContract()
+
+    fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
+        app.preferences.updateHealthSyncPreferences { it.copy(enabled = enabled) }
+    }
+
+    fun setHealthScope(key: String, enabled: Boolean) = viewModelScope.launch {
+        app.preferences.updateHealthSyncPreferences {
+            when (key) {
+                "water" -> it.copy(hydrationEnabled = enabled)
+                "sleep" -> it.copy(sleepEnabled = enabled)
+                "steps" -> it.copy(stepsEnabled = enabled)
+                "exercise" -> it.copy(exerciseEnabled = enabled)
+                "nutrition" -> it.copy(nutritionEnabled = enabled)
+                else -> it
+            }
+        }
+    }
+
+    fun syncNow() = viewModelScope.launch {
+        val settings = healthSyncPreferences.value
+        if (!settings.enabled) return@launch
+        if (!hasHealthPermissions()) {
+            _healthPermissionsGranted.value = false
+            return@launch
+        }
+        _healthPermissionsGranted.value = true
+        repository.syncWithHealthConnect(
+            com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
+                hydration = settings.hydrationEnabled,
+                sleep = settings.sleepEnabled,
+                steps = settings.stepsEnabled,
+                exercise = settings.exerciseEnabled,
+                nutrition = settings.nutritionEnabled,
+                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
+                importDays = 30
+            )
+        )
+        app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
     }
 }
