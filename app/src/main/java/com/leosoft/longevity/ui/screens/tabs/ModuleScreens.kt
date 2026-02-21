@@ -361,6 +361,8 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
 private fun YasamReglScreen(viewModel: MainViewModel) {
     val logs by viewModel.menstrualCycleLogs.collectAsState()
     val latest = logs.firstOrNull()
+    val months = remember { (0..11).map { YearMonth.now().plusMonths(it.toLong()) } }
+    val monthPager = androidx.compose.foundation.pager.rememberPagerState { months.size }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -379,8 +381,6 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
             val ovulation = next.minusDays(14)
             val fertileStart = ovulation.minusDays(5)
             val fertileEnd = ovulation.plusDays(1)
-            val months = (0..11).map { YearMonth.now().plusMonths(it.toLong()) }
-            val monthPager = androidx.compose.foundation.pager.rememberPagerState { months.size }
 
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {

@@ -24,6 +24,10 @@ interface LifeDao {
 
     @Query("UPDATE menstrual_cycle_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
     suspend fun updateMenstrualSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
+
+    @Query("DELETE FROM menstrual_cycle_logs")
+    suspend fun clearMenstrualCycleLogs()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSleepLog(log: SleepLogEntity)
 

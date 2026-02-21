@@ -59,6 +59,7 @@ interface LongevityRepository {
     fun observeSleepLogs(): Flow<List<SleepLogEntity>>
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
     suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5)
+    suspend fun clearMenstrualCycleLogs()
     fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>
     suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?)
     fun observeGoalPlans(): Flow<List<GoalPlanEntity>>

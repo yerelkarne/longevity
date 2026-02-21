@@ -245,6 +245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, goalMode: WeightGoalMode, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
         val success = runCatching {
             app.preferences.saveProfile(age, heightCm, weightKg, gender)
+            clearMenstrualLogsIfNotFemale(gender)
             val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender, goalMode)
             repository.saveGoals(
                 UserGoalsEntity(
@@ -291,6 +292,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
+        clearMenstrualLogsIfNotFemale(gender)
+    }
+
+    private suspend fun clearMenstrualLogsIfNotFemale(gender: String) {
+        if (gender != "female") {
+            repository.clearMenstrualCycleLogs()
+        }
     }
 
     private fun syncOptionsForGrantedPermissions(

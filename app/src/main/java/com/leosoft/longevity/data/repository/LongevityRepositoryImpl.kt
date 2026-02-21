@@ -192,6 +192,10 @@ class LongevityRepositoryImpl(
         )
     }
 
+    override suspend fun clearMenstrualCycleLogs() {
+        lifeDao.clearMenstrualCycleLogs()
+    }
+
     override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
         val bed = LocalTime.parse(bedtime)
         val wake = LocalTime.parse(wakeTime)
