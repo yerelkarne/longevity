@@ -290,21 +290,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
     }
 
+    private fun syncOptionsForGrantedPermissions(
+        settings: HealthSyncPreferences,
+        grantedPermissions: Set<String>
+    ): com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions {
+        val canSyncSteps = settings.stepsEnabled && grantedPermissions.containsAll(healthConnectAdapter.stepsPermissions)
+        val canSyncSleep = settings.sleepEnabled && grantedPermissions.containsAll(healthConnectAdapter.sleepPermissions)
+        val canSyncExercise = settings.exerciseEnabled && grantedPermissions.containsAll(healthConnectAdapter.exercisePermissions)
+        val canSyncNutrition = settings.nutritionEnabled && grantedPermissions.containsAll(healthConnectAdapter.nutritionPermissions)
+        val canSyncHydration = settings.hydrationEnabled && grantedPermissions.containsAll(healthConnectAdapter.hydrationPermissions)
+
+        return com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
+            hydration = canSyncHydration,
+            sleep = canSyncSleep,
+            steps = canSyncSteps,
+            exercise = canSyncExercise,
+            nutrition = canSyncNutrition,
+            conflictResolution = ConflictResolution.LAST_WRITE_WINS,
+            importDays = 30
+        )
+    }
+
     private suspend fun autoSyncHealthConnectIfEnabled() {
         val settings = healthSyncPreferences.value
         if (!settings.enabled || !healthConnectAvailable) return
-        if (!hasHealthPermissions(settings)) return
-        repository.syncWithHealthConnect(
-            com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
-                hydration = settings.hydrationEnabled,
-                sleep = settings.sleepEnabled,
-                steps = settings.stepsEnabled,
-                exercise = settings.exerciseEnabled,
-                nutrition = settings.nutritionEnabled,
-                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
-                importDays = 30
-            )
-        )
+
+        val grantedPermissions = healthConnectAdapter.grantedPermissions()
+        val options = syncOptionsForGrantedPermissions(settings, grantedPermissions)
+        val hasAnyEnabledScope = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition
+        if (!hasAnyEnabledScope) {
+            _healthPermissionsGranted.value = false
+            return
+        }
+
+        repository.syncWithHealthConnect(options)
+        _healthPermissionsGranted.value = true
         app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
     }
 
@@ -445,7 +465,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshHealthPermissions() = viewModelScope.launch {
-        _healthPermissionsGranted.value = hasHealthPermissions(healthSyncPreferences.value)
+        val settings = healthSyncPreferences.value
+        if (!settings.enabled || !healthConnectAvailable) {
+            _healthPermissionsGranted.value = false
+            return@launch
+        }
+        val options = syncOptionsForGrantedPermissions(settings, healthConnectAdapter.grantedPermissions())
+        _healthPermissionsGranted.value = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
@@ -483,13 +509,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun syncNow() = viewModelScope.launch {
-        val settings = healthSyncPreferences.value
-        if (!settings.enabled) return@launch
-        if (!hasHealthPermissions(settings)) {
-            _healthPermissionsGranted.value = false
-            return@launch
-        }
-        _healthPermissionsGranted.value = true
+        if (!healthSyncPreferences.value.enabled) return@launch
         autoSyncHealthConnectIfEnabled()
     }
 }

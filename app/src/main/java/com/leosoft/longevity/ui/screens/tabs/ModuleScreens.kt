@@ -382,6 +382,14 @@ fun SettingsModule(viewModel: MainViewModel) {
                 )
             }
         }
+        item {
+            Button(
+                onClick = { viewModel.syncNow() },
+                enabled = prefs.enabled && viewModel.healthConnectAvailable
+            ) {
+                Text(stringResource(R.string.settings_sync_now))
+            }
+        }
     }
 }
 
