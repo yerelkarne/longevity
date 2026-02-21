@@ -357,14 +357,17 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
-    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
+    val scope = rememberCoroutineScope()
+    var pendingSyncAfterPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
         viewModel.refreshHealthPermissions()
+        if (pendingSyncAfterPermission) {
+            pendingSyncAfterPermission = false
+            viewModel.syncNow()
+        }
     }
 
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
-
-    val requiredPermissions = viewModel.healthConnectPermissions
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -374,8 +377,11 @@ fun SettingsModule(viewModel: MainViewModel) {
                     checked = prefs.enabled,
                     onCheckedChange = { enabled ->
                         viewModel.setHealthSyncEnabled(enabled)
-                        if (enabled && viewModel.healthConnectAvailable && !hasPermissions && requiredPermissions.isNotEmpty()) {
-                            launcher.launch(requiredPermissions)
+                        if (enabled && viewModel.healthConnectAvailable) {
+                            scope.launch {
+                                val missingPermissions = viewModel.missingHealthPermissions()
+                                if (missingPermissions.isNotEmpty()) launcher.launch(missingPermissions)
+                            }
                         }
                     },
                     enabled = viewModel.healthConnectAvailable
@@ -384,7 +390,17 @@ fun SettingsModule(viewModel: MainViewModel) {
         }
         item {
             Button(
-                onClick = { viewModel.syncNow() },
+                onClick = {
+                    scope.launch {
+                        val missingPermissions = viewModel.missingHealthPermissions()
+                        if (missingPermissions.isNotEmpty()) {
+                            pendingSyncAfterPermission = true
+                            launcher.launch(missingPermissions)
+                        } else {
+                            viewModel.syncNow()
+                        }
+                    }
+                },
                 enabled = prefs.enabled && viewModel.healthConnectAvailable
             ) {
                 Text(stringResource(R.string.settings_sync_now))

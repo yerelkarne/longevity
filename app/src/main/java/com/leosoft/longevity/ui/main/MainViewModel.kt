@@ -464,6 +464,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return healthConnectAdapter.grantedPermissions().containsAll(required)
     }
 
+    suspend fun missingHealthPermissions(): Set<String> {
+        val granted = healthConnectAdapter.grantedPermissions()
+        return healthConnectPermissions - granted
+    }
+
     fun refreshHealthPermissions() = viewModelScope.launch {
         val settings = healthSyncPreferences.value
         if (!settings.enabled || !healthConnectAvailable) {
