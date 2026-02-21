@@ -35,18 +35,38 @@ class HealthConnectAdapter(private val context: Context) {
 
     suspend fun grantedPermissions(): Set<String> = client?.permissionController?.getGrantedPermissions().orEmpty()
 
-    val allPermissions = setOf(
+    val stepsPermissions = setOf(
         HealthPermission.getReadPermission(StepsRecord::class),
-        HealthPermission.getReadPermission(SleepSessionRecord::class),
-        HealthPermission.getWritePermission(SleepSessionRecord::class),
-        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getWritePermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(NutritionRecord::class),
-        HealthPermission.getWritePermission(NutritionRecord::class),
-        HealthPermission.getReadPermission(HydrationRecord::class),
-        HealthPermission.getWritePermission(HydrationRecord::class),
         HealthPermission.getWritePermission(StepsRecord::class)
     )
+
+    val sleepPermissions = setOf(
+        HealthPermission.getReadPermission(SleepSessionRecord::class),
+        HealthPermission.getWritePermission(SleepSessionRecord::class)
+    )
+
+    val exercisePermissions = setOf(
+        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getWritePermission(ExerciseSessionRecord::class)
+    )
+
+    val nutritionPermissions = setOf(
+        HealthPermission.getReadPermission(NutritionRecord::class),
+        HealthPermission.getWritePermission(NutritionRecord::class)
+    )
+
+    val hydrationPermissions = setOf(
+        HealthPermission.getReadPermission(HydrationRecord::class),
+        HealthPermission.getWritePermission(HydrationRecord::class)
+    )
+
+    val allPermissions = buildSet {
+        addAll(stepsPermissions)
+        addAll(sleepPermissions)
+        addAll(exercisePermissions)
+        addAll(nutritionPermissions)
+        addAll(hydrationPermissions)
+    }
 
     suspend fun insertSteps(start: Instant, end: Instant, count: Long): String? {
         val record = StepsRecord(

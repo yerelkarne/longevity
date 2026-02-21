@@ -404,16 +404,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.ensureCoreFoods()
     }
 
-    suspend fun hasHealthPermissions(): Boolean = healthConnectAdapter.grantedPermissions().containsAll(healthConnectPermissions)
+    private fun requiredPermissions(settings: HealthSyncPreferences): Set<String> = buildSet {
+        if (settings.stepsEnabled) addAll(healthConnectAdapter.stepsPermissions)
+        if (settings.sleepEnabled) addAll(healthConnectAdapter.sleepPermissions)
+        if (settings.exerciseEnabled) addAll(healthConnectAdapter.exercisePermissions)
+        if (settings.nutritionEnabled) addAll(healthConnectAdapter.nutritionPermissions)
+        if (settings.hydrationEnabled) addAll(healthConnectAdapter.hydrationPermissions)
+    }
+
+    suspend fun hasHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Boolean {
+        val required = requiredPermissions(settings)
+        if (required.isEmpty()) return true
+        return healthConnectAdapter.grantedPermissions().containsAll(required)
+    }
 
     fun refreshHealthPermissions() = viewModelScope.launch {
-        _healthPermissionsGranted.value = hasHealthPermissions()
+        _healthPermissionsGranted.value = hasHealthPermissions(healthSyncPreferences.value)
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
         app.preferences.updateHealthSyncPreferences { it.copy(enabled = enabled) }
+        refreshHealthPermissions()
     }
 
     fun setHealthScope(key: String, enabled: Boolean) = viewModelScope.launch {
@@ -427,12 +440,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 else -> it
             }
         }
+        refreshHealthPermissions()
     }
 
     fun syncNow() = viewModelScope.launch {
         val settings = healthSyncPreferences.value
         if (!settings.enabled) return@launch
-        if (!hasHealthPermissions()) {
+        if (!hasHealthPermissions(settings)) {
             _healthPermissionsGranted.value = false
             return@launch
         }
