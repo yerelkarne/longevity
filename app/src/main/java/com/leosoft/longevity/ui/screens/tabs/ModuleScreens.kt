@@ -365,7 +365,10 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
     val monthPager = androidx.compose.foundation.pager.rememberPagerState { months.size }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -377,18 +380,60 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
             }
         } else {
             val start = latest.periodStartDate
-            val next = start.plusDays(latest.cycleLengthDays.toLong())
-            val ovulation = next.minusDays(14)
-            val fertileStart = ovulation.minusDays(5)
-            val fertileEnd = ovulation.plusDays(1)
+            val today = LocalDate.now()
+            val cycleLength = latest.cycleLengthDays.coerceAtLeast(1)
+            val periodLength = latest.periodLengthDays.coerceIn(1, cycleLength)
+            val daysFromStart = java.time.temporal.ChronoUnit.DAYS.between(start, today).toInt()
+            val cyclesSinceStart = if (daysFromStart <= 0) 0 else (daysFromStart / cycleLength) + 1
+            val next = start.plusDays(cyclesSinceStart.toLong() * cycleLength.toLong())
+            val ovulationOffset = (cycleLength - 14).coerceIn(0, cycleLength - 1)
+            val fertileStartOffset = (ovulationOffset - 5).coerceAtLeast(0)
+            val fertileEndOffset = (ovulationOffset + 1).coerceAtMost(cycleLength - 1)
+            val ovulation = next.plusDays(ovulationOffset.toLong())
+            val fertileStart = next.plusDays(fertileStartOffset.toLong())
+            val fertileEnd = next.plusDays(fertileEndOffset.toLong())
 
             item {
-                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(R.string.menstrual_next_period, next.toString()))
-                        Text(stringResource(R.string.menstrual_predicted_ovulation, ovulation.toString()))
-                        Text(stringResource(R.string.menstrual_fertile_window, fertileStart.toString(), fertileEnd.toString()))
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = Color(0xFF6A1B9A))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFCE4EC)),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.menstrual_phase_period), style = MaterialTheme.typography.labelSmall, color = Color(0xFFAD1457))
+                                    Text(next.toString(), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.menstrual_phase_ovulation), style = MaterialTheme.typography.labelSmall, color = Color(0xFFF57F17))
+                                    Text(ovulation.toString(), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.menstrual_phase_fertile), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                                Text("${fertileStart} - ${fertileEnd}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                     }
                 }
             }
@@ -419,10 +464,11 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                                                 Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp))
                                             } else {
                                                 val day = month.atDay(dayNumber)
-                                                val cycleDay = java.time.temporal.ChronoUnit.DAYS.between(start, day).toInt()
-                                                val isPeriod = cycleDay >= 0 && (cycleDay % latest.cycleLengthDays) < latest.periodLengthDays
-                                                val isOvulation = day == ovulation || day == ovulation.plusDays(latest.cycleLengthDays.toLong())
-                                                val isFertile = !day.isBefore(fertileStart) && !day.isAfter(fertileEnd)
+                                                val cycleDistance = java.time.temporal.ChronoUnit.DAYS.between(start, day).toInt()
+                                                val cycleDay = if (cycleDistance >= 0) cycleDistance % cycleLength else -1
+                                                val isPeriod = cycleDay in 0 until periodLength
+                                                val isOvulation = cycleDay == ovulationOffset
+                                                val isFertile = cycleDay in fertileStartOffset..fertileEndOffset
                                                 val color = when {
                                                     isPeriod -> Color(0xFFF8BBD0)
                                                     isOvulation -> Color(0xFFFFF59D)
@@ -456,6 +502,7 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
         }
     }
 }
+
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
