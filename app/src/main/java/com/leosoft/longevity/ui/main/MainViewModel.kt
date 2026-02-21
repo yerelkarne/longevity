@@ -412,9 +412,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (settings.hydrationEnabled) addAll(healthConnectAdapter.hydrationPermissions)
     }
 
-    fun requiredHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Set<String> =
-        requiredPermissions(settings)
-
     suspend fun hasHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Boolean {
         val required = requiredPermissions(settings)
         if (required.isEmpty()) return true
@@ -428,7 +425,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
-        app.preferences.updateHealthSyncPreferences { it.copy(enabled = enabled) }
+        app.preferences.updateHealthSyncPreferences {
+            if (enabled) {
+                it.copy(
+                    enabled = true,
+                    hydrationEnabled = true,
+                    sleepEnabled = true,
+                    stepsEnabled = true,
+                    exerciseEnabled = true,
+                    nutritionEnabled = true
+                )
+            } else {
+                it.copy(enabled = false)
+            }
+        }
         refreshHealthPermissions()
     }
 
