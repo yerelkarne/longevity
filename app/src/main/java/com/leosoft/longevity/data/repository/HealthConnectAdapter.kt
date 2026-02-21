@@ -80,11 +80,12 @@ class HealthConnectAdapter(private val context: Context) {
     }
 
     suspend fun insertHydration(time: Instant, amountMl: Double): String? {
+        val end = time.plusSeconds(1)
         val record = HydrationRecord(
             startTime = time,
             startZoneOffset = zoneOffsetAt(time),
-            endTime = time,
-            endZoneOffset = zoneOffsetAt(time),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
             volume = Volume.milliliters(amountMl)
         )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
@@ -113,11 +114,12 @@ class HealthConnectAdapter(private val context: Context) {
     }
 
     suspend fun insertNutrition(time: Instant, protein: Double, carbs: Double, fat: Double, calories: Double): String? {
+        val end = time.plusSeconds(1)
         val record = NutritionRecord(
             startTime = time,
             startZoneOffset = zoneOffsetAt(time),
-            endTime = time,
-            endZoneOffset = zoneOffsetAt(time),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
             protein = Mass.grams(protein),
             totalCarbohydrate = Mass.grams(carbs),
             totalFat = Mass.grams(fat),
