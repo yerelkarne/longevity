@@ -62,6 +62,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.reminders.ReminderAlarmScheduler
 import java.time.format.DateTimeFormatter
+import java.time.YearMonth
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
@@ -378,6 +379,8 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
             val ovulation = next.minusDays(14)
             val fertileStart = ovulation.minusDays(5)
             val fertileEnd = ovulation.plusDays(1)
+            val months = (0..11).map { YearMonth.now().plusMonths(it.toLong()) }
+            val monthPager = androidx.compose.foundation.pager.rememberPagerState { months.size }
 
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
@@ -393,35 +396,59 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (0 until latest.cycleLengthDays).chunked(7).forEach { week ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                                week.forEach { dayIndex ->
-                                    val day = start.plusDays(dayIndex.toLong())
-                                    val isPeriod = dayIndex < latest.periodLengthDays
-                                    val isOvulation = day == ovulation
-                                    val isFertile = !day.isBefore(fertileStart) && !day.isAfter(fertileEnd)
-                                    val label = when {
-                                        isPeriod -> stringResource(R.string.menstrual_phase_period)
-                                        isOvulation -> stringResource(R.string.menstrual_phase_ovulation)
-                                        isFertile -> stringResource(R.string.menstrual_phase_fertile)
-                                        else -> stringResource(R.string.menstrual_phase_normal)
+                        HorizontalPager(state = monthPager, modifier = Modifier.fillMaxWidth()) { page ->
+                            val month = months[page]
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    listOf("P", "S", "Ç", "P", "C", "C", "P").forEach { d ->
+                                        Text(d, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                                     }
-                                    val color = when {
-                                        isPeriod -> Color(0xFFF8BBD0)
-                                        isOvulation -> Color(0xFFFFF59D)
-                                        isFertile -> Color(0xFFC8E6C9)
-                                        else -> Color(0xFFE0E0E0)
-                                    }
-                                    Box(
-                                        modifier = Modifier.weight(1f).background(color, RoundedCornerShape(10.dp)).padding(8.dp)
-                                    ) {
-                                        Column {
-                                            Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.bodyMedium)
-                                            Text(label, style = MaterialTheme.typography.labelSmall)
+                                }
+
+                                val firstDayOffset = (month.atDay(1).dayOfWeek.value % 7)
+                                val totalCells = ((firstDayOffset + month.lengthOfMonth() + 6) / 7) * 7
+                                (0 until totalCells).chunked(7).forEach { week ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                        week.forEach { idx ->
+                                            val dayNumber = idx - firstDayOffset + 1
+                                            if (dayNumber !in 1..month.lengthOfMonth()) {
+                                                Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp))
+                                            } else {
+                                                val day = month.atDay(dayNumber)
+                                                val cycleDay = java.time.temporal.ChronoUnit.DAYS.between(start, day).toInt()
+                                                val isPeriod = cycleDay >= 0 && (cycleDay % latest.cycleLengthDays) < latest.periodLengthDays
+                                                val isOvulation = day == ovulation || day == ovulation.plusDays(latest.cycleLengthDays.toLong())
+                                                val isFertile = !day.isBefore(fertileStart) && !day.isAfter(fertileEnd)
+                                                val color = when {
+                                                    isPeriod -> Color(0xFFF8BBD0)
+                                                    isOvulation -> Color(0xFFFFF59D)
+                                                    isFertile -> Color(0xFFC8E6C9)
+                                                    else -> Color(0xFFF5F5F5)
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .background(color, RoundedCornerShape(8.dp))
+                                                        .padding(vertical = 8.dp),
+                                                    contentAlignment = androidx.compose.ui.Alignment.Center
+                                                ) {
+                                                    Text(dayNumber.toString(), style = MaterialTheme.typography.bodySmall)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Text("● ${stringResource(R.string.menstrual_phase_period)}", color = Color(0xFFE91E63), style = MaterialTheme.typography.labelSmall)
+                            Text("● ${stringResource(R.string.menstrual_phase_fertile)}", color = Color(0xFF4CAF50), style = MaterialTheme.typography.labelSmall)
+                            Text("● ${stringResource(R.string.menstrual_phase_ovulation)}", color = Color(0xFFFFC107), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
