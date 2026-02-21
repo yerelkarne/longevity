@@ -290,6 +290,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
     }
 
+    private suspend fun autoSyncHealthConnectIfEnabled() {
+        val settings = healthSyncPreferences.value
+        if (!settings.enabled || !healthConnectAvailable) return
+        if (!hasHealthPermissions(settings)) return
+        repository.syncWithHealthConnect(
+            com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
+                hydration = settings.hydrationEnabled,
+                sleep = settings.sleepEnabled,
+                steps = settings.stepsEnabled,
+                exercise = settings.exerciseEnabled,
+                nutrition = settings.nutritionEnabled,
+                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
+                importDays = 30
+            )
+        )
+        app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
+    }
+
     fun addMeal(foodId: Long, grams: Int, mealType: MealType) {
         viewModelScope.launch {
             repository.addMealEntry(
@@ -301,6 +319,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     grams = grams
                 )
             )
+            autoSyncHealthConnectIfEnabled()
         }
     }
 
@@ -320,6 +339,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     grams = grams
                 )
             )
+            autoSyncHealthConnectIfEnabled()
         }
     }
 
@@ -351,10 +371,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.deleteMealEntry(entry.id, entry.date)
     }
 
-    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(selectedNutritionDate.value, ml) }
+    fun addWater(ml: Int) = viewModelScope.launch {
+        repository.addWater(selectedNutritionDate.value, ml)
+        autoSyncHealthConnectIfEnabled()
+    }
 
     fun addSteps(steps: Int) = viewModelScope.launch {
         repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
@@ -363,10 +387,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
         repository.addSleepLog(LocalDate.now(), bedtime, wakeTime)
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
         repository.addWorkoutLog(LocalDate.now(), type, durationMinutes, intensity, notes)
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addTask(title: String, target: String?) = viewModelScope.launch {
@@ -464,17 +490,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return@launch
         }
         _healthPermissionsGranted.value = true
-        repository.syncWithHealthConnect(
-            com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
-                hydration = settings.hydrationEnabled,
-                sleep = settings.sleepEnabled,
-                steps = settings.stepsEnabled,
-                exercise = settings.exerciseEnabled,
-                nutrition = settings.nutritionEnabled,
-                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
-                importDays = 30
-            )
-        )
-        app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
+        autoSyncHealthConnectIfEnabled()
     }
 }

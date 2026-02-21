@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -355,6 +356,7 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
 }
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
+    val prefs by viewModel.healthSyncPreferences.collectAsState()
     val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
         viewModel.refreshHealthPermissions()
@@ -366,16 +368,18 @@ fun SettingsModule(viewModel: MainViewModel) {
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Button(
-                onClick = {
-                    viewModel.setHealthSyncEnabled(true)
-                    if (viewModel.healthConnectAvailable && !hasPermissions && requiredPermissions.isNotEmpty()) {
-                        launcher.launch(requiredPermissions)
-                    }
-                },
-                enabled = viewModel.healthConnectAvailable
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.settings_health_connect))
+                Switch(
+                    checked = prefs.enabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setHealthSyncEnabled(enabled)
+                        if (enabled && viewModel.healthConnectAvailable && !hasPermissions && requiredPermissions.isNotEmpty()) {
+                            launcher.launch(requiredPermissions)
+                        }
+                    },
+                    enabled = viewModel.healthConnectAvailable
+                )
             }
         }
     }
