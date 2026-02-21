@@ -170,6 +170,19 @@ data class UserGoalsEntity(
     val supplementsPerDayTarget: Int
 )
 
+
+@Entity(tableName = "menstrual_cycle_logs")
+data class MenstrualCycleLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val periodStartDate: LocalDate,
+    val cycleLengthDays: Int = 28,
+    val periodLengthDays: Int = 5,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.PENDING_UPLOAD,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
+)
+
 @Entity(tableName = "daily_scores")
 data class DailyScoreEntity(
     @PrimaryKey val date: LocalDate,

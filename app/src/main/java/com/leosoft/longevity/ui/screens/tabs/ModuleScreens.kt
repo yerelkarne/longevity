@@ -21,7 +21,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,7 +61,9 @@ import com.leosoft.longevity.data.local.entity.MealType
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.reminders.ReminderAlarmScheduler
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.YearMonth
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
@@ -262,11 +263,12 @@ private fun ActivityGoalsScreen(viewModel: MainViewModel) {
 
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines))
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines), stringResource(R.string.life_tab_cycle))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> YasamUykuScreen(viewModel)
             1 -> YasamRutinlerScreen(viewModel)
+            2 -> YasamReglScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_life))
         }
     }
@@ -355,64 +357,204 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         )
     }
 }
+
+@Composable
+private fun YasamReglScreen(viewModel: MainViewModel) {
+    val logs by viewModel.menstrualCycleLogs.collectAsState()
+    val latest = logs.firstOrNull()
+    val months = remember { (0..11).map { YearMonth.now().plusMonths(it.toLong()) } }
+    val monthPager = androidx.compose.foundation.pager.rememberPagerState { months.size }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (latest == null) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.life_routines_empty), modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            val start = latest.periodStartDate
+            val today = LocalDate.now()
+            val cycleLength = latest.cycleLengthDays.coerceAtLeast(1)
+            val periodLength = latest.periodLengthDays.coerceIn(1, cycleLength)
+            val daysFromStart = java.time.temporal.ChronoUnit.DAYS.between(start, today).toInt()
+            val cyclesSinceStart = if (daysFromStart <= 0) 0 else (daysFromStart / cycleLength) + 1
+            val next = start.plusDays(cyclesSinceStart.toLong() * cycleLength.toLong())
+            val ovulationOffset = (cycleLength - 14).coerceIn(0, cycleLength - 1)
+            val fertileStartOffset = (ovulationOffset - 5).coerceAtLeast(0)
+            val fertileEndOffset = (ovulationOffset + 1).coerceAtMost(cycleLength - 1)
+            val ovulation = next.plusDays(ovulationOffset.toLong())
+            val fertileStart = next.plusDays(fertileStartOffset.toLong())
+            val fertileEnd = next.plusDays(fertileEndOffset.toLong())
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = Color(0xFF6A1B9A))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFCE4EC)),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.menstrual_phase_period), style = MaterialTheme.typography.labelSmall, color = Color(0xFFAD1457))
+                                    Text(next.toString(), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.menstrual_phase_ovulation), style = MaterialTheme.typography.labelSmall, color = Color(0xFFF57F17))
+                                    Text(ovulation.toString(), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.menstrual_phase_fertile), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                                Text("${fertileStart} - ${fertileEnd}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HorizontalPager(state = monthPager, modifier = Modifier.fillMaxWidth()) { page ->
+                            val month = months[page]
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    listOf("P", "S", "Ç", "P", "C", "C", "P").forEach { d ->
+                                        Text(d, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                                    }
+                                }
+
+                                val firstDayOffset = (month.atDay(1).dayOfWeek.value % 7)
+                                val totalCells = ((firstDayOffset + month.lengthOfMonth() + 6) / 7) * 7
+                                (0 until totalCells).chunked(7).forEach { week ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                        week.forEach { idx ->
+                                            val dayNumber = idx - firstDayOffset + 1
+                                            if (dayNumber !in 1..month.lengthOfMonth()) {
+                                                Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp))
+                                            } else {
+                                                val day = month.atDay(dayNumber)
+                                                val cycleDistance = java.time.temporal.ChronoUnit.DAYS.between(start, day).toInt()
+                                                val cycleDay = if (cycleDistance >= 0) cycleDistance % cycleLength else -1
+                                                val isPeriod = cycleDay in 0 until periodLength
+                                                val isOvulation = cycleDay == ovulationOffset
+                                                val isFertile = cycleDay in fertileStartOffset..fertileEndOffset
+                                                val color = when {
+                                                    isPeriod -> Color(0xFFF8BBD0)
+                                                    isOvulation -> Color(0xFFFFF59D)
+                                                    isFertile -> Color(0xFFC8E6C9)
+                                                    else -> Color(0xFFF5F5F5)
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .background(color, RoundedCornerShape(8.dp))
+                                                        .padding(vertical = 8.dp),
+                                                    contentAlignment = androidx.compose.ui.Alignment.Center
+                                                ) {
+                                                    Text(dayNumber.toString(), style = MaterialTheme.typography.bodySmall)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Text("● ${stringResource(R.string.menstrual_phase_period)}", color = Color(0xFFE91E63), style = MaterialTheme.typography.labelSmall)
+                            Text("● ${stringResource(R.string.menstrual_phase_fertile)}", color = Color(0xFF4CAF50), style = MaterialTheme.typography.labelSmall)
+                            Text("● ${stringResource(R.string.menstrual_phase_ovulation)}", color = Color(0xFFFFC107), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
-    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
-    val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) { granted ->
-        val permissionGranted = granted.containsAll(viewModel.healthConnectPermissions)
-        if (permissionGranted) {
-            viewModel.setHealthSyncEnabled(true)
-        }
+    val scope = rememberCoroutineScope()
+    var pendingSyncAfterPermission by remember { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
         viewModel.refreshHealthPermissions()
+        if (pendingSyncAfterPermission) {
+            pendingSyncAfterPermission = false
+            viewModel.syncNow()
+        }
     }
 
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text(stringResource(R.string.settings_health_title), style = MaterialTheme.typography.titleLarge) }
         item {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.settings_health_disclosure))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.settings_health_connect))
-                        Switch(
-                            checked = prefs.enabled,
-                            onCheckedChange = { enabled ->
-                                if (!enabled) {
-                                    viewModel.setHealthSyncEnabled(false)
-                                } else if (viewModel.healthConnectAvailable && !hasPermissions) {
-                                    launcher.launch(viewModel.healthConnectPermissions)
-                                } else {
-                                    viewModel.setHealthSyncEnabled(true)
-                                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.settings_health_connect))
+                Switch(
+                    checked = prefs.enabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setHealthSyncEnabled(enabled)
+                        if (enabled && viewModel.healthConnectAvailable) {
+                            scope.launch {
+                                val missingPermissions = viewModel.missingHealthPermissions()
+                                if (missingPermissions.isNotEmpty()) launcher.launch(missingPermissions)
                             }
-                        )
-                    }
-                    if (!viewModel.healthConnectAvailable) {
-                        Text(if (viewModel.healthConnectInstallable) stringResource(R.string.settings_hc_install_required) else stringResource(R.string.settings_hc_unavailable))
-                    }
-                    Button(onClick = { launcher.launch(viewModel.healthConnectPermissions) }, enabled = viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_manage_permissions)) }
-                    Button(onClick = { viewModel.syncNow() }, enabled = prefs.enabled && hasPermissions && viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_sync_now)) }
-                    Text(stringResource(R.string.settings_last_sync, prefs.lastSyncAt?.toString() ?: "-"))
-                }
+                        }
+                    },
+                    enabled = viewModel.healthConnectAvailable
+                )
             }
         }
-        item { ScopeToggle(stringResource(R.string.tab_water), prefs.hydrationEnabled) { viewModel.setHealthScope("water", it) } }
-        item { ScopeToggle(stringResource(R.string.card_sleep), prefs.sleepEnabled) { viewModel.setHealthScope("sleep", it) } }
-        item { ScopeToggle(stringResource(R.string.card_steps), prefs.stepsEnabled) { viewModel.setHealthScope("steps", it) } }
-        item { ScopeToggle(stringResource(R.string.activity_tab_add_exercise), prefs.exerciseEnabled) { viewModel.setHealthScope("exercise", it) } }
-        item { ScopeToggle(stringResource(R.string.nav_nutrition), prefs.nutritionEnabled) { viewModel.setHealthScope("nutrition", it) } }
-    }
-}
-
-@Composable
-private fun ScopeToggle(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(title)
-            Switch(checked = checked, onCheckedChange = onChange)
+        item {
+            Button(
+                onClick = {
+                    scope.launch {
+                        val missingPermissions = viewModel.missingHealthPermissions()
+                        if (missingPermissions.isNotEmpty()) {
+                            pendingSyncAfterPermission = true
+                            launcher.launch(missingPermissions)
+                        } else {
+                            viewModel.syncNow()
+                        }
+                    }
+                },
+                enabled = prefs.enabled && viewModel.healthConnectAvailable
+            ) {
+                Text(stringResource(R.string.settings_sync_now))
+            }
         }
     }
 }
@@ -420,15 +562,7 @@ private fun ScopeToggle(title: String, checked: Boolean, onChange: (Boolean) -> 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data by viewModel.dashboard.collectAsState()
-    val healthPrefs by viewModel.healthSyncPreferences.collectAsState()
-    val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
-    val healthLabel = when {
-        !healthPrefs.enabled -> stringResource(R.string.hc_status_off)
-        viewModel.healthConnectAvailable && hasPermissions -> stringResource(R.string.hc_status_connected)
-        else -> stringResource(R.string.hc_status_no_permission)
-    }
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { AssistChip(onClick = {}, label = { Text(healthLabel) }) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
@@ -459,6 +593,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 @Composable
 private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit) {
     val profile by viewModel.profilePreferences.collectAsState()
+    val menstrualLogs by viewModel.menstrualCycleLogs.collectAsState()
     var ageText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
     var weightText by remember { mutableStateOf("") }
@@ -468,9 +603,10 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var selectedWeightGoalModeIndex by remember { mutableStateOf(0) }
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
+    var selectedPeriodStartDate by remember { mutableStateOf(menstrualLogs.firstOrNull()?.periodStartDate) }
     val context = LocalContext.current
 
-    LaunchedEffect(profile) {
+    LaunchedEffect(profile, menstrualLogs) {
         if (ageText.isBlank()) {
             ageText = profile.age.takeIf { it > 0 }?.toString().orEmpty()
         }
@@ -482,6 +618,9 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         }
         if (genderIndex == 2) {
             genderIndex = genderKeys.indexOf(profile.gender).takeIf { it >= 0 } ?: 2
+        }
+        if (selectedPeriodStartDate == null) {
+            selectedPeriodStartDate = menstrualLogs.firstOrNull()?.periodStartDate
         }
     }
 
@@ -545,6 +684,49 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 selected = genderIndex,
                 onSelect = { genderIndex = it }
             )
+        }
+        if (selectedGender == "female") {
+            item {
+                val initial = selectedPeriodStartDate ?: java.time.LocalDate.now()
+                OutlinedTextField(
+                    value = selectedPeriodStartDate?.toString() ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    val picked = java.time.LocalDate.of(y, m + 1, d)
+                                    selectedPeriodStartDate = picked
+                                    viewModel.addMenstrualCycleLog(picked)
+                                },
+                                initial.year,
+                                initial.monthValue - 1,
+                                initial.dayOfMonth
+                            ).show()
+                        },
+                    label = { Text(stringResource(R.string.me_menstrual_start_date)) },
+                    trailingIcon = {
+                        TextButton(onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    val picked = java.time.LocalDate.of(y, m + 1, d)
+                                    selectedPeriodStartDate = picked
+                                    viewModel.addMenstrualCycleLog(picked)
+                                },
+                                initial.year,
+                                initial.monthValue - 1,
+                                initial.dayOfMonth
+                            ).show()
+                        }) {
+                            Text(stringResource(R.string.me_select_date))
+                        }
+                    }
+                )
+            }
         }
         item {
             ExposedDropdownSimple(
@@ -1253,8 +1435,56 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         onSelect = { idx -> selectedSupplementId = supplements[idx].id }
                     )
                     QuickAddType.SLEEP -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.bed_time)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.wake_time)) })
+                        val now = java.time.LocalTime.now()
+                        val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        val wake = secondaryText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+
+                        fun openBedTimePicker() {
+                            val parts = bed.split(":")
+                            TimePickerDialog(
+                                context,
+                                { _, h, m -> amountText = String.format("%02d:%02d", h, m) },
+                                parts[0].toInt(),
+                                parts[1].toInt(),
+                                true
+                            ).show()
+                        }
+
+                        fun openWakeTimePicker() {
+                            val parts = wake.split(":")
+                            TimePickerDialog(
+                                context,
+                                { _, h, m -> secondaryText = String.format("%02d:%02d", h, m) },
+                                parts[0].toInt(),
+                                parts[1].toInt(),
+                                true
+                            ).show()
+                        }
+
+                        OutlinedTextField(
+                            value = bed,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth().clickable { openBedTimePicker() },
+                            label = { Text(stringResource(R.string.bed_time)) },
+                            trailingIcon = {
+                                TextButton(onClick = { openBedTimePicker() }) {
+                                    Text(stringResource(R.string.select_time))
+                                }
+                            }
+                        )
+                        OutlinedTextField(
+                            value = wake,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth().clickable { openWakeTimePicker() },
+                            label = { Text(stringResource(R.string.wake_time)) },
+                            trailingIcon = {
+                                TextButton(onClick = { openWakeTimePicker() }) {
+                                    Text(stringResource(R.string.select_time))
+                                }
+                            }
+                        )
                     }
                     QuickAddType.ACTIVITY -> {
                         val isStepBased = selectedWorkoutType == WorkoutType.WALKING || selectedWorkoutType == WorkoutType.RUNNING
@@ -1287,7 +1517,12 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
-                    QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
+                    QuickAddType.SLEEP -> {
+                        val now = java.time.LocalTime.now()
+                        val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        val wake = secondaryText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        viewModel.addSleepLog(bed, wake)
+                    }
                     QuickAddType.ACTIVITY -> {
                         val resolvedType = if (customActivityName.isNotBlank()) WorkoutType.OTHER else selectedWorkoutType
                         val isStepBased = resolvedType == WorkoutType.WALKING || resolvedType == WorkoutType.RUNNING

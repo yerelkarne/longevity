@@ -7,6 +7,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HydrationRecord
 import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.MenstruationPeriodRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -35,18 +36,44 @@ class HealthConnectAdapter(private val context: Context) {
 
     suspend fun grantedPermissions(): Set<String> = client?.permissionController?.getGrantedPermissions().orEmpty()
 
-    val allPermissions = setOf(
+    val stepsPermissions = setOf(
         HealthPermission.getReadPermission(StepsRecord::class),
-        HealthPermission.getReadPermission(SleepSessionRecord::class),
-        HealthPermission.getWritePermission(SleepSessionRecord::class),
-        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getWritePermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(NutritionRecord::class),
-        HealthPermission.getWritePermission(NutritionRecord::class),
-        HealthPermission.getReadPermission(HydrationRecord::class),
-        HealthPermission.getWritePermission(HydrationRecord::class),
         HealthPermission.getWritePermission(StepsRecord::class)
     )
+
+    val sleepPermissions = setOf(
+        HealthPermission.getReadPermission(SleepSessionRecord::class),
+        HealthPermission.getWritePermission(SleepSessionRecord::class)
+    )
+
+    val exercisePermissions = setOf(
+        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getWritePermission(ExerciseSessionRecord::class)
+    )
+
+    val nutritionPermissions = setOf(
+        HealthPermission.getReadPermission(NutritionRecord::class),
+        HealthPermission.getWritePermission(NutritionRecord::class)
+    )
+
+    val hydrationPermissions = setOf(
+        HealthPermission.getReadPermission(HydrationRecord::class),
+        HealthPermission.getWritePermission(HydrationRecord::class)
+    )
+
+    val menstruationPermissions = setOf(
+        HealthPermission.getReadPermission(MenstruationPeriodRecord::class),
+        HealthPermission.getWritePermission(MenstruationPeriodRecord::class)
+    )
+
+    val allPermissions = buildSet {
+        addAll(stepsPermissions)
+        addAll(sleepPermissions)
+        addAll(exercisePermissions)
+        addAll(nutritionPermissions)
+        addAll(hydrationPermissions)
+        addAll(menstruationPermissions)
+    }
 
     suspend fun insertSteps(start: Instant, end: Instant, count: Long): String? {
         val record = StepsRecord(
@@ -60,11 +87,12 @@ class HealthConnectAdapter(private val context: Context) {
     }
 
     suspend fun insertHydration(time: Instant, amountMl: Double): String? {
+        val end = time.plusSeconds(1)
         val record = HydrationRecord(
             startTime = time,
             startZoneOffset = zoneOffsetAt(time),
-            endTime = time,
-            endZoneOffset = zoneOffsetAt(time),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
             volume = Volume.milliliters(amountMl)
         )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
@@ -93,15 +121,29 @@ class HealthConnectAdapter(private val context: Context) {
     }
 
     suspend fun insertNutrition(time: Instant, protein: Double, carbs: Double, fat: Double, calories: Double): String? {
+        val end = time.plusSeconds(1)
         val record = NutritionRecord(
             startTime = time,
             startZoneOffset = zoneOffsetAt(time),
-            endTime = time,
-            endZoneOffset = zoneOffsetAt(time),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end),
             protein = Mass.grams(protein),
             totalCarbohydrate = Mass.grams(carbs),
             totalFat = Mass.grams(fat),
             energy = Energy.calories(calories)
+        )
+        return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
+    }
+
+
+    suspend fun insertMenstruationPeriod(startDate: LocalDate, periodLengthDays: Int): String? {
+        val start = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val end = startDate.plusDays(periodLengthDays.toLong()).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val record = MenstruationPeriodRecord(
+            startTime = start,
+            startZoneOffset = zoneOffsetAt(start),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end)
         )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
     }

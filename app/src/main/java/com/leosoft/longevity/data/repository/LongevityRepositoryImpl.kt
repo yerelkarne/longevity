@@ -14,6 +14,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.RecordSource
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
@@ -178,6 +179,23 @@ class LongevityRepositoryImpl(
 
     override fun observeSleepLogs(): Flow<List<SleepLogEntity>> = lifeDao.observeSleepLogs()
 
+    override fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>> = lifeDao.observeMenstrualCycleLogs()
+
+    override suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int, periodLengthDays: Int) {
+        lifeDao.insertMenstrualCycleLog(
+            MenstrualCycleLogEntity(
+                periodStartDate = periodStartDate,
+                cycleLengthDays = cycleLengthDays,
+                periodLengthDays = periodLengthDays,
+                syncState = SyncState.PENDING_UPLOAD
+            )
+        )
+    }
+
+    override suspend fun clearMenstrualCycleLogs() {
+        lifeDao.clearMenstrualCycleLogs()
+    }
+
     override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
         val bed = LocalTime.parse(bedtime)
         val wake = LocalTime.parse(wakeTime)
@@ -204,10 +222,11 @@ class LongevityRepositoryImpl(
 
             if (options.steps) {
                 activityDao.getPendingStepUploads().forEach { step ->
-                    val start = step.date.atStartOfDay(ZoneId.systemDefault()).toInstant()
-                    val end = step.date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-                    val id = healthConnectAdapter.insertSteps(start, end, step.steps.toLong())
-                    if (id != null) {
+                    runCatching {
+                        val start = step.date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                        val end = step.date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+                        healthConnectAdapter.insertSteps(start, end, step.steps.toLong())
+                    }.getOrNull()?.let { id ->
                         activityDao.updateStepSyncState(step.date, SyncState.SYNCED, id, now)
                         uploaded++
                     }
@@ -215,8 +234,9 @@ class LongevityRepositoryImpl(
             }
             if (options.hydration) {
                 waterDao.getPendingUploads().forEach { item ->
-                    val id = healthConnectAdapter.insertHydration(item.time.atZone(ZoneId.systemDefault()).toInstant(), item.amountMl.toDouble())
-                    if (id != null) {
+                    runCatching {
+                        healthConnectAdapter.insertHydration(item.time.atZone(ZoneId.systemDefault()).toInstant(), item.amountMl.toDouble())
+                    }.getOrNull()?.let { id ->
                         waterDao.updateSyncState(item.id, SyncState.SYNCED, id, now)
                         uploaded++
                     }
@@ -224,8 +244,9 @@ class LongevityRepositoryImpl(
             }
             if (options.sleep) {
                 lifeDao.getPendingUploads().forEach { item ->
-                    val id = healthConnectAdapter.insertSleep(item.bedtime.atZone(ZoneId.systemDefault()).toInstant(), item.wakeTime.atZone(ZoneId.systemDefault()).toInstant())
-                    if (id != null) {
+                    runCatching {
+                        healthConnectAdapter.insertSleep(item.bedtime.atZone(ZoneId.systemDefault()).toInstant(), item.wakeTime.atZone(ZoneId.systemDefault()).toInstant())
+                    }.getOrNull()?.let { id ->
                         lifeDao.updateSyncState(item.id, SyncState.SYNCED, id, now)
                         uploaded++
                     }
@@ -233,10 +254,11 @@ class LongevityRepositoryImpl(
             }
             if (options.exercise) {
                 activityDao.getPendingWorkoutUploads().forEach { item ->
-                    val start = item.time.atZone(ZoneId.systemDefault()).toInstant()
-                    val end = item.time.plusMinutes(item.durationMinutes.toLong()).atZone(ZoneId.systemDefault()).toInstant()
-                    val id = healthConnectAdapter.insertExercise(start, end, item.type, item.notes)
-                    if (id != null) {
+                    runCatching {
+                        val start = item.time.atZone(ZoneId.systemDefault()).toInstant()
+                        val end = item.time.plusMinutes(item.durationMinutes.toLong()).atZone(ZoneId.systemDefault()).toInstant()
+                        healthConnectAdapter.insertExercise(start, end, item.type, item.notes)
+                    }.getOrNull()?.let { id ->
                         activityDao.updateWorkoutSyncState(item.id, SyncState.SYNCED, id, now)
                         uploaded++
                     }
@@ -244,16 +266,28 @@ class LongevityRepositoryImpl(
             }
             if (options.nutrition) {
                 nutritionDao.getPendingNutritionUploads().forEach { item ->
-                    val calories = ((item.protein + item.carbs) * 4f + (item.fat * 9f)).toDouble()
-                    val id = healthConnectAdapter.insertNutrition(
-                        item.createdAt.atZone(ZoneId.systemDefault()).toInstant(),
-                        item.protein.toDouble(),
-                        item.carbs.toDouble(),
-                        item.fat.toDouble(),
-                        calories
-                    )
-                    if (id != null) {
+                    runCatching {
+                        val calories = ((item.protein + item.carbs) * 4f + (item.fat * 9f)).toDouble()
+                        healthConnectAdapter.insertNutrition(
+                            item.createdAt.atZone(ZoneId.systemDefault()).toInstant(),
+                            item.protein.toDouble(),
+                            item.carbs.toDouble(),
+                            item.fat.toDouble(),
+                            calories
+                        )
+                    }.getOrNull()?.let { id ->
                         nutritionDao.updateNutritionSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+
+            if (options.menstruation) {
+                lifeDao.getPendingMenstrualUploads().forEach { item ->
+                    runCatching {
+                        healthConnectAdapter.insertMenstruationPeriod(item.periodStartDate, item.periodLengthDays)
+                    }.getOrNull()?.let { id ->
+                        lifeDao.updateMenstrualSyncState(item.id, SyncState.SYNCED, id, now)
                         uploaded++
                     }
                 }

@@ -70,6 +70,7 @@
     <string name="water_ml_input">Kaç ml içildi?</string>
     <string name="bed_time">Yatış (HH:mm)</string>
     <string name="wake_time">Uyanış (HH:mm)</string>
+    <string name="select_time">Saat seç</string>
     <string name="activity_type">Aktivite türü</string>
     <string name="duration_min">Süre (dk)</string>
     <string name="intensity_1_3">Yoğunluk (1-3)</string>
@@ -247,5 +248,18 @@
     <string name="hc_status_connected">HC: Bağlı</string>
     <string name="hc_status_off">HC: Kapalı</string>
     <string name="hc_status_no_permission">HC: İzin yok</string>
+
+
+    <string name="life_tab_cycle">Regl</string>
+    <string name="me_menstrual_start_date">Son regl başlangıç tarihi</string>
+    <string name="me_select_date">Tarih seç</string>
+    <string name="menstrual_cycle_title">Regl döngüsü takvimi</string>
+    <string name="menstrual_next_period">Beklenen sonraki regl: %1$s</string>
+    <string name="menstrual_fertile_window">Doğurganlık penceresi: %1$s - %2$s</string>
+    <string name="menstrual_predicted_ovulation">Tahmini ovülasyon: %1$s</string>
+    <string name="menstrual_phase_period">Regl</string>
+    <string name="menstrual_phase_fertile">Doğurganlık</string>
+    <string name="menstrual_phase_ovulation">Ovülasyon</string>
+    <string name="menstrual_phase_normal">Diğer günler</string>
 
 </resources>

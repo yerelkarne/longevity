@@ -100,6 +100,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val reminders = repository.observeReminders().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val sleepLogs: StateFlow<List<SleepLogEntity>> = repository.observeSleepLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val menstrualCycleLogs = repository.observeMenstrualCycleLogs()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
@@ -242,6 +245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createPersonalizedGoals(age: Int, heightCm: Int, weightKg: Float, gender: String, goalMode: WeightGoalMode, onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
         val success = runCatching {
             app.preferences.saveProfile(age, heightCm, weightKg, gender)
+            clearMenstrualLogsIfNotFemale(gender)
             val targets = buildPersonalizedTargets(age, heightCm, weightKg, gender, goalMode)
             repository.saveGoals(
                 UserGoalsEntity(
@@ -288,6 +292,53 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
+        clearMenstrualLogsIfNotFemale(gender)
+    }
+
+    private suspend fun clearMenstrualLogsIfNotFemale(gender: String) {
+        if (gender != "female") {
+            repository.clearMenstrualCycleLogs()
+        }
+    }
+
+    private fun syncOptionsForGrantedPermissions(
+        settings: HealthSyncPreferences,
+        grantedPermissions: Set<String>
+    ): com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions {
+        val canSyncSteps = settings.stepsEnabled && grantedPermissions.containsAll(healthConnectAdapter.stepsPermissions)
+        val canSyncSleep = settings.sleepEnabled && grantedPermissions.containsAll(healthConnectAdapter.sleepPermissions)
+        val canSyncExercise = settings.exerciseEnabled && grantedPermissions.containsAll(healthConnectAdapter.exercisePermissions)
+        val canSyncNutrition = settings.nutritionEnabled && grantedPermissions.containsAll(healthConnectAdapter.nutritionPermissions)
+        val canSyncHydration = settings.hydrationEnabled && grantedPermissions.containsAll(healthConnectAdapter.hydrationPermissions)
+        val canSyncMenstruation = grantedPermissions.containsAll(healthConnectAdapter.menstruationPermissions)
+
+        return com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
+            hydration = canSyncHydration,
+            sleep = canSyncSleep,
+            steps = canSyncSteps,
+            exercise = canSyncExercise,
+            nutrition = canSyncNutrition,
+            menstruation = canSyncMenstruation,
+            conflictResolution = ConflictResolution.LAST_WRITE_WINS,
+            importDays = 30
+        )
+    }
+
+    private suspend fun autoSyncHealthConnectIfEnabled() {
+        val settings = healthSyncPreferences.value
+        if (!settings.enabled || !healthConnectAvailable) return
+
+        val grantedPermissions = healthConnectAdapter.grantedPermissions()
+        val options = syncOptionsForGrantedPermissions(settings, grantedPermissions)
+        val hasAnyEnabledScope = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition || options.menstruation
+        if (!hasAnyEnabledScope) {
+            _healthPermissionsGranted.value = false
+            return
+        }
+
+        repository.syncWithHealthConnect(options)
+        _healthPermissionsGranted.value = true
+        app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
     }
 
     fun addMeal(foodId: Long, grams: Int, mealType: MealType) {
@@ -301,6 +352,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     grams = grams
                 )
             )
+            autoSyncHealthConnectIfEnabled()
         }
     }
 
@@ -320,6 +372,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     grams = grams
                 )
             )
+            autoSyncHealthConnectIfEnabled()
         }
     }
 
@@ -351,10 +404,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.deleteMealEntry(entry.id, entry.date)
     }
 
-    fun addWater(ml: Int) = viewModelScope.launch { repository.addWater(selectedNutritionDate.value, ml) }
+    fun addWater(ml: Int) = viewModelScope.launch {
+        repository.addWater(selectedNutritionDate.value, ml)
+        autoSyncHealthConnectIfEnabled()
+    }
 
     fun addSteps(steps: Int) = viewModelScope.launch {
         repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addSupplementLog(supplementId: Long) = viewModelScope.launch {
@@ -363,10 +420,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
         repository.addSleepLog(LocalDate.now(), bedtime, wakeTime)
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
         repository.addWorkoutLog(LocalDate.now(), type, durationMinutes, intensity, notes)
+        autoSyncHealthConnectIfEnabled()
+    }
+
+    fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5) = viewModelScope.launch {
+        repository.addMenstrualCycleLog(periodStartDate, cycleLengthDays, periodLengthDays)
+        autoSyncHealthConnectIfEnabled()
     }
 
     fun addTask(title: String, target: String?) = viewModelScope.launch {
@@ -404,16 +468,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.ensureCoreFoods()
     }
 
-    suspend fun hasHealthPermissions(): Boolean = healthConnectAdapter.grantedPermissions().containsAll(healthConnectPermissions)
+    private fun requiredPermissions(settings: HealthSyncPreferences): Set<String> = buildSet {
+        if (settings.stepsEnabled) addAll(healthConnectAdapter.stepsPermissions)
+        if (settings.sleepEnabled) addAll(healthConnectAdapter.sleepPermissions)
+        if (settings.exerciseEnabled) addAll(healthConnectAdapter.exercisePermissions)
+        if (settings.nutritionEnabled) addAll(healthConnectAdapter.nutritionPermissions)
+        if (settings.hydrationEnabled) addAll(healthConnectAdapter.hydrationPermissions)
+        addAll(healthConnectAdapter.menstruationPermissions)
+    }
+
+    suspend fun hasHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Boolean {
+        val required = requiredPermissions(settings)
+        if (required.isEmpty()) return true
+        return healthConnectAdapter.grantedPermissions().containsAll(required)
+    }
+
+    suspend fun missingHealthPermissions(): Set<String> {
+        val granted = healthConnectAdapter.grantedPermissions()
+        return healthConnectPermissions - granted
+    }
 
     fun refreshHealthPermissions() = viewModelScope.launch {
-        _healthPermissionsGranted.value = hasHealthPermissions()
+        val settings = healthSyncPreferences.value
+        if (!settings.enabled || !healthConnectAvailable) {
+            _healthPermissionsGranted.value = false
+            return@launch
+        }
+        val options = syncOptionsForGrantedPermissions(settings, healthConnectAdapter.grantedPermissions())
+        _healthPermissionsGranted.value = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition || options.menstruation
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
-        app.preferences.updateHealthSyncPreferences { it.copy(enabled = enabled) }
+        app.preferences.updateHealthSyncPreferences {
+            if (enabled) {
+                it.copy(
+                    enabled = true,
+                    hydrationEnabled = true,
+                    sleepEnabled = true,
+                    stepsEnabled = true,
+                    exerciseEnabled = true,
+                    nutritionEnabled = true
+                )
+            } else {
+                it.copy(enabled = false)
+            }
+        }
+        refreshHealthPermissions()
     }
 
     fun setHealthScope(key: String, enabled: Boolean) = viewModelScope.launch {
@@ -427,27 +529,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 else -> it
             }
         }
+        refreshHealthPermissions()
     }
 
     fun syncNow() = viewModelScope.launch {
-        val settings = healthSyncPreferences.value
-        if (!settings.enabled) return@launch
-        if (!hasHealthPermissions()) {
-            _healthPermissionsGranted.value = false
-            return@launch
-        }
-        _healthPermissionsGranted.value = true
-        repository.syncWithHealthConnect(
-            com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
-                hydration = settings.hydrationEnabled,
-                sleep = settings.sleepEnabled,
-                steps = settings.stepsEnabled,
-                exercise = settings.exerciseEnabled,
-                nutrition = settings.nutritionEnabled,
-                conflictResolution = ConflictResolution.LAST_WRITE_WINS,
-                importDays = 30
-            )
-        )
-        app.preferences.updateHealthSyncPreferences { it.copy(lastSyncAt = LocalDateTime.now()) }
+        if (!healthSyncPreferences.value.enabled) return@launch
+        autoSyncHealthConnectIfEnabled()
     }
 }
