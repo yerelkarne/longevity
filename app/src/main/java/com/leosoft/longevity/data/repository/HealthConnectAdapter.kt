@@ -7,6 +7,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HydrationRecord
 import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.MenstruationPeriodRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -60,12 +61,18 @@ class HealthConnectAdapter(private val context: Context) {
         HealthPermission.getWritePermission(HydrationRecord::class)
     )
 
+    val menstruationPermissions = setOf(
+        HealthPermission.getReadPermission(MenstruationPeriodRecord::class),
+        HealthPermission.getWritePermission(MenstruationPeriodRecord::class)
+    )
+
     val allPermissions = buildSet {
         addAll(stepsPermissions)
         addAll(sleepPermissions)
         addAll(exercisePermissions)
         addAll(nutritionPermissions)
         addAll(hydrationPermissions)
+        addAll(menstruationPermissions)
     }
 
     suspend fun insertSteps(start: Instant, end: Instant, count: Long): String? {
@@ -124,6 +131,19 @@ class HealthConnectAdapter(private val context: Context) {
             totalCarbohydrate = Mass.grams(carbs),
             totalFat = Mass.grams(fat),
             energy = Energy.calories(calories)
+        )
+        return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
+    }
+
+
+    suspend fun insertMenstruationPeriod(startDate: LocalDate, periodLengthDays: Int): String? {
+        val start = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val end = startDate.plusDays(periodLengthDays.toLong()).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val record = MenstruationPeriodRecord(
+            startTime = start,
+            startZoneOffset = zoneOffsetAt(start),
+            endTime = end,
+            endZoneOffset = zoneOffsetAt(end)
         )
         return client?.insertRecords(listOf(record))?.recordIdsList?.firstOrNull()
     }

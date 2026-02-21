@@ -5,6 +5,7 @@ import com.leosoft.longevity.data.local.entity.ConflictResolution
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
+import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
@@ -24,6 +25,7 @@ interface LongevityRepository {
         val steps: Boolean,
         val exercise: Boolean,
         val nutrition: Boolean,
+        val menstruation: Boolean = true,
         val conflictResolution: ConflictResolution,
         val importDays: Long = 7
     )
@@ -56,6 +58,8 @@ interface LongevityRepository {
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     fun observeSleepLogs(): Flow<List<SleepLogEntity>>
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
+    suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5)
+    fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>
     suspend fun addTaskLog(date: LocalDate, title: String, targetText: String?)
     fun observeGoalPlans(): Flow<List<GoalPlanEntity>>
     suspend fun addGoalPlan(goalType: String, target: Int, cadence: String): Long

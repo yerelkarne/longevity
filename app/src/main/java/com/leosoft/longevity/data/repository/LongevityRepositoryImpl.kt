@@ -14,6 +14,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.RecordSource
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
@@ -178,6 +179,19 @@ class LongevityRepositoryImpl(
 
     override fun observeSleepLogs(): Flow<List<SleepLogEntity>> = lifeDao.observeSleepLogs()
 
+    override fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>> = lifeDao.observeMenstrualCycleLogs()
+
+    override suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int, periodLengthDays: Int) {
+        lifeDao.insertMenstrualCycleLog(
+            MenstrualCycleLogEntity(
+                periodStartDate = periodStartDate,
+                cycleLengthDays = cycleLengthDays,
+                periodLengthDays = periodLengthDays,
+                syncState = SyncState.PENDING_UPLOAD
+            )
+        )
+    }
+
     override suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String) {
         val bed = LocalTime.parse(bedtime)
         val wake = LocalTime.parse(wakeTime)
@@ -259,6 +273,17 @@ class LongevityRepositoryImpl(
                         )
                     }.getOrNull()?.let { id ->
                         nutritionDao.updateNutritionSyncState(item.id, SyncState.SYNCED, id, now)
+                        uploaded++
+                    }
+                }
+            }
+
+            if (options.menstruation) {
+                lifeDao.getPendingMenstrualUploads().forEach { item ->
+                    runCatching {
+                        healthConnectAdapter.insertMenstruationPeriod(item.periodStartDate, item.periodLengthDays)
+                    }.getOrNull()?.let { id ->
+                        lifeDao.updateMenstrualSyncState(item.id, SyncState.SYNCED, id, now)
                         uploaded++
                     }
                 }

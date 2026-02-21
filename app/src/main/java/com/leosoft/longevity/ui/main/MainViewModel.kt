@@ -100,6 +100,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val reminders = repository.observeReminders().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val sleepLogs: StateFlow<List<SleepLogEntity>> = repository.observeSleepLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val menstrualCycleLogs = repository.observeMenstrualCycleLogs()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
@@ -299,6 +302,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val canSyncExercise = settings.exerciseEnabled && grantedPermissions.containsAll(healthConnectAdapter.exercisePermissions)
         val canSyncNutrition = settings.nutritionEnabled && grantedPermissions.containsAll(healthConnectAdapter.nutritionPermissions)
         val canSyncHydration = settings.hydrationEnabled && grantedPermissions.containsAll(healthConnectAdapter.hydrationPermissions)
+        val canSyncMenstruation = grantedPermissions.containsAll(healthConnectAdapter.menstruationPermissions)
 
         return com.leosoft.longevity.domain.repository.LongevityRepository.ExternalSyncOptions(
             hydration = canSyncHydration,
@@ -306,6 +310,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             steps = canSyncSteps,
             exercise = canSyncExercise,
             nutrition = canSyncNutrition,
+            menstruation = canSyncMenstruation,
             conflictResolution = ConflictResolution.LAST_WRITE_WINS,
             importDays = 30
         )
@@ -317,7 +322,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val grantedPermissions = healthConnectAdapter.grantedPermissions()
         val options = syncOptionsForGrantedPermissions(settings, grantedPermissions)
-        val hasAnyEnabledScope = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition
+        val hasAnyEnabledScope = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition || options.menstruation
         if (!hasAnyEnabledScope) {
             _healthPermissionsGranted.value = false
             return
@@ -415,6 +420,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         autoSyncHealthConnectIfEnabled()
     }
 
+    fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5) = viewModelScope.launch {
+        repository.addMenstrualCycleLog(periodStartDate, cycleLengthDays, periodLengthDays)
+        autoSyncHealthConnectIfEnabled()
+    }
+
     fun addTask(title: String, target: String?) = viewModelScope.launch {
         repository.addTaskLog(LocalDate.now(), title, target)
     }
@@ -456,6 +466,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (settings.exerciseEnabled) addAll(healthConnectAdapter.exercisePermissions)
         if (settings.nutritionEnabled) addAll(healthConnectAdapter.nutritionPermissions)
         if (settings.hydrationEnabled) addAll(healthConnectAdapter.hydrationPermissions)
+        addAll(healthConnectAdapter.menstruationPermissions)
     }
 
     suspend fun hasHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Boolean {
@@ -476,7 +487,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return@launch
         }
         val options = syncOptionsForGrantedPermissions(settings, healthConnectAdapter.grantedPermissions())
-        _healthPermissionsGranted.value = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition
+        _healthPermissionsGranted.value = options.hydration || options.sleep || options.steps || options.exercise || options.nutrition || options.menstruation
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()

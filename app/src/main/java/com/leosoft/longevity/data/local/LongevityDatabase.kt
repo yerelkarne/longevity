@@ -19,6 +19,7 @@ import com.leosoft.longevity.data.local.entity.DailyScoreEntity
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.TaskLogEntity
@@ -45,9 +46,10 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         ReminderLogEntity::class,
         GoalPlanEntity::class,
         UserGoalsEntity::class,
-        DailyScoreEntity::class
+        DailyScoreEntity::class,
+        MenstrualCycleLogEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -66,7 +68,7 @@ abstract class LongevityDatabase : RoomDatabase() {
             context,
             LongevityDatabase::class.java,
             "longevity.db"
-        ).addMigrations(MIGRATION_6_7).build()
+         ).addMigrations(MIGRATION_6_7, MIGRATION_7_8).build()
 
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -76,6 +78,25 @@ abstract class LongevityDatabase : RoomDatabase() {
                     database.execSQL("ALTER TABLE $table ADD COLUMN hcRecordId TEXT")
                     database.execSQL("ALTER TABLE $table ADD COLUMN lastSyncedAt TEXT")
                 }
+            }
+        }
+
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS menstrual_cycle_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        periodStartDate TEXT NOT NULL,
+                        cycleLengthDays INTEGER NOT NULL,
+                        periodLengthDays INTEGER NOT NULL,
+                        source TEXT NOT NULL DEFAULT 'LOCAL',
+                        syncState TEXT NOT NULL DEFAULT 'PENDING_UPLOAD',
+                        hcRecordId TEXT,
+                        lastSyncedAt TEXT
+                    )
+                    """.trimIndent()
+                )
             }
         }
     }

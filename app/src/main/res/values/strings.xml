@@ -248,4 +248,17 @@
     <string name="hc_status_off">HC: Kapalı</string>
     <string name="hc_status_no_permission">HC: İzin yok</string>
 
+
+    <string name="life_tab_cycle">Regl</string>
+    <string name="me_menstrual_start_date">Son regl başlangıç tarihi</string>
+    <string name="me_select_date">Tarih seç</string>
+    <string name="menstrual_cycle_title">Regl döngüsü takvimi</string>
+    <string name="menstrual_next_period">Beklenen sonraki regl: %1$s</string>
+    <string name="menstrual_fertile_window">Doğurganlık penceresi: %1$s - %2$s</string>
+    <string name="menstrual_predicted_ovulation">Tahmini ovülasyon: %1$s</string>
+    <string name="menstrual_phase_period">Regl</string>
+    <string name="menstrual_phase_fertile">Doğurganlık</string>
+    <string name="menstrual_phase_ovulation">Ovülasyon</string>
+    <string name="menstrual_phase_normal">Diğer günler</string>
+
 </resources>

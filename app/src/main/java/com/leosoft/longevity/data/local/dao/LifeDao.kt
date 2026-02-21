@@ -5,12 +5,25 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.leosoft.longevity.data.local.entity.SyncState
+import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LifeDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMenstrualCycleLog(log: MenstrualCycleLogEntity)
+
+    @Query("SELECT * FROM menstrual_cycle_logs ORDER BY periodStartDate DESC")
+    fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>
+
+    @Query("SELECT * FROM menstrual_cycle_logs WHERE syncState = 'PENDING_UPLOAD'")
+    suspend fun getPendingMenstrualUploads(): List<MenstrualCycleLogEntity>
+
+    @Query("UPDATE menstrual_cycle_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
+    suspend fun updateMenstrualSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSleepLog(log: SleepLogEntity)
 

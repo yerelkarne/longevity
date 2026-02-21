@@ -261,11 +261,12 @@ private fun ActivityGoalsScreen(viewModel: MainViewModel) {
 
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines))
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines), stringResource(R.string.life_tab_cycle))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> YasamUykuScreen(viewModel)
             1 -> YasamRutinlerScreen(viewModel)
+            2 -> YasamReglScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_life))
         }
     }
@@ -352,6 +353,80 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun YasamReglScreen(viewModel: MainViewModel) {
+    val logs by viewModel.menstrualCycleLogs.collectAsState()
+    val latest = logs.firstOrNull()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (latest == null) {
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.life_routines_empty), modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            val start = latest.periodStartDate
+            val next = start.plusDays(latest.cycleLengthDays.toLong())
+            val ovulation = next.minusDays(14)
+            val fertileStart = ovulation.minusDays(5)
+            val fertileEnd = ovulation.plusDays(1)
+
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.menstrual_next_period, next.toString()))
+                        Text(stringResource(R.string.menstrual_predicted_ovulation, ovulation.toString()))
+                        Text(stringResource(R.string.menstrual_fertile_window, fertileStart.toString(), fertileEnd.toString()))
+                    }
+                }
+            }
+
+            item {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (0 until latest.cycleLengthDays).chunked(7).forEach { week ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                week.forEach { dayIndex ->
+                                    val day = start.plusDays(dayIndex.toLong())
+                                    val isPeriod = dayIndex < latest.periodLengthDays
+                                    val isOvulation = day == ovulation
+                                    val isFertile = !day.isBefore(fertileStart) && !day.isAfter(fertileEnd)
+                                    val label = when {
+                                        isPeriod -> stringResource(R.string.menstrual_phase_period)
+                                        isOvulation -> stringResource(R.string.menstrual_phase_ovulation)
+                                        isFertile -> stringResource(R.string.menstrual_phase_fertile)
+                                        else -> stringResource(R.string.menstrual_phase_normal)
+                                    }
+                                    val color = when {
+                                        isPeriod -> Color(0xFFF8BBD0)
+                                        isOvulation -> Color(0xFFFFF59D)
+                                        isFertile -> Color(0xFFC8E6C9)
+                                        else -> Color(0xFFE0E0E0)
+                                    }
+                                    Box(
+                                        modifier = Modifier.weight(1f).background(color, RoundedCornerShape(10.dp)).padding(8.dp)
+                                    ) {
+                                        Column {
+                                            Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.bodyMedium)
+                                            Text(label, style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 @Composable
@@ -443,6 +518,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 @Composable
 private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit) {
     val profile by viewModel.profilePreferences.collectAsState()
+    val menstrualLogs by viewModel.menstrualCycleLogs.collectAsState()
     var ageText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
     var weightText by remember { mutableStateOf("") }
@@ -452,9 +528,10 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var selectedWeightGoalModeIndex by remember { mutableStateOf(0) }
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
+    var selectedPeriodStartDate by remember { mutableStateOf(menstrualLogs.firstOrNull()?.periodStartDate) }
     val context = LocalContext.current
 
-    LaunchedEffect(profile) {
+    LaunchedEffect(profile, menstrualLogs) {
         if (ageText.isBlank()) {
             ageText = profile.age.takeIf { it > 0 }?.toString().orEmpty()
         }
@@ -466,6 +543,9 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         }
         if (genderIndex == 2) {
             genderIndex = genderKeys.indexOf(profile.gender).takeIf { it >= 0 } ?: 2
+        }
+        if (selectedPeriodStartDate == null) {
+            selectedPeriodStartDate = menstrualLogs.firstOrNull()?.periodStartDate
         }
     }
 
@@ -529,6 +609,49 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 selected = genderIndex,
                 onSelect = { genderIndex = it }
             )
+        }
+        if (selectedGender == "female") {
+            item {
+                val initial = selectedPeriodStartDate ?: java.time.LocalDate.now()
+                OutlinedTextField(
+                    value = selectedPeriodStartDate?.toString() ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    val picked = java.time.LocalDate.of(y, m + 1, d)
+                                    selectedPeriodStartDate = picked
+                                    viewModel.addMenstrualCycleLog(picked)
+                                },
+                                initial.year,
+                                initial.monthValue - 1,
+                                initial.dayOfMonth
+                            ).show()
+                        },
+                    label = { Text(stringResource(R.string.me_menstrual_start_date)) },
+                    trailingIcon = {
+                        TextButton(onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    val picked = java.time.LocalDate.of(y, m + 1, d)
+                                    selectedPeriodStartDate = picked
+                                    viewModel.addMenstrualCycleLog(picked)
+                                },
+                                initial.year,
+                                initial.monthValue - 1,
+                                initial.dayOfMonth
+                            ).show()
+                        }) {
+                            Text(stringResource(R.string.me_select_date))
+                        }
+                    }
+                )
+            }
         }
         item {
             ExposedDropdownSimple(
@@ -1237,8 +1360,41 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         onSelect = { idx -> selectedSupplementId = supplements[idx].id }
                     )
                     QuickAddType.SLEEP -> {
-                        OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.bed_time)) })
-                        OutlinedTextField(value = secondaryText, onValueChange = { secondaryText = it }, label = { Text(stringResource(R.string.wake_time)) })
+                        val now = java.time.LocalTime.now()
+                        val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        val wake = secondaryText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        OutlinedTextField(
+                            value = amountText,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                val parts = bed.split(":")
+                                TimePickerDialog(
+                                    context,
+                                    { _, h, m -> amountText = String.format("%02d:%02d", h, m) },
+                                    parts[0].toInt(),
+                                    parts[1].toInt(),
+                                    true
+                                ).show()
+                            },
+                            label = { Text(stringResource(R.string.bed_time)) }
+                        )
+                        OutlinedTextField(
+                            value = secondaryText,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                val parts = wake.split(":")
+                                TimePickerDialog(
+                                    context,
+                                    { _, h, m -> secondaryText = String.format("%02d:%02d", h, m) },
+                                    parts[0].toInt(),
+                                    parts[1].toInt(),
+                                    true
+                                ).show()
+                            },
+                            label = { Text(stringResource(R.string.wake_time)) }
+                        )
                     }
                     QuickAddType.ACTIVITY -> {
                         val isStepBased = selectedWorkoutType == WorkoutType.WALKING || selectedWorkoutType == WorkoutType.RUNNING
@@ -1271,7 +1427,12 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
-                    QuickAddType.SLEEP -> viewModel.addSleepLog(amountText, secondaryText)
+                    QuickAddType.SLEEP -> {
+                        val now = java.time.LocalTime.now()
+                        val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        val wake = secondaryText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+                        viewModel.addSleepLog(bed, wake)
+                    }
                     QuickAddType.ACTIVITY -> {
                         val resolvedType = if (customActivityName.isNotBlank()) WorkoutType.OTHER else selectedWorkoutType
                         val isStepBased = resolvedType == WorkoutType.WALKING || resolvedType == WorkoutType.RUNNING
