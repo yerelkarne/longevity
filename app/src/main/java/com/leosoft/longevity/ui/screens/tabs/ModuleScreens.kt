@@ -1390,37 +1390,52 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         val now = java.time.LocalTime.now()
                         val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
                         val wake = secondaryText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
+
+                        fun openBedTimePicker() {
+                            val parts = bed.split(":")
+                            TimePickerDialog(
+                                context,
+                                { _, h, m -> amountText = String.format("%02d:%02d", h, m) },
+                                parts[0].toInt(),
+                                parts[1].toInt(),
+                                true
+                            ).show()
+                        }
+
+                        fun openWakeTimePicker() {
+                            val parts = wake.split(":")
+                            TimePickerDialog(
+                                context,
+                                { _, h, m -> secondaryText = String.format("%02d:%02d", h, m) },
+                                parts[0].toInt(),
+                                parts[1].toInt(),
+                                true
+                            ).show()
+                        }
+
                         OutlinedTextField(
-                            value = amountText,
+                            value = bed,
                             onValueChange = {},
                             readOnly = true,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                val parts = bed.split(":")
-                                TimePickerDialog(
-                                    context,
-                                    { _, h, m -> amountText = String.format("%02d:%02d", h, m) },
-                                    parts[0].toInt(),
-                                    parts[1].toInt(),
-                                    true
-                                ).show()
-                            },
-                            label = { Text(stringResource(R.string.bed_time)) }
+                            modifier = Modifier.fillMaxWidth().clickable { openBedTimePicker() },
+                            label = { Text(stringResource(R.string.bed_time)) },
+                            trailingIcon = {
+                                TextButton(onClick = { openBedTimePicker() }) {
+                                    Text(stringResource(R.string.select_time))
+                                }
+                            }
                         )
                         OutlinedTextField(
-                            value = secondaryText,
+                            value = wake,
                             onValueChange = {},
                             readOnly = true,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                val parts = wake.split(":")
-                                TimePickerDialog(
-                                    context,
-                                    { _, h, m -> secondaryText = String.format("%02d:%02d", h, m) },
-                                    parts[0].toInt(),
-                                    parts[1].toInt(),
-                                    true
-                                ).show()
-                            },
-                            label = { Text(stringResource(R.string.wake_time)) }
+                            modifier = Modifier.fillMaxWidth().clickable { openWakeTimePicker() },
+                            label = { Text(stringResource(R.string.wake_time)) },
+                            trailingIcon = {
+                                TextButton(onClick = { openWakeTimePicker() }) {
+                                    Text(stringResource(R.string.select_time))
+                                }
+                            }
                         )
                     }
                     QuickAddType.ACTIVITY -> {
