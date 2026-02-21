@@ -360,8 +360,9 @@ fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
     val hasPermissions by viewModel.healthPermissionsGranted.collectAsState()
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) { granted ->
-        val permissionGranted = granted.containsAll(viewModel.healthConnectPermissions)
-        if (permissionGranted) {
+        val requiredPermissions = viewModel.requiredHealthPermissions(prefs)
+        val permissionGranted = granted.containsAll(requiredPermissions)
+        if (permissionGranted && !prefs.enabled) {
             viewModel.setHealthSyncEnabled(true)
         }
         viewModel.refreshHealthPermissions()
@@ -382,10 +383,14 @@ fun SettingsModule(viewModel: MainViewModel) {
                             onCheckedChange = { enabled ->
                                 if (!enabled) {
                                     viewModel.setHealthSyncEnabled(false)
-                                } else if (viewModel.healthConnectAvailable && !hasPermissions) {
-                                    launcher.launch(viewModel.healthConnectPermissions)
                                 } else {
                                     viewModel.setHealthSyncEnabled(true)
+                                    if (viewModel.healthConnectAvailable && !hasPermissions) {
+                                        val requiredPermissions = viewModel.requiredHealthPermissions(prefs.copy(enabled = true))
+                                        if (requiredPermissions.isNotEmpty()) {
+                                            launcher.launch(requiredPermissions)
+                                        }
+                                    }
                                 }
                             }
                         )
@@ -393,7 +398,15 @@ fun SettingsModule(viewModel: MainViewModel) {
                     if (!viewModel.healthConnectAvailable) {
                         Text(if (viewModel.healthConnectInstallable) stringResource(R.string.settings_hc_install_required) else stringResource(R.string.settings_hc_unavailable))
                     }
-                    Button(onClick = { launcher.launch(viewModel.healthConnectPermissions) }, enabled = viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_manage_permissions)) }
+                    Button(
+                        onClick = {
+                            val requiredPermissions = viewModel.requiredHealthPermissions(prefs)
+                            if (requiredPermissions.isNotEmpty()) {
+                                launcher.launch(requiredPermissions)
+                            }
+                        },
+                        enabled = viewModel.healthConnectAvailable && viewModel.requiredHealthPermissions(prefs).isNotEmpty()
+                    ) { Text(stringResource(R.string.settings_manage_permissions)) }
                     Button(onClick = { viewModel.syncNow() }, enabled = prefs.enabled && hasPermissions && viewModel.healthConnectAvailable) { Text(stringResource(R.string.settings_sync_now)) }
                     Text(stringResource(R.string.settings_last_sync, prefs.lastSyncAt?.toString() ?: "-"))
                 }

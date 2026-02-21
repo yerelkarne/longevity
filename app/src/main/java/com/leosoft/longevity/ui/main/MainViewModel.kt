@@ -412,6 +412,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (settings.hydrationEnabled) addAll(healthConnectAdapter.hydrationPermissions)
     }
 
+    fun requiredHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Set<String> =
+        requiredPermissions(settings)
+
     suspend fun hasHealthPermissions(settings: HealthSyncPreferences = healthSyncPreferences.value): Boolean {
         val required = requiredPermissions(settings)
         if (required.isEmpty()) return true
