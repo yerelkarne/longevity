@@ -88,7 +88,7 @@ import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
+private enum class QuickAddType { FOOD, MACRO, MICRO, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 private val TrendBarColor = Color(0xFF9575CD)
 private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
@@ -2014,6 +2014,15 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var customSupplementName by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var secondaryText by remember { mutableStateOf("") }
+    var macroProteinText by remember { mutableStateOf("") }
+    var macroCarbsText by remember { mutableStateOf("") }
+    var macroFatText by remember { mutableStateOf("") }
+    var macroFiberText by remember { mutableStateOf("") }
+    var microIronText by remember { mutableStateOf("") }
+    var microMagnesiumText by remember { mutableStateOf("") }
+    var microPotassiumText by remember { mutableStateOf("") }
+    var microVitaminDText by remember { mutableStateOf("") }
+    var microOmega3Text by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
     var selectedWorkoutType by remember { mutableStateOf(WorkoutType.WALKING) }
     var customActivityName by remember { mutableStateOf("") }
@@ -2053,6 +2062,19 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         )
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
+                    }
+                    QuickAddType.MACRO -> {
+                        OutlinedTextField(value = macroProteinText, onValueChange = { macroProteinText = it }, label = { Text(stringResource(R.string.nutrient_protein) + " (g)") })
+                        OutlinedTextField(value = macroCarbsText, onValueChange = { macroCarbsText = it }, label = { Text(stringResource(R.string.nutrient_carbs) + " (g)") })
+                        OutlinedTextField(value = macroFatText, onValueChange = { macroFatText = it }, label = { Text(stringResource(R.string.nutrient_fat) + " (g)") })
+                        OutlinedTextField(value = macroFiberText, onValueChange = { macroFiberText = it }, label = { Text(stringResource(R.string.nutrient_fiber) + " (g)") })
+                    }
+                    QuickAddType.MICRO -> {
+                        OutlinedTextField(value = microIronText, onValueChange = { microIronText = it }, label = { Text(stringResource(R.string.nutrient_iron) + " (mg)") })
+                        OutlinedTextField(value = microMagnesiumText, onValueChange = { microMagnesiumText = it }, label = { Text(stringResource(R.string.nutrient_magnesium) + " (mg)") })
+                        OutlinedTextField(value = microPotassiumText, onValueChange = { microPotassiumText = it }, label = { Text(stringResource(R.string.nutrient_potassium) + " (mg)") })
+                        OutlinedTextField(value = microVitaminDText, onValueChange = { microVitaminDText = it }, label = { Text(stringResource(R.string.nutrient_vitamin_d) + " (IU)") })
+                        OutlinedTextField(value = microOmega3Text, onValueChange = { microOmega3Text = it }, label = { Text(stringResource(R.string.nutrient_omega3) + " (mg)") })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
                     QuickAddType.SUPPLEMENT -> {
@@ -2151,6 +2173,29 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 when (type) {
                     null -> Unit
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
+                    QuickAddType.MACRO -> {
+                        val protein = macroProteinText.toFloatOrNull() ?: 0f
+                        val carbs = macroCarbsText.toFloatOrNull() ?: 0f
+                        val fat = macroFatText.toFloatOrNull() ?: 0f
+                        val fiber = macroFiberText.toFloatOrNull() ?: 0f
+                        viewModel.addCustomNutrientMeal(
+                            name = context.getString(R.string.tab_macros),
+                            protein = protein,
+                            carbs = carbs,
+                            fat = fat,
+                            fiber = fiber
+                        )
+                    }
+                    QuickAddType.MICRO -> {
+                        viewModel.addCustomNutrientMeal(
+                            name = context.getString(R.string.tab_micros),
+                            ironMg = microIronText.toFloatOrNull() ?: 0f,
+                            magnesiumMg = microMagnesiumText.toFloatOrNull() ?: 0f,
+                            potassiumMg = microPotassiumText.toFloatOrNull() ?: 0f,
+                            vitaminDUi = microVitaminDText.toFloatOrNull() ?: 0f,
+                            omega3Mg = microOmega3Text.toFloatOrNull() ?: 0f
+                        )
+                    }
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> {
                         if (customSupplementName.isNotBlank()) viewModel.addSupplementByName(customSupplementName)
@@ -2208,6 +2253,8 @@ private fun ExposedDropdownSimple(label: String, options: List<String>, selected
 
 private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.FOOD -> R.string.add_type_food
+    QuickAddType.MACRO -> R.string.add_type_macro
+    QuickAddType.MICRO -> R.string.add_type_micro
     QuickAddType.WATER -> R.string.add_type_water
     QuickAddType.SUPPLEMENT -> R.string.add_type_supplement
     QuickAddType.SLEEP -> R.string.add_type_sleep

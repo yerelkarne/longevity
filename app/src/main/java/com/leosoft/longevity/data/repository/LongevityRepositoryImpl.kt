@@ -149,6 +149,36 @@ class LongevityRepositoryImpl(
         )
     }
 
+    override suspend fun addCustomFoodWithNutrition(
+        name: String,
+        kcalPer100g: Int,
+        protein: Float,
+        carbs: Float,
+        fat: Float,
+        fiber: Float,
+        ironMg: Float,
+        magnesiumMg: Float,
+        potassiumMg: Float,
+        vitaminDUi: Float,
+        omega3Mg: Float
+    ): Long {
+        return nutritionDao.insertFood(
+            FoodEntity(
+                name = name,
+                kcalPer100g = kcalPer100g,
+                protein = protein,
+                carbs = carbs,
+                fat = fat,
+                fiber = fiber,
+                ironMg = ironMg,
+                magnesiumMg = magnesiumMg,
+                potassiumMg = potassiumMg,
+                vitaminDUi = vitaminDUi,
+                omega3Mg = omega3Mg
+            )
+        )
+    }
+
     override suspend fun addWater(date: LocalDate, amountMl: Int) {
         waterDao.insert(WaterLogEntity(date = date, time = LocalDateTime.now(), amountMl = amountMl, syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(date)

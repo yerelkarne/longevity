@@ -454,6 +454,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
+    fun addCustomNutrientMeal(
+        name: String,
+        protein: Float = 0f,
+        carbs: Float = 0f,
+        fat: Float = 0f,
+        fiber: Float = 0f,
+        ironMg: Float = 0f,
+        magnesiumMg: Float = 0f,
+        potassiumMg: Float = 0f,
+        vitaminDUi: Float = 0f,
+        omega3Mg: Float = 0f
+    ) {
+        viewModelScope.launch {
+            val kcal = ((protein + carbs) * 4f + (fat * 9f)).toInt()
+            val foodId = repository.addCustomFoodWithNutrition(
+                name = "$name ${LocalDateTime.now()}",
+                kcalPer100g = kcal,
+                protein = protein,
+                carbs = carbs,
+                fat = fat,
+                fiber = fiber,
+                ironMg = ironMg,
+                magnesiumMg = magnesiumMg,
+                potassiumMg = potassiumMg,
+                vitaminDUi = vitaminDUi,
+                omega3Mg = omega3Mg
+            )
+            repository.addMealEntry(
+                MealEntryEntity(
+                    date = selectedNutritionDate.value,
+                    time = LocalDateTime.now(),
+                    mealType = MealType.SNACK,
+                    foodId = foodId,
+                    grams = 100
+                )
+            )
+            autoSyncHealthConnectIfEnabled()
+        }
+    }
+
     fun addGoalPlan(goalType: String, target: Int, cadence: String) = viewModelScope.launch {
         repository.addGoalPlan(goalType, target, cadence)
     }
