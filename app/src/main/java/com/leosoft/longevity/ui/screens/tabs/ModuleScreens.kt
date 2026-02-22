@@ -75,6 +75,12 @@ import kotlinx.coroutines.launch
 
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
+private val TrendBarColor = Color(0xFF9575CD)
+private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
+private val TrendChipSelectedTextColor = Color(0xFF4A148C)
+private val TrendChipDefaultTextColor = Color(0xFF6A1B9A)
+private val TrendValueTextColor = Color(0xFF5E35B1)
+
 @Composable
 fun ModuleTabLayout(
     tabs: List<String>,
@@ -174,7 +180,7 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = Color(0xFF6A1B9A))
+                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = TrendChipDefaultTextColor)
                     Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF2D2A32))
                     LinearProgressIndicator(
                         progress = { progress },
@@ -184,9 +190,9 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
-                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF6A1B9A))
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = TrendChipDefaultTextColor)
                     }
-                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = Color(0xFF5E35B1))
+                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = TrendValueTextColor)
                 }
             }
         }
@@ -207,7 +213,7 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                colors = CardDefaults.cardColors(containerColor = TrendChipBackgroundColor)
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -255,7 +261,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFEDE7F6), RoundedCornerShape(16.dp))
+                            .background(TrendChipBackgroundColor, RoundedCornerShape(16.dp))
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -275,7 +281,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                                 val ratio = point.minutes / maxMinutes.toFloat()
                                 val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
                                 Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                                    Text(formatSleepHoursShort(point.minutes), style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1))
+                                    Text(formatSleepHoursShort(point.minutes), style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
                                     Box(
                                         modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp),
                                         contentAlignment = androidx.compose.ui.Alignment.BottomCenter
@@ -284,7 +290,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(barHeight)
-                                                .background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                                .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                         )
                                     }
                                     Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
@@ -331,7 +337,7 @@ private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
     }
 }
 
@@ -410,7 +416,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFF3E5F5), RoundedCornerShape(16.dp))
+                            .background(TrendChipBackgroundColor, RoundedCornerShape(16.dp))
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -449,7 +455,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                                     Text(
                                         text = formatSleepHoursShort(point.minutes),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF6A1B9A)
+                                        color = TrendChipDefaultTextColor
                                     )
                                     Box(
                                         modifier = Modifier
@@ -462,7 +468,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(barHeight)
-                                                .background(Color(0xFF9575CD), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                                .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                         )
                                     }
                                     Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
@@ -503,7 +509,7 @@ private fun androidx.compose.foundation.layout.RowScope.SleepRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
     }
 }
 
@@ -654,7 +660,7 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = Color(0xFF6A1B9A))
+                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = TrendChipDefaultTextColor)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Card(
                                 modifier = Modifier.weight(1f),
@@ -2052,10 +2058,14 @@ private fun MealEntryActionsDialog(
 @Composable
 fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
-    val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val scopedMeals = remember(allMeals, selectedDate, range) { filterMealsByRange(allMeals, selectedDate, range) }
+    val totals = remember(scopedMeals, foodsById) { CalculateMacroTotalsUseCase().invoke(scopedMeals, foodsById) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
@@ -2074,12 +2084,18 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
                 val metrics = listOf(
-                    NutritionMetric(stringResource(R.string.nutrient_protein), totals.protein.toInt(), Color(0xFF7E57C2)),
-                    NutritionMetric(stringResource(R.string.nutrient_carbs), totals.carbs.toInt(), Color(0xFF5E35B1)),
-                    NutritionMetric(stringResource(R.string.nutrient_fat), totals.fat.toInt(), Color(0xFF9575CD)),
-                    NutritionMetric(stringResource(R.string.nutrient_fiber), totals.fiber.toInt(), Color(0xFFB39DDB))
+                    NutritionMetric(stringResource(R.string.nutrient_protein), totals.protein.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_carbs), totals.carbs.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_fat), totals.fat.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_fiber), totals.fiber.toInt(), TrendBarColor)
                 )
-                NutritionMetricChartCard(title = stringResource(R.string.tab_macros), metrics = metrics, unit = "g")
+                NutritionMetricChartCard(
+                    title = stringResource(R.string.tab_macros),
+                    metrics = metrics,
+                    unit = "g",
+                    range = range,
+                    onRangeChange = { range = it }
+                )
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2102,9 +2118,12 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
-    val total = meals.fold(NutrientTotals()) { acc, meal ->
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val scopedMeals = remember(allMeals, selectedDate, range) { filterMealsByRange(allMeals, selectedDate, range) }
+    val total = scopedMeals.fold(NutrientTotals()) { acc, meal ->
         val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
         acc.copy(
             iron = acc.iron + n.iron,
@@ -2132,12 +2151,18 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
                 val metrics = listOf(
-                    NutritionMetric(stringResource(R.string.nutrient_iron), total.iron.toInt(), Color(0xFF7E57C2)),
-                    NutritionMetric(stringResource(R.string.nutrient_magnesium), total.magnesium.toInt(), Color(0xFF5E35B1)),
-                    NutritionMetric(stringResource(R.string.nutrient_potassium), total.potassium.toInt(), Color(0xFF9575CD)),
-                    NutritionMetric(stringResource(R.string.nutrient_omega3), total.omega3.toInt(), Color(0xFFB39DDB))
+                    NutritionMetric(stringResource(R.string.nutrient_iron), total.iron.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_magnesium), total.magnesium.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_potassium), total.potassium.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_omega3), total.omega3.toInt(), TrendBarColor)
                 )
-                NutritionMetricChartCard(title = stringResource(R.string.tab_micros), metrics = metrics, unit = "mg")
+                NutritionMetricChartCard(
+                    title = stringResource(R.string.tab_micros),
+                    metrics = metrics,
+                    unit = "mg",
+                    range = range,
+                    onRangeChange = { range = it }
+                )
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2257,16 +2282,30 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
 private data class NutritionMetric(val label: String, val value: Int, val color: Color)
 
 @Composable
-private fun NutritionMetricChartCard(title: String, metrics: List<NutritionMetric>, unit: String) {
+private fun NutritionMetricChartCard(
+    title: String,
+    metrics: List<NutritionMetric>,
+    unit: String,
+    range: NutritionChartRange,
+    onRangeChange: (NutritionChartRange) -> Unit
+) {
     val max = (metrics.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_daily), range == NutritionChartRange.DAILY) { onRangeChange(NutritionChartRange.DAILY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_weekly), range == NutritionChartRange.WEEKLY) { onRangeChange(NutritionChartRange.WEEKLY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_monthly), range == NutritionChartRange.MONTHLY) { onRangeChange(NutritionChartRange.MONTHLY) }
+            }
             Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 metrics.forEach { m ->
                     val h = if (m.value <= 0) 0.dp else (12 + (90 * (m.value / max.toFloat()))).dp
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1))
+                        Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
                             Box(modifier = Modifier.fillMaxWidth().height(h).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
@@ -2294,7 +2333,7 @@ private fun NutritionTrendChartCard(
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Row(
-                modifier = Modifier.fillMaxWidth().background(Color(0xFFEDE7F6), RoundedCornerShape(16.dp)).padding(4.dp),
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 NutritionRangeChip(stringResource(R.string.life_sleep_range_daily), range == NutritionChartRange.DAILY) { onRangeChange(NutritionChartRange.DAILY) }
@@ -2305,9 +2344,9 @@ private fun NutritionTrendChartCard(
                 data.forEach { p ->
                     val h = if (p.value <= 0) 0.dp else (12 + (96 * (p.value / max.toFloat()))).dp
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1), maxLines = 1)
+                        Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor, maxLines = 1)
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
-                            Box(modifier = Modifier.fillMaxWidth().height(h).background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                            Box(modifier = Modifier.fillMaxWidth().height(h).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
                         Text(p.label, style = MaterialTheme.typography.labelSmall)
                     }
@@ -2323,7 +2362,26 @@ private fun androidx.compose.foundation.layout.RowScope.NutritionRangeChip(text:
         modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+private fun filterMealsByRange(
+    allMeals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    anchor: LocalDate,
+    range: NutritionChartRange
+): List<com.leosoft.longevity.data.local.entity.MealEntryEntity> {
+    return when (range) {
+        NutritionChartRange.DAILY -> allMeals.filter { it.date == anchor }
+        NutritionChartRange.WEEKLY -> {
+            val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+            val end = start.plusDays(6)
+            allMeals.filter { it.date >= start && it.date <= end }
+        }
+        NutritionChartRange.MONTHLY -> {
+            val ym = YearMonth.from(anchor)
+            allMeals.filter { YearMonth.from(it.date) == ym }
+        }
     }
 }
 
