@@ -297,4 +297,9 @@
     <string name="life_pulse_try_again">Tekrar ölç</string>
     <string name="life_pulse_history_title">Son ölçümler</string>
 
+
+    <string name="life_pulse_measurement_live_title">Canlı nabız sinyali</string>
+    <string name="life_pulse_camera_hidden_info">Kamera görüntüsü gösterilmez. Ölçüm sadece flaş + arka kamera sensörü ile yapılır.</string>
+    <string name="life_pulse_timer">%1$02d:%2$02d</string>
+
 </resources>

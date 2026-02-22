@@ -32,4 +32,9 @@
     <string name="life_pulse_quality_low">Low quality</string>
     <string name="life_pulse_try_again">Measure again</string>
     <string name="life_pulse_history_title">Recent measurements</string>
+
+    <string name="life_pulse_measurement_live_title">Live pulse signal</string>
+    <string name="life_pulse_camera_hidden_info">Camera preview is hidden. Measurement uses flash + rear camera sensor only.</string>
+    <string name="life_pulse_timer">%1$02d:%2$02d</string>
+
 </resources>

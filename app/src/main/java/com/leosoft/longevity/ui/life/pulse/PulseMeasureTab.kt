@@ -7,10 +7,12 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,11 +30,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.leosoft.longevity.R
 import com.leosoft.longevity.camera.PulseCameraManager
@@ -47,7 +51,11 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     val manager = remember { PulseCameraManager() }
     val processor = remember { PulseSignalProcessor() }
     val signal = remember { mutableStateListOf<Double>() }
-    var hasPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
+    var hasPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
     var denied by remember { mutableStateOf(false) }
     var measuring by remember { mutableStateOf(false) }
     var quality by remember { mutableStateOf(0) }
@@ -60,6 +68,31 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         hasPermission = it
         denied = !it
+    }
+
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) {
+            manager.bindForPulse(
+                context = context,
+                lifecycleOwner = owner,
+                onFrame = { luma, _ ->
+                    if (measuring) {
+                        signal.add(luma)
+                        if (signal.size > 900) signal.removeAt(0)
+                    }
+                },
+                onTorchAvailability = { hasTorch = it }
+            )
+            if (torch) manager.setTorch(true)
+        }
+    }
+
+    LaunchedEffect(torch, hasPermission) {
+        if (hasPermission) {
+            if (!manager.setTorch(torch)) {
+                statusText = context.getString(R.string.life_pulse_torch_not_supported)
+            }
+        }
     }
 
     LaunchedEffect(measuring) {
@@ -99,7 +132,9 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         Card(modifier = Modifier.padding(16.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.life_pulse_permission_rationale))
-                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) { Text(stringResource(R.string.life_pulse_permission_button)) }
+                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
+                    Text(stringResource(R.string.life_pulse_permission_button))
+                }
                 if (denied) {
                     Button(onClick = {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
@@ -110,30 +145,54 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         return
     }
 
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AndroidView(factory = { PreviewView(it) }, modifier = Modifier.fillMaxWidth().height(220.dp), update = { pv ->
-            manager.bind(context, owner, pv, onFrame = { red, _ -> if (measuring) signal.add(red) }, onTorchAvailability = { hasTorch = it })
-            if (torch) manager.setTorch(true)
-        })
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.life_pulse_measurement_live_title))
+                Text(stringResource(R.string.life_pulse_camera_hidden_info))
+                PulseWaveform(signal = signal, modifier = Modifier.fillMaxWidth().height(140.dp))
+            }
+        }
         Text(stringResource(R.string.life_pulse_quality, quality))
         LinearProgressIndicator(progress = { quality / 100f }, modifier = Modifier.fillMaxWidth())
         Text(statusText)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
                 if (measuring) measuring = false else {
-                    signal.clear(); resultText = ""; measuring = true
+                    signal.clear(); resultText = ""; quality = 0; elapsed = 0; measuring = true
                 }
             }) { Text(stringResource(if (measuring) R.string.life_pulse_stop else R.string.life_pulse_start)) }
-            Switch(checked = torch, onCheckedChange = { enabled ->
-                torch = enabled
-                if (!manager.setTorch(enabled)) statusText = context.getString(R.string.life_pulse_torch_not_supported)
-            })
+            Switch(checked = torch, onCheckedChange = { torch = it })
             if (!hasTorch) Text(stringResource(R.string.life_pulse_torch_not_supported))
         }
-        Text(String.format("00:%02d", elapsed))
+        Text(stringResource(R.string.life_pulse_timer, elapsed / 60, elapsed % 60))
         if (resultText.isNotEmpty()) {
             Text(stringResource(R.string.life_pulse_result_title))
             Text(resultText)
+        }
+    }
+}
+
+@Composable
+private fun PulseWaveform(signal: List<Double>, modifier: Modifier = Modifier) {
+    Card(modifier = modifier) {
+        Box(Modifier.fillMaxSize().padding(8.dp)) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                if (signal.size < 2) return@Canvas
+                val points = signal.takeLast(240)
+                val min = points.minOrNull() ?: 0.0
+                val max = points.maxOrNull() ?: 1.0
+                val range = (max - min).coerceAtLeast(1e-6)
+                val path = Path()
+                points.forEachIndexed { index, value ->
+                    val x = size.width * index / (points.size - 1).toFloat()
+                    val normalized = ((value - min) / range).toFloat()
+                    val y = size.height - (normalized * size.height)
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(path = path, color = Color(0xFFE91E63))
+                drawLine(Color(0xFFB39DDB), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 1f)
+            }
         }
     }
 }
