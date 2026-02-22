@@ -309,35 +309,31 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
 
 @Composable
 private fun YasamNabizScreen(viewModel: MainViewModel) {
-    val measurements by viewModel.pulseMeasurements.collectAsState()
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        contentPadding = PaddingValues(bottom = 120.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.life_pulse_title), style = MaterialTheme.typography.titleMedium)
-                    Text(stringResource(R.string.life_pulse_disclaimer))
-                }
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.life_pulse_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.life_pulse_disclaimer))
             }
         }
-        item {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)), modifier = Modifier.fillMaxWidth()) {
-                PulseCameraRoute(viewModel)
-            }
-        }
-        if (measurements.isNotEmpty()) {
-            item { Text(stringResource(R.string.life_pulse_history_title), style = MaterialTheme.typography.titleSmall) }
-            items(measurements.take(5), key = { it.id }) { m ->
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                    Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.life_pulse_bpm, m.bpm))
-                        Text(stringResource(R.string.life_pulse_quality, m.quality))
-                    }
-                }
-            }
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            PulseCameraRoute(viewModel)
         }
     }
 }
