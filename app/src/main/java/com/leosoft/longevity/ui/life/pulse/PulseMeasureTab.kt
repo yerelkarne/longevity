@@ -83,11 +83,12 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
                 context = context,
                 lifecycleOwner = owner,
                 onFrame = { luma, _ ->
+                    val sample = 255.0 - luma
                     mainHandler.post {
-                        liveSignal.add(luma)
+                        liveSignal.add(sample)
                         if (liveSignal.size > 300) liveSignal.removeAt(0)
                         if (measuring) {
-                            measureSignal.add(luma)
+                            measureSignal.add(sample)
                             if (measureSignal.size > 1050) measureSignal.removeAt(0)
                         }
                     }

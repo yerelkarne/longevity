@@ -14,18 +14,22 @@ class PulseSignalProcessor {
 
         val mean = signal.average()
         val variance = signal.map { (it - mean) * (it - mean) }.average()
-        if (mean < 15 || mean > 245) return PulseResult(0, 0, "", PulseStatus.NO_FINGER, 0..0)
-        if (variance < 0.2) return PulseResult(0, 0, "", PulseStatus.HOLD_STILL, 0..0)
-        if (mean > 235) return PulseResult(0, 0, "", PulseStatus.SATURATED, 0..0)
-
         val std = sqrt(variance).coerceAtLeast(1e-6)
+        val min = signal.minOrNull() ?: mean
+        val max = signal.maxOrNull() ?: mean
+        val dynamicRange = max - min
+
+        if (dynamicRange < 1.5) return PulseResult(0, 0, "", PulseStatus.NO_FINGER, 0..0)
+        if (std < 0.8) return PulseResult(0, 0, "", PulseStatus.HOLD_STILL, 0..0)
+        if (mean > 252 && dynamicRange < 3.0) return PulseResult(0, 0, "", PulseStatus.SATURATED, 0..0)
+
         val normalized = signal.map { (it - mean) / std }
         val filtered = Filters.bandPass(normalized, fs)
 
-        val threshold = filtered.map { abs(it) }.average() * 0.3
+        val threshold = filtered.map { abs(it) }.average() * 0.2
         val minDistance = (fs * (60.0 / 180.0)).toInt().coerceAtLeast(3)
         val peaks = PeakDetector.detectPeaks(filtered, minDistance, threshold)
-        if (peaks.size < 8) return PulseResult(0, 20, "low", PulseStatus.INSUFFICIENT_DATA, 0..0)
+        if (peaks.size < 5) return PulseResult(0, 20, "low", PulseStatus.INSUFFICIENT_DATA, 0..0)
 
         val rr = peaks.zipWithNext { a, b -> (b - a).toDouble() }
         val median = rr.sorted()[rr.size / 2]
