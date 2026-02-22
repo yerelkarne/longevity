@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
@@ -1869,8 +1870,11 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val mealsSorted = remember(meals) { meals.sortedByDescending { it.time } }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val caloriesChartData = remember(allMeals, foodsById, range) { buildCaloriesChartData(allMeals, foodsById, range) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
 
@@ -1894,6 +1898,15 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
                     Text(stringResource(R.string.nutrition_selected_date, selectedDate.format(dateFormatter)))
                 }
             }
+        }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_log),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "kcal",
+                data = caloriesChartData
+            )
         }
 
         if (mealsSorted.isEmpty()) {
@@ -2147,9 +2160,12 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
 @Composable
 fun BeslenmeSuScreen(viewModel: MainViewModel) {
     val logs by viewModel.waterLogs.collectAsState()
+    val allLogs by viewModel.allWaterLogs.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val waterChartData = remember(allLogs, range) { buildWaterChartData(allLogs, range) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
@@ -2161,6 +2177,15 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
                 onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_water),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "ml",
+                data = waterChartData
             )
         }
 
@@ -2182,11 +2207,14 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
 @Composable
 fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
     val logs by viewModel.supplementLogs.collectAsState()
+    val allLogs by viewModel.allSupplementLogs.collectAsState()
     val supplements by viewModel.supplements.collectAsState()
     val supplementsById = remember(supplements) { supplements.associateBy { it.id } }
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val supplementChartData = remember(allLogs, range) { buildSupplementChartData(allLogs, range) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
@@ -2198,6 +2226,15 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
                 onDateSelected = { viewModel.setSelectedNutritionDate(it) }
+            )
+        }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_supplements),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "adet",
+                data = supplementChartData
             )
         }
 
@@ -2233,9 +2270,116 @@ private fun NutritionMetricChartCard(title: String, metrics: List<NutritionMetri
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
                             Box(modifier = Modifier.fillMaxWidth().height(h).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
-                        Text(m.label, style = MaterialTheme.typography.labelSmall)
+                        Text(m.label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
+            }
+        }
+    }
+}
+
+private enum class NutritionChartRange { DAILY, WEEKLY, MONTHLY }
+private data class NutritionTrendPoint(val label: String, val value: Int)
+
+@Composable
+private fun NutritionTrendChartCard(
+    title: String,
+    range: NutritionChartRange,
+    onRangeChange: (NutritionChartRange) -> Unit,
+    unit: String,
+    data: List<NutritionTrendPoint>
+) {
+    val max = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth().background(Color(0xFFEDE7F6), RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_daily), range == NutritionChartRange.DAILY) { onRangeChange(NutritionChartRange.DAILY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_weekly), range == NutritionChartRange.WEEKLY) { onRangeChange(NutritionChartRange.WEEKLY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_monthly), range == NutritionChartRange.MONTHLY) { onRangeChange(NutritionChartRange.MONTHLY) }
+            }
+            Row(modifier = Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                data.forEach { p ->
+                    val h = if (p.value <= 0) 0.dp else (12 + (96 * (p.value / max.toFloat()))).dp
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1), maxLines = 1)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height(h).background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(p.label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.NutritionRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+    }
+}
+
+private fun buildCaloriesChartData(
+    allMeals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allMeals.filter { it.date == day }.sumOf { meal ->
+        val kcal = foodsById[meal.foodId]?.kcalPer100g ?: 0
+        ((kcal * meal.grams) / 100f).toInt()
+    }
+}
+
+private fun buildWaterChartData(
+    allLogs: List<com.leosoft.longevity.data.local.entity.WaterLogEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allLogs.filter { it.date == day }.sumOf { it.amountMl }
+}
+
+private fun buildSupplementChartData(
+    allLogs: List<com.leosoft.longevity.data.local.entity.SupplementLogEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allLogs.count { it.date == day && it.taken }
+}
+
+private fun buildNutritionPeriodData(
+    range: NutritionChartRange,
+    dayValue: (LocalDate) -> Int
+): List<NutritionTrendPoint> {
+    return when (range) {
+        NutritionChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { NutritionTrendPoint(it.dayOfMonth.toString(), dayValue(it)) }
+                .toList()
+        }
+        NutritionChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { w ->
+                val anchor = today.minusWeeks(w.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val total = (0..6).sumOf { dayValue(start.plusDays(it.toLong())) }
+                NutritionTrendPoint("W${start.dayOfMonth}", total)
+            }
+        }
+        NutritionChartRange.MONTHLY -> {
+            val cur = YearMonth.now()
+            (5 downTo 0).map { m ->
+                val ym = cur.minusMonths(m.toLong())
+                val total = (1..ym.lengthOfMonth()).sumOf { dayValue(ym.atDay(it)) }
+                NutritionTrendPoint(ym.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), total)
             }
         }
     }

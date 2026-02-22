@@ -17,6 +17,9 @@ interface WaterDao {
     @Query("SELECT * FROM water_logs WHERE date = :date ORDER BY time DESC")
     fun observeByDate(date: LocalDate): Flow<List<WaterLogEntity>>
 
+    @Query("SELECT * FROM water_logs ORDER BY date DESC, time DESC")
+    fun observeAll(): Flow<List<WaterLogEntity>>
+
     @Query("SELECT COALESCE(SUM(amountMl), 0) FROM water_logs WHERE date = :date")
     suspend fun getWaterTotal(date: LocalDate): Int
 

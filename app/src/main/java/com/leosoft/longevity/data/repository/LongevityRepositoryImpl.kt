@@ -75,6 +75,7 @@ class LongevityRepositoryImpl(
     override fun observeFoodsWithNutrition(): Flow<List<FoodEntity>> = nutritionDao.observeFoodsWithNutrition()
     override fun observeSupplements(): Flow<List<SupplementEntity>> = supplementsDao.observeSupplements()
     override fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>> = nutritionDao.observeMealEntries(date)
+    override fun observeAllMealEntries(): Flow<List<MealEntryEntity>> = nutritionDao.observeAllMealEntries()
 
     override suspend fun addMealEntry(entry: MealEntryEntity) {
         val mealEntryId = nutritionDao.insertMealEntry(entry)
@@ -154,6 +155,7 @@ class LongevityRepositoryImpl(
     }
 
     override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
+    override fun observeAllWaterLogs(): Flow<List<WaterLogEntity>> = waterDao.observeAll()
 
     override suspend fun addSteps(log: StepsLogEntity) {
         activityDao.upsertSteps(log.copy(syncState = SyncState.PENDING_UPLOAD))
@@ -177,6 +179,7 @@ class LongevityRepositoryImpl(
     }
 
     override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
+    override fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>> = supplementsDao.observeAllLogs()
 
     override fun observeSleepLogs(): Flow<List<SleepLogEntity>> = lifeDao.observeSleepLogs()
 

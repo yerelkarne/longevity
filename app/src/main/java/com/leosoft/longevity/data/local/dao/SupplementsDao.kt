@@ -23,6 +23,9 @@ interface SupplementsDao {
     @Query("SELECT * FROM supplement_logs WHERE date = :date ORDER BY time DESC")
     fun observeLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
 
+    @Query("SELECT * FROM supplement_logs ORDER BY date DESC, time DESC")
+    fun observeAllLogs(): Flow<List<SupplementLogEntity>>
+
     @Query("SELECT COUNT(*) FROM supplement_logs WHERE date = :date AND taken = 1")
     suspend fun takenCount(date: LocalDate): Int
 }

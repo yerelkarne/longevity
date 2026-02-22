@@ -112,12 +112,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { date -> repository.observeMealEntries(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allMealEntries = repository.observeAllMealEntries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val waterLogs: StateFlow<List<WaterLogEntity>> = selectedNutritionDate
         .flatMapLatest { date -> repository.observeWaterLogs(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allWaterLogs: StateFlow<List<WaterLogEntity>> = repository.observeAllWaterLogs()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val supplementLogs: StateFlow<List<SupplementLogEntity>> = selectedNutritionDate
         .flatMapLatest { date -> repository.observeSupplementLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allSupplementLogs: StateFlow<List<SupplementLogEntity>> = repository.observeAllSupplementLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences

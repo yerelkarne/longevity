@@ -45,6 +45,7 @@ interface LongevityRepository {
     fun observeFoodsWithNutrition(): Flow<List<FoodEntity>>
     fun observeSupplements(): Flow<List<SupplementEntity>>
     fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>>
+    fun observeAllMealEntries(): Flow<List<MealEntryEntity>>
     suspend fun addMealEntry(entry: MealEntryEntity)
     suspend fun updateMealEntry(entry: MealEntryEntity)
     suspend fun deleteMealEntry(id: Long, date: LocalDate)
@@ -52,11 +53,13 @@ interface LongevityRepository {
 
     suspend fun addWater(date: LocalDate, amountMl: Int)
     fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>>
+    fun observeAllWaterLogs(): Flow<List<WaterLogEntity>>
     suspend fun addSteps(log: StepsLogEntity)
     fun observeWeeklySteps(endDate: LocalDate = LocalDate.now()): Flow<List<StepsLogEntity>>
     fun observeMonthlyStepsTotal(monthDate: LocalDate = LocalDate.now()): Flow<Int>
     suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean)
     fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
+    fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>>
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     fun observeSleepLogs(): Flow<List<SleepLogEntity>>
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)

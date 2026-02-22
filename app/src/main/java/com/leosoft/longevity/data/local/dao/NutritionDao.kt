@@ -31,6 +31,9 @@ interface NutritionDao {
     @Query("SELECT * FROM meal_entries WHERE date = :date")
     fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>>
 
+    @Query("SELECT * FROM meal_entries ORDER BY date DESC, time DESC")
+    fun observeAllMealEntries(): Flow<List<MealEntryEntity>>
+
     @Query("SELECT * FROM meal_entries WHERE date = :date")
     suspend fun getMealEntries(date: LocalDate): List<MealEntryEntity>
 
