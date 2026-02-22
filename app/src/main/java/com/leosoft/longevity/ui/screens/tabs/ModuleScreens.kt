@@ -405,7 +405,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
     val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -570,7 +570,7 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -820,7 +820,7 @@ fun SettingsModule(viewModel: MainViewModel) {
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val data by viewModel.dashboard.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
@@ -897,7 +897,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -1147,7 +1147,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -1265,7 +1265,7 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
     var reminderToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
