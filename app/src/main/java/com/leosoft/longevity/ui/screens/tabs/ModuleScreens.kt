@@ -319,14 +319,14 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp),
+                                .height(190.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             chartData.forEach { point ->
                                 val ratio = point.minutes / maxMinutes.toFloat()
+                                val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
                                 Column(
                                     modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.Bottom,
                                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                                 ) {
                                     Text(
@@ -337,9 +337,17 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height((30 + (110 * ratio)).dp)
-                                            .background(Color(0xFF9575CD), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                                    )
+                                            .weight(1f)
+                                            .padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(barHeight)
+                                                .background(Color(0xFF9575CD), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
                                     Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
                                 }
                             }
