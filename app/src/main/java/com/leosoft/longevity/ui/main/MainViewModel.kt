@@ -199,7 +199,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 78f
         }
         val maintenanceCalories = (bmr * activityFactor).coerceAtLeast(1300f)
-        val idealWeight = ((heightCm / 100f) * (heightCm / 100f) * 22f).coerceIn(45f, 120f)
+        val heightInchesOverFiveFeet = ((heightCm - 152.4f) / 2.54f).coerceAtLeast(0f)
+        val idealWeight = when (gender) {
+            "male" -> 50f + (2.3f * heightInchesOverFiveFeet)
+            "female" -> 45.5f + (2.3f * heightInchesOverFiveFeet)
+            else -> 47.75f + (2.3f * heightInchesOverFiveFeet)
+        }.coerceIn(40f, 120f)
         val bmi = weightKg / ((heightCm / 100f) * (heightCm / 100f))
 
         val calorieMultiplier = when (goalMode) {
