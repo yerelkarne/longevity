@@ -217,27 +217,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         val targetCalories = (maintenanceCalories * calorieMultiplier).coerceIn(1300f, 3600f)
 
-        val protein = when (goalMode) {
+        val ageProteinMultiplier = when {
+            age < 18 -> 1.05f
+            age < 40 -> 1.0f
+            age < 60 -> 1.08f
+            else -> 1.15f
+        }
+        val protein = (when (goalMode) {
             WeightGoalMode.MAINTAIN -> (weightKg * 1.3f)
             WeightGoalMode.REACH_IDEAL -> when {
                 weightKg > idealWeight * 1.03f -> idealWeight * 1.7f
                 weightKg < idealWeight * 0.97f -> idealWeight * 1.5f
                 else -> weightKg * 1.35f
             }
-        }.coerceIn(70f, 220f)
+        } * ageProteinMultiplier).coerceIn(70f, 220f)
 
-        val fatRatio = when {
+        val fatRatioBase = when {
             calorieMultiplier < 1f -> 0.30f
             calorieMultiplier > 1f -> 0.26f
             else -> 0.28f
         }
+        val ageFatRatioAdjustment = when {
+            age < 18 -> 0.01f
+            age >= 60 -> 0.02f
+            else -> 0f
+        }
+        val fatRatio = (fatRatioBase + ageFatRatioAdjustment).coerceIn(0.24f, 0.35f)
         val fat = (targetCalories * fatRatio / 9f).coerceIn(40f, 120f)
         val carbs = ((targetCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
-        val fiber = (targetCalories / 1000f * 14f).coerceIn(25f, 45f)
+        val fiberBase = (targetCalories / 1000f * 14f)
+        val fiber = when {
+            age < 18 -> (fiberBase * 0.9f)
+            age >= 60 -> (fiberBase * 1.1f)
+            else -> fiberBase
+        }.coerceIn(22f, 45f)
         val water = ((weightKg * 33f) + (heightCm * 2f)).toInt().coerceIn(1800, 4500)
         val steps = ((heightCm * 20f) + (age * 35f)).toInt().coerceIn(7000, 13000)
         val sleep = if (age < 18) 540 else if (age < 65) 480 else 450
-        val iron = if (gender == "female" && age in 18..50) 18 else 8
+        val iron = when {
+            gender == "female" && age in 14..50 -> 18
+            age < 14 -> 10
+            else -> 8
+        }
+        val magnesium = when {
+            age < 14 -> 240
+            age < 19 -> if (gender == "male") 410 else 360
+            age < 31 -> if (gender == "male") 400 else 310
+            else -> if (gender == "male") 420 else 320
+        }
+        val potassium = when {
+            age < 14 -> 3000
+            age >= 51 -> 3400
+            else -> 3500
+        }
+        val vitaminD = if (age >= 65) 800 else 600
+        val omega3 = when {
+            age < 14 -> 1000
+            gender == "male" -> if (age >= 51) 1500 else 1600
+            gender == "female" -> if (age >= 51) 1000 else 1100
+            else -> if (age >= 51) 1250 else 1350
+        }
 
         val planSummary = when (goalMode) {
             WeightGoalMode.MAINTAIN -> "maintain"
@@ -257,10 +296,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             fatGrams = fat,
             fiberGrams = fiber,
             ironMg = iron,
-            magnesiumMg = if (gender == "male") 420 else 320,
-            potassiumMg = 3500,
-            vitaminDIu = 600,
-            omega3Mg = if (gender == "male") 1600 else 1100,
+            magnesiumMg = magnesium,
+            potassiumMg = potassium,
+            vitaminDIu = vitaminD,
+            omega3Mg = omega3,
             idealWeightKg = idealWeight,
             weightPlanSummary = planSummary
         )
