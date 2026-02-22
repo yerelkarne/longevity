@@ -183,6 +183,10 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val state by viewModel.stepTrackingState.collectAsState()
     val userGoals by viewModel.userGoals.collectAsState()
+    val allStepsLogs by viewModel.allStepsLogs.collectAsState()
+    var range by remember { mutableStateOf(StepsChartRange.DAILY) }
+    val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
+    val maxSteps = (chartData.maxOfOrNull { it.steps } ?: 1).coerceAtLeast(1)
     val steps = dashboard?.steps ?: 0
     val goal = userGoals?.stepsTarget ?: 10000
     val progress = (steps / goal.toFloat()).coerceIn(0f, 1f)
@@ -215,6 +219,57 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                         Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = TrendChipDefaultTextColor)
                     }
                     Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = TrendValueTextColor)
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.activity_steps_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(14.dp)).padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_daily), range == StepsChartRange.DAILY) { range = StepsChartRange.DAILY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_weekly), range == StepsChartRange.WEEKLY) { range = StepsChartRange.WEEKLY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_monthly), range == StepsChartRange.MONTHLY) { range = StepsChartRange.MONTHLY }
+                    }
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.activity_exercise_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(160.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.Bottom
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.steps / maxSteps.toFloat()
+                                val barHeight = if (point.steps <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "steps-bar")
+                                Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    Text(point.steps.toString(), style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(animatedBarHeight)
+                                                .background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -402,6 +457,50 @@ private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+private enum class StepsChartRange { DAILY, WEEKLY, MONTHLY }
+private data class StepsChartPoint(val label: String, val steps: Int)
+
+private fun buildStepsChartData(
+    stepLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    range: StepsChartRange
+): List<StepsChartPoint> {
+    return when (range) {
+        StepsChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day ->
+                    val total = stepLogs.filter { it.date == day }.sumOf { it.steps }
+                    StepsChartPoint(day.dayOfMonth.toString(), total)
+                }
+                .toList()
+        }
+
+        StepsChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (0..3).map { idx ->
+                val anchor = today.minusWeeks((3 - idx).toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val total = stepLogs.filter { it.date in start..end }.sumOf { it.steps }
+                StepsChartPoint("W${idx + 1}", total)
+            }
+        }
+
+        StepsChartRange.MONTHLY -> {
+            val currentMonth = YearMonth.now()
+            (0..5).map { idx ->
+                val month = currentMonth.minusMonths((5 - idx).toLong())
+                val start = month.atDay(1)
+                val end = month.atEndOfMonth()
+                val total = stepLogs.filter { it.date in start..end }.sumOf { it.steps }
+                StepsChartPoint(month.month.name.take(3), total)
+            }
+        }
     }
 }
 
