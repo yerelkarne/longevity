@@ -44,4 +44,8 @@
 
     <string name="life_pulse_camera_initializing">Camera is preparing...</string>
 
+    <string name="life_sleep_trend_title">Sleep trends</string>
+    <string name="life_sleep_range_daily">Daily</string>
+    <string name="life_sleep_range_weekly">Weekly</string>
+    <string name="life_sleep_range_monthly">Monthly</string>
 </resources>

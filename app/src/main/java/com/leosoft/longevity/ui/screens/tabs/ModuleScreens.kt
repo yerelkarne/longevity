@@ -64,6 +64,7 @@ import com.leosoft.longevity.reminders.ReminderAlarmScheduler
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.YearMonth
+import java.util.Locale
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
@@ -276,19 +277,79 @@ fun YasamModule(viewModel: MainViewModel) {
 @Composable
 private fun YasamUykuScreen(viewModel: MainViewModel) {
     val sleepLogs by viewModel.sleepLogs.collectAsState()
+    var range by remember { mutableStateOf(SleepChartRange.DAILY) }
+    val chartData = remember(sleepLogs, range) { buildSleepChartData(sleepLogs, range) }
+    val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (sleepLogs.isEmpty()) {
-            item {
-                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.life_sleep_empty), modifier = Modifier.padding(16.dp))
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.life_sleep_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF3E5F5), RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_daily),
+                            selected = range == SleepChartRange.DAILY,
+                            onClick = { range = SleepChartRange.DAILY }
+                        )
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_weekly),
+                            selected = range == SleepChartRange.WEEKLY,
+                            onClick = { range = SleepChartRange.WEEKLY }
+                        )
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_monthly),
+                            selected = range == SleepChartRange.MONTHLY,
+                            onClick = { range = SleepChartRange.MONTHLY }
+                        )
+                    }
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.life_sleep_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.minutes / maxMinutes.toFloat()
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Bottom,
+                                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = formatSleepHoursShort(point.minutes),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF6A1B9A)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height((30 + (110 * ratio)).dp)
+                                            .background(Color(0xFF9575CD), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                    )
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        } else {
+        }
+
+        if (sleepLogs.isNotEmpty()) {
             items(sleepLogs, key = { it.id }) { sleep ->
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -298,6 +359,70 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                         Text(stringResource(R.string.life_sleep_duration, formatSleepDurationLabel(sleep.durationMinutes)))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SleepRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+    }
+}
+
+private enum class SleepChartRange { DAILY, WEEKLY, MONTHLY }
+
+private data class SleepChartPoint(val label: String, val minutes: Int)
+
+
+private fun formatSleepHoursShort(minutes: Int): String {
+    if (minutes <= 0) return "0s"
+    val hours = minutes / 60f
+    return String.format(Locale.getDefault(), "%.1f s", hours)
+}
+
+private fun buildSleepChartData(
+    sleepLogs: List<com.leosoft.longevity.data.local.entity.SleepLogEntity>,
+    range: SleepChartRange
+): List<SleepChartPoint> {
+    val byDate = sleepLogs.associateBy { it.date }
+    return when (range) {
+        SleepChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day -> SleepChartPoint(day.dayOfMonth.toString(), byDate[day]?.durationMinutes ?: 0) }
+                .toList()
+        }
+        SleepChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { weeksAgo ->
+                val anchor = today.minusWeeks(weeksAgo.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val avg = sleepLogs.filter { it.date >= start && it.date <= end }
+                    .map { it.durationMinutes }
+                    .let { if (it.isEmpty()) 0 else it.sum() / it.size }
+                SleepChartPoint("W${start.dayOfMonth}", avg)
+            }
+        }
+        SleepChartRange.MONTHLY -> {
+            val current = YearMonth.now()
+            (5 downTo 0).map { mAgo ->
+                val month = current.minusMonths(mAgo.toLong())
+                val avg = sleepLogs.filter { YearMonth.from(it.date) == month }
+                    .map { it.durationMinutes }
+                    .let { if (it.isEmpty()) 0 else it.sum() / it.size }
+                SleepChartPoint(month.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), avg)
             }
         }
     }

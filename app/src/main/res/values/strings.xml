@@ -186,6 +186,10 @@
     <string name="activity_tab_goals">Hedefler</string>
     <string name="life_tab_sleep">Uyku</string>
     <string name="life_tab_routines">Rutinler</string>
+    <string name="life_sleep_trend_title">Uyku trendleri</string>
+    <string name="life_sleep_range_daily">Günlük</string>
+    <string name="life_sleep_range_weekly">Haftalık</string>
+    <string name="life_sleep_range_monthly">Aylık</string>
     <string name="life_sleep_empty">Henüz uyku kaydı yok.</string>
     <string name="life_sleep_bedtime">Yatış: %1$s</string>
     <string name="life_sleep_waketime">Kalkış: %1$s</string>
