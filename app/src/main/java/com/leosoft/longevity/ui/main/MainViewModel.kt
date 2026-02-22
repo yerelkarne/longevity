@@ -67,6 +67,7 @@ data class PersonalizedTargets(
     val potassiumMg: Int,
     val vitaminDIu: Int,
     val omega3Mg: Int,
+    val caloriesKcal: Int,
     val idealWeightKg: Float,
     val weightPlanSummary: String
 )
@@ -308,6 +309,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             potassiumMg = potassium,
             vitaminDIu = vitaminD,
             omega3Mg = omega3,
+            caloriesKcal = targetCalories.toInt(),
             idealWeightKg = idealWeight,
             weightPlanSummary = planSummary
         )

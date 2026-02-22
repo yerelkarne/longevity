@@ -43,6 +43,8 @@
     <string name="card_macro">Makro</string>
     <string name="card_sleep">Uyku</string>
     <string name="card_calorie">Kalori</string>
+    <string name="goal_max_calorie_title">Hedef günlük max kalori</string>
+    <string name="goal_max_calorie_value">%1$d kcal</string>
     <string name="today_longevity_score">Bugünün Longevity Skoru</string>
     <string name="score_nutrition">Beslenme</string>
     <string name="score_water">Su</string>

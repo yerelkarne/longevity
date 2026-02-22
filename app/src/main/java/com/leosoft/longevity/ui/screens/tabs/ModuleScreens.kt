@@ -1387,6 +1387,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
                             GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
                             GoalTargetRow(stringResource(R.string.me_target_ideal_weight), stringResource(R.string.me_target_ideal_weight_value, t.idealWeightKg))
+                            GoalTargetRow(stringResource(R.string.goal_max_calorie_title), stringResource(R.string.goal_max_calorie_value, t.caloriesKcal))
                             GoalTargetRow(stringResource(R.string.me_target_plan_type), weightPlanSummaryLabel(t.weightPlanSummary))
                         }
 
@@ -1487,6 +1488,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
     val dashboard by viewModel.goalsDashboard.collectAsState()
     val goals by viewModel.goalPlans.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
     val foods by viewModel.foods.collectAsState()
     val goalsMeals by viewModel.goalsMealEntries.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
@@ -1506,6 +1508,9 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
             )
         }
     }
+    val maxDailyCalories = remember(userGoals) {
+        (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt()
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
     var goalToDelete by remember { mutableStateOf<GoalPlanItem?>(null) }
@@ -1516,6 +1521,18 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.goal_max_calorie_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.goal_max_calorie_value, maxDailyCalories), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
