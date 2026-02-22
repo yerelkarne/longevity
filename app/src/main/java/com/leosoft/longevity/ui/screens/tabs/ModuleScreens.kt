@@ -182,6 +182,7 @@ fun AktiviteModule(viewModel: MainViewModel) {
 @Composable
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
     val state by viewModel.stepTrackingState.collectAsState()
     val allStepsLogs by viewModel.allStepsLogs.collectAsState()
     var range by remember { mutableStateOf(StepsChartRange.DAILY) }
@@ -1025,6 +1026,7 @@ fun SettingsModule(viewModel: MainViewModel) {
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
     val foods by viewModel.foods.collectAsState()
     val allMeals by viewModel.allMealEntries.collectAsState()
     val allWater by viewModel.allWaterLogs.collectAsState()
