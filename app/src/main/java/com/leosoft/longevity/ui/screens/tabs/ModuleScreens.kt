@@ -331,7 +331,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
             }
         } else {
             items(workoutLogs, key = { it.id }) { workout ->
-                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { workoutToEdit = workout }) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(workout.date.toString(), style = MaterialTheme.typography.titleSmall)
                         Text(resolveWorkoutTypeLabel(workout.type))
