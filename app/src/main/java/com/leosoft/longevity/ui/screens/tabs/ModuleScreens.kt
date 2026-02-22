@@ -138,16 +138,12 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 fun AktiviteModule(viewModel: MainViewModel) {
     val tabs = listOf(
         stringResource(R.string.activity_tab_steps),
-        stringResource(R.string.activity_tab_add_exercise),
-        stringResource(R.string.activity_tab_history),
-        stringResource(R.string.activity_tab_goals)
+        stringResource(R.string.activity_tab_add_exercise)
     )
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> ActivityStepsScreen(viewModel)
             1 -> ActivityExerciseScreen(viewModel)
-            2 -> ActivityHistoryScreen(viewModel)
-            3 -> ActivityGoalsScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_activity))
         }
     }
@@ -381,36 +377,6 @@ private fun buildWorkoutChartData(
 @Composable
 private fun resolveWorkoutTypeLabel(type: WorkoutType): String = stringResource(workoutTypeLabel(type))
 
-@Composable
-private fun ActivityHistoryScreen(viewModel: MainViewModel) {
-    val weekly by viewModel.weeklySteps.collectAsState()
-    val monthly by viewModel.monthlyStepsTotal.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Text(stringResource(R.string.monthly_total_steps, monthly), style = MaterialTheme.typography.titleMedium) }
-        items(weekly, key = { it.date.toString() }) { row ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(row.date.toString())
-                    Text(row.steps.toString())
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActivityGoalsScreen(viewModel: MainViewModel) {
-    val dashboard by viewModel.dashboard.collectAsState()
-    val steps = dashboard?.steps ?: 0
-    val reached = steps >= 10000
-    Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.longevity_integration_title))
-            Text(if (reached) stringResource(R.string.goal_reached_streak) else stringResource(R.string.goal_not_reached))
-            if (reached) Text(stringResource(R.string.goal_badge_message))
-        }
-    }
-}
 
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
