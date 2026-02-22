@@ -44,6 +44,7 @@ data class HealthSyncPreferences(
 
 class AppPreferences(private val context: Context) {
     private val onboardingKey = booleanPreferencesKey("onboarding_done")
+    private val medicalDisclaimerAcceptedKey = booleanPreferencesKey("medical_disclaimer_accepted")
     private val ageKey = intPreferencesKey("profile_age")
     private val heightKey = intPreferencesKey("profile_height_cm")
     private val weightKey = floatPreferencesKey("profile_weight_kg")
@@ -63,6 +64,7 @@ class AppPreferences(private val context: Context) {
     private val hcLastSyncAtKey = stringPreferencesKey("hc_last_sync_at")
 
     val onboardingDone: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[onboardingKey] ?: false }
+    val medicalDisclaimerAccepted: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[medicalDisclaimerAcceptedKey] ?: false }
 
     val profilePreferences: Flow<ProfilePreferences> = context.dataStore.data.map { prefs ->
         ProfilePreferences(
@@ -97,6 +99,10 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setOnboardingDone(done: Boolean) {
         context.dataStore.edit { it[onboardingKey] = done }
+    }
+
+    suspend fun setMedicalDisclaimerAccepted(accepted: Boolean) {
+        context.dataStore.edit { it[medicalDisclaimerAcceptedKey] = accepted }
     }
 
     suspend fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) {

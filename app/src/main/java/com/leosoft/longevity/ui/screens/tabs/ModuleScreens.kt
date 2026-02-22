@@ -895,6 +895,14 @@ fun SettingsModule(viewModel: MainViewModel) {
             }
         }
         item {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.medical_disclaimer_title), style = MaterialTheme.typography.titleSmall, color = Color(0xFFBF360C))
+                    Text(stringResource(R.string.medical_disclaimer_body), style = MaterialTheme.typography.bodySmall, color = Color(0xFF6D4C41))
+                }
+            }
+        }
+        item {
             Button(
                 onClick = {
                     scope.launch {

@@ -323,4 +323,7 @@
 
     <string name="life_pulse_camera_initializing">Kamera hazırlanıyor...</string>
 
+    <string name="medical_disclaimer_title">Tıbbi sorumluluk reddi</string>
+    <string name="medical_disclaimer_body">Bu uygulama yalnızca genel sağlık/iyi yaşam takibi içindir. Doktorun veya uzman diyetisyenin yerine geçmez; teşhis, tedavi veya kişiye özel tıbbi öneri sunmaz. Sağlık kararlarınızda mutlaka yetkin sağlık profesyoneline başvurun.</string>
+    <string name="medical_disclaimer_accept">Kabul ediyorum</string>
 </resources>

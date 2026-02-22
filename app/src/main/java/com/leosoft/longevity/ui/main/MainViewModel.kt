@@ -132,6 +132,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
 
+    val medicalDisclaimerAccepted: StateFlow<Boolean> = app.preferences.medicalDisclaimerAccepted
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val userGoals: StateFlow<UserGoalsEntity?> = repository.observeGoals()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -210,8 +213,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val calorieMultiplier = when (goalMode) {
             WeightGoalMode.MAINTAIN -> 1f
             WeightGoalMode.REACH_IDEAL -> when {
-                weightKg < idealWeight * 0.97f -> if (bmi < 18.5f) 1.18f else 1.12f
-                weightKg > idealWeight * 1.03f -> if (bmi >= 30f) 0.78f else 0.85f
+                weightKg < idealWeight * 0.97f -> if (bmi < 18.5f) 1.15f else 1.10f
+                weightKg > idealWeight * 1.03f -> when {
+                    bmi >= 35f -> 0.80f
+                    bmi >= 30f -> 0.82f
+                    bmi >= 25f -> 0.87f
+                    else -> 0.90f
+                }
                 else -> 1f
             }
         }
@@ -356,6 +364,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
         clearMenstrualLogsIfNotFemale(gender)
+    }
+
+    fun acceptMedicalDisclaimer() = viewModelScope.launch {
+        app.preferences.setMedicalDisclaimerAccepted(true)
     }
 
     private suspend fun clearMenstrualLogsIfNotFemale(gender: String) {

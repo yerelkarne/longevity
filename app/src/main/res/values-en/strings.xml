@@ -56,4 +56,7 @@
     <string name="menstrual_cycle_progress_days">Day %1$d / %2$d</string>
     <string name="me_menstrual_cycle_length">Cycle length (days)</string>
 
+    <string name="medical_disclaimer_title">Medical disclaimer</string>
+    <string name="medical_disclaimer_body">This app is for general wellness tracking only. It does not replace a doctor or a registered dietitian and does not provide diagnosis, treatment, or personalized medical advice. Please consult qualified healthcare professionals for health decisions.</string>
+    <string name="medical_disclaimer_accept">I accept</string>
 </resources>
