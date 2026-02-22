@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +53,7 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     val owner = LocalLifecycleOwner.current
     val manager = remember { PulseCameraManager() }
     val processor = remember { PulseSignalProcessor() }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     val liveSignal = remember { mutableStateListOf<Double>() }
     val measureSignal = remember { mutableStateListOf<Double>() }
@@ -80,11 +83,13 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
                 context = context,
                 lifecycleOwner = owner,
                 onFrame = { luma, _ ->
-                    liveSignal.add(luma)
-                    if (liveSignal.size > 300) liveSignal.removeAt(0)
-                    if (measuring) {
-                        measureSignal.add(luma)
-                        if (measureSignal.size > 1050) measureSignal.removeAt(0)
+                    mainHandler.post {
+                        liveSignal.add(luma)
+                        if (liveSignal.size > 300) liveSignal.removeAt(0)
+                        if (measuring) {
+                            measureSignal.add(luma)
+                            if (measureSignal.size > 1050) measureSignal.removeAt(0)
+                        }
                     }
                 },
                 onTorchAvailability = {
@@ -194,7 +199,8 @@ private fun PulseWaveform(signal: List<Double>, modifier: Modifier = Modifier) {
     Box(modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             if (signal.size < 2) return@Canvas
-            val points = signal.takeLast(240)
+            val snapshot = signal.toList()
+            val points = snapshot.takeLast(240)
             val min = points.minOrNull() ?: 0.0
             val max = points.maxOrNull() ?: 1.0
             val range = (max - min).coerceAtLeast(1e-6)
