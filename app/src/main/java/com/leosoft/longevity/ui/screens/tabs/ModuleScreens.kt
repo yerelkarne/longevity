@@ -1877,7 +1877,7 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
     var mealToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
     var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 TextButton(onClick = {
@@ -2045,7 +2045,7 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
     val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -2060,9 +2060,15 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
             if (meals.isEmpty()) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
+                val metrics = listOf(
+                    NutritionMetric(stringResource(R.string.nutrient_protein), totals.protein.toInt(), Color(0xFF7E57C2)),
+                    NutritionMetric(stringResource(R.string.nutrient_carbs), totals.carbs.toInt(), Color(0xFF5E35B1)),
+                    NutritionMetric(stringResource(R.string.nutrient_fat), totals.fat.toInt(), Color(0xFF9575CD)),
+                    NutritionMetric(stringResource(R.string.nutrient_fiber), totals.fiber.toInt(), Color(0xFFB39DDB))
+                )
+                NutritionMetricChartCard(title = stringResource(R.string.tab_macros), metrics = metrics, unit = "g")
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
                             NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
@@ -2097,7 +2103,7 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -2112,9 +2118,15 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
             if (meals.isEmpty()) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
+                val metrics = listOf(
+                    NutritionMetric(stringResource(R.string.nutrient_iron), total.iron.toInt(), Color(0xFF7E57C2)),
+                    NutritionMetric(stringResource(R.string.nutrient_magnesium), total.magnesium.toInt(), Color(0xFF5E35B1)),
+                    NutritionMetric(stringResource(R.string.nutrient_potassium), total.potassium.toInt(), Color(0xFF9575CD)),
+                    NutritionMetric(stringResource(R.string.nutrient_omega3), total.omega3.toInt(), Color(0xFFB39DDB))
+                )
+                NutritionMetricChartCard(title = stringResource(R.string.tab_micros), metrics = metrics, unit = "mg")
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
                             NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
@@ -2140,7 +2152,7 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -2177,7 +2189,7 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -2198,6 +2210,30 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(name, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class NutritionMetric(val label: String, val value: Int, val color: Color)
+
+@Composable
+private fun NutritionMetricChartCard(title: String, metrics: List<NutritionMetric>, unit: String) {
+    val max = (metrics.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                metrics.forEach { m ->
+                    val h = if (m.value <= 0) 0.dp else (12 + (90 * (m.value / max.toFloat()))).dp
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1))
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height(h).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(m.label, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
