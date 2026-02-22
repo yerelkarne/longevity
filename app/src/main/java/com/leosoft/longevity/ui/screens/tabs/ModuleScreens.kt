@@ -3,6 +3,12 @@ package com.leosoft.longevity.ui.screens.tabs
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -105,7 +111,15 @@ fun ModuleTabLayout(
                 Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab) })
             }
         }
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { content(it) }
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            AnimatedContent(
+                targetState = page,
+                transitionSpec = { (fadeIn(animationSpec = tween(350)) + slideInVertically(animationSpec = tween(350)) { it / 10 }) togetherWith (fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -it / 10 }) },
+                label = "module-page-transition"
+            ) { currentPage ->
+                content(currentPage)
+            }
+        }
     }
 }
 
@@ -185,8 +199,8 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = TrendChipDefaultTextColor)
                     Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF2D2A32))
-                    LinearProgressIndicator(
-                        progress = { progress },
+                    AnimatedProgressBar(
+                        target = progress,
                         modifier = Modifier.fillMaxWidth().height(10.dp),
                         color = Color(0xFF7E57C2),
                         trackColor = Color(0xFFEDE7F6)
@@ -1323,8 +1337,8 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                         }
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
                         Text(goalProgressLabel(goal.goalType, progress.current, goal.target))
-                        androidx.compose.material3.LinearProgressIndicator(
-                            progress = { if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
+                        AnimatedProgressBar(
+                            target = if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -2606,6 +2620,22 @@ private fun NutritionDatePickerCard(
             Text(stringResource(R.string.nutrition_selected_date, selectedDateText))
         }
     }
+}
+
+@Composable
+private fun AnimatedProgressBar(
+    target: Float,
+    modifier: Modifier = Modifier,
+    color: Color = TrendBarColor,
+    trackColor: Color = Color(0xFFEDE7F6)
+) {
+    val animated by animateFloatAsState(targetValue = target.coerceIn(0f, 1f), animationSpec = tween(700), label = "animated-progress")
+    LinearProgressIndicator(
+        progress = { animated },
+        modifier = modifier,
+        color = color,
+        trackColor = trackColor
+    )
 }
 
 @Composable
