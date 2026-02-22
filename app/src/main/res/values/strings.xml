@@ -53,7 +53,7 @@
     <string name="what_to_add">Ne eklemek istersin?</string>
     <string name="select_prompt">Seçiniz</string>
     <string name="select_first_hint">Önce kayıt türünü seçiniz.</string>
-    <string name="add_type_food">Yemek</string>
+    <string name="add_type_food">Beslenme</string>
     <string name="add_type_water">Su Kaydı</string>
     <string name="add_type_supplement">Takviye Kaydı</string>
     <string name="add_type_sleep">Uyku Kaydı</string>
@@ -64,8 +64,9 @@
     <string name="food_name">Yemek</string>
     <string name="food_list_label">Yemek listesi</string>
     <string name="foods_loading_hint">Yemek listesi yükleniyor, lütfen bekleyin.</string>
-    <string name="food_name_custom_optional">Listede yoksa yemek adı (opsiyonel)</string>
+    <string name="food_name_custom_optional">Listede yoksa beslenme adı (opsiyonel)</string>
     <string name="supplement_name">Takviye</string>
+    <string name="supplement_name_optional">Takviye adı (opsiyonel)</string>
     <string name="grams">Gram</string>
     <string name="water_ml_input">Kaç ml içildi?</string>
     <string name="bed_time">Yatış (HH:mm)</string>

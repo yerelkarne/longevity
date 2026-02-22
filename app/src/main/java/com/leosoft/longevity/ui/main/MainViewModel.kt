@@ -409,10 +409,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSelectedGoalsDate(date: LocalDate) {
         selectedGoalsDate.value = date
+        selectedNutritionDate.value = date
     }
 
     fun setSelectedNutritionDate(date: LocalDate) {
         selectedNutritionDate.value = date
+        selectedGoalsDate.value = date
     }
 
     fun updateMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
@@ -429,7 +431,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addSteps(steps: Int) = viewModelScope.launch {
-        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+        repository.addSteps(StepsLogEntity(date = selectedGoalsDate.value, steps = steps, updatedAt = LocalDateTime.now()))
         autoSyncHealthConnectIfEnabled()
     }
 
@@ -437,13 +439,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addSupplementLog(selectedNutritionDate.value, supplementId, true)
     }
 
+    fun addSupplementByName(name: String) = viewModelScope.launch {
+        repository.addSupplementByNameAndLog(selectedNutritionDate.value, name)
+    }
+
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
-        repository.addSleepLog(LocalDate.now(), bedtime, wakeTime)
+        repository.addSleepLog(selectedGoalsDate.value, bedtime, wakeTime)
         autoSyncHealthConnectIfEnabled()
     }
 
     fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
-        repository.addWorkoutLog(LocalDate.now(), type, durationMinutes, intensity, notes)
+        repository.addWorkoutLog(selectedGoalsDate.value, type, durationMinutes, intensity, notes)
         autoSyncHealthConnectIfEnabled()
     }
 

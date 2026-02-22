@@ -180,6 +180,15 @@ class LongevityRepositoryImpl(
         recalculateScore(date)
     }
 
+    override suspend fun addSupplementByNameAndLog(date: LocalDate, name: String) {
+        val clean = name.trim()
+        if (clean.isBlank()) return
+        val existing = supplementsDao.getSupplementByName(clean)
+        val id = existing?.id ?: supplementsDao.insertSupplement(SupplementEntity(name = clean, defaultDoseText = "1", notes = ""))
+        supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = id, taken = true))
+        recalculateScore(date)
+    }
+
     override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
     override fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>> = supplementsDao.observeAllLogs()
 

@@ -17,6 +17,9 @@ interface SupplementsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSupplement(supplement: SupplementEntity): Long
 
+    @Query("SELECT * FROM supplements WHERE name = :name LIMIT 1")
+    suspend fun getSupplementByName(name: String): SupplementEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: SupplementLogEntity)
 

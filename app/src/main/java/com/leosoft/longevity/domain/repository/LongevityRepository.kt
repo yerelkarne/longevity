@@ -59,6 +59,7 @@ interface LongevityRepository {
     fun observeAllSteps(): Flow<List<StepsLogEntity>>
     fun observeMonthlyStepsTotal(monthDate: LocalDate = LocalDate.now()): Flow<Int>
     suspend fun addSupplementLog(date: LocalDate, supplementId: Long, taken: Boolean)
+    suspend fun addSupplementByNameAndLog(date: LocalDate, name: String)
     fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
     fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>>
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)

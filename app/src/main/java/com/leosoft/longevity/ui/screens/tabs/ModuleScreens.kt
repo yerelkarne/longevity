@@ -1806,6 +1806,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var selectedFoodId by remember { mutableStateOf<Long?>(null) }
     var customFoodName by remember { mutableStateOf("") }
     var selectedSupplementId by remember { mutableLongStateOf(supplements.firstOrNull()?.id ?: 0L) }
+    var customSupplementName by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var secondaryText by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
@@ -1849,12 +1850,21 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
-                    QuickAddType.SUPPLEMENT -> ExposedDropdownSimple(
-                        label = stringResource(R.string.supplement_name),
-                        options = supplements.map { it.name },
-                        selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
-                        onSelect = { idx -> selectedSupplementId = supplements[idx].id }
-                    )
+                    QuickAddType.SUPPLEMENT -> {
+                        if (supplements.isNotEmpty()) {
+                            ExposedDropdownSimple(
+                                label = stringResource(R.string.supplement_name),
+                                options = supplements.map { it.name },
+                                selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
+                                onSelect = { idx -> selectedSupplementId = supplements[idx].id }
+                            )
+                        }
+                        OutlinedTextField(
+                            value = customSupplementName,
+                            onValueChange = { customSupplementName = it },
+                            label = { Text(stringResource(R.string.supplement_name_optional)) }
+                        )
+                    }
                     QuickAddType.SLEEP -> {
                         val now = java.time.LocalTime.now()
                         val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
@@ -1937,7 +1947,10 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     null -> Unit
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
-                    QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
+                    QuickAddType.SUPPLEMENT -> {
+                        if (customSupplementName.isNotBlank()) viewModel.addSupplementByName(customSupplementName)
+                        else if (selectedSupplementId > 0L) viewModel.addSupplementLog(selectedSupplementId)
+                    }
                     QuickAddType.SLEEP -> {
                         val now = java.time.LocalTime.now()
                         val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
