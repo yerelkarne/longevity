@@ -183,7 +183,6 @@ fun AktiviteModule(viewModel: MainViewModel) {
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val state by viewModel.stepTrackingState.collectAsState()
-    val userGoals by viewModel.userGoals.collectAsState()
     val allStepsLogs by viewModel.allStepsLogs.collectAsState()
     var range by remember { mutableStateOf(StepsChartRange.DAILY) }
     val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
@@ -1031,7 +1030,6 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     val allWater by viewModel.allWaterLogs.collectAsState()
     val allSteps by viewModel.allStepsLogs.collectAsState()
     val sleepLogs by viewModel.sleepLogs.collectAsState()
-    val userGoals by viewModel.userGoals.collectAsState()
     var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
@@ -1387,7 +1385,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
                             GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
                             GoalTargetRow(stringResource(R.string.me_target_ideal_weight), stringResource(R.string.me_target_ideal_weight_value, t.idealWeightKg))
-                            GoalTargetRow(stringResource(R.string.goal_max_calorie_title), stringResource(R.string.goal_max_calorie_value, t.caloriesKcal))
+                            GoalTargetRow(stringResource(R.string.card_calorie), "${t.caloriesKcal} kcal")
                             GoalTargetRow(stringResource(R.string.me_target_plan_type), weightPlanSummaryLabel(t.weightPlanSummary))
                         }
 
@@ -1488,7 +1486,6 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
     val dashboard by viewModel.goalsDashboard.collectAsState()
     val goals by viewModel.goalPlans.collectAsState()
-    val userGoals by viewModel.userGoals.collectAsState()
     val foods by viewModel.foods.collectAsState()
     val goalsMeals by viewModel.goalsMealEntries.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
@@ -1504,12 +1501,10 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                 magnesium = acc.magnesium + n.magnesium,
                 potassium = acc.potassium + n.potassium,
                 vitaminD = acc.vitaminD + n.vitaminD,
-                omega3 = acc.omega3 + n.omega3
+                omega3 = acc.omega3 + n.omega3,
+                calories = acc.calories + n.calories
             )
         }
-    }
-    val maxDailyCalories = remember(userGoals) {
-        (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt()
     }
     var showAddDialog by remember { mutableStateOf(false) }
     var goalToEdit by remember { mutableStateOf<GoalPlanItem?>(null) }
@@ -1521,18 +1516,6 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.goal_max_calorie_title), style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.goal_max_calorie_value, maxDailyCalories), style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-        }
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -1834,7 +1817,7 @@ private fun AddGoalDialog(
     initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "omega3")
+    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "calorie", "omega3")
     val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
     val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
     var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
@@ -1905,6 +1888,7 @@ private fun goalTypeLabel(type: String): String = when {
     type == "magnesium" -> stringResource(R.string.nutrient_magnesium)
     type == "potassium" -> stringResource(R.string.nutrient_potassium)
     type == "vitamin_d" -> stringResource(R.string.nutrient_vitamin_d)
+    type == "calorie" -> stringResource(R.string.card_calorie)
     type == "omega3" -> stringResource(R.string.nutrient_omega3)
     else -> type
 }
@@ -1914,7 +1898,7 @@ private fun goalTargetHintLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_hint_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
     type == "protein" -> stringResource(R.string.goal_hint_protein)
-    type in listOf("carbs", "fat", "fiber") -> stringResource(R.string.goal_hint_macros)
+    type in listOf("carbs", "fat", "fiber", "calorie") -> stringResource(R.string.goal_hint_macros)
     type == "sleep" -> stringResource(R.string.goal_hint_sleep)
     type in listOf("iron", "magnesium", "potassium", "vitamin_d", "omega3") -> stringResource(R.string.goal_hint_micros)
     else -> ""
@@ -1960,6 +1944,7 @@ private fun goalUnit(goalType: String): String = when (goalType) {
     "water" -> "ml"
     "steps", "activity" -> "adım"
     "protein", "carbs", "fat", "fiber" -> "g"
+    "calorie" -> "kcal"
     "sleep" -> ""
     "iron", "magnesium", "potassium", "omega3" -> "mg"
     "vitamin_d" -> "IU"
@@ -2001,6 +1986,7 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
         goal.goalType == "magnesium" -> consumed.magnesium.toInt()
         goal.goalType == "potassium" -> consumed.potassium.toInt()
         goal.goalType == "vitamin_d" -> consumed.vitaminD.toInt()
+        goal.goalType == "calorie" -> consumed.calories.toInt()
         goal.goalType == "omega3" -> consumed.omega3.toInt()
         else -> 0
     }
@@ -2247,7 +2233,8 @@ private data class NutrientTotals(
     val magnesium: Float = 0f,
     val potassium: Float = 0f,
     val vitaminD: Float = 0f,
-    val omega3: Float = 0f
+    val omega3: Float = 0f,
+    val calories: Float = 0f
 )
 
 private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
@@ -2261,7 +2248,8 @@ private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
         magnesium = food.magnesiumMg * ratio,
         potassium = food.potassiumMg * ratio,
         vitaminD = food.vitaminDUi * ratio,
-        omega3 = food.omega3Mg * ratio
+        omega3 = food.omega3Mg * ratio,
+        calories = food.kcalPer100g * ratio
     )
 }
 

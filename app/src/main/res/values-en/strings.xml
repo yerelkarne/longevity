@@ -61,6 +61,4 @@
     <string name="medical_disclaimer_accept">I accept</string>
     <string name="activity_steps_trend_title">Step trends</string>
     <string name="card_calorie">Calories</string>
-    <string name="goal_max_calorie_title">Target daily max calories</string>
-    <string name="goal_max_calorie_value">%1$d kcal</string>
 </resources>

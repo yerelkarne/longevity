@@ -347,6 +347,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "magnesium" to targets.magnesiumMg,
                 "potassium" to targets.potassiumMg,
                 "vitamin_d" to targets.vitaminDIu,
+                "calorie" to targets.caloriesKcal,
                 "omega3" to targets.omega3Mg
             )
 
