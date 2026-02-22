@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.leosoft.longevity.R
@@ -52,9 +53,7 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     val processor = remember { PulseSignalProcessor() }
     val signal = remember { mutableStateListOf<Double>() }
     var hasPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        )
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var denied by remember { mutableStateOf(false) }
     var measuring by remember { mutableStateOf(false) }
@@ -88,41 +87,42 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     }
 
     LaunchedEffect(torch, hasPermission) {
-        if (hasPermission) {
-            if (!manager.setTorch(torch)) {
-                statusText = context.getString(R.string.life_pulse_torch_not_supported)
-            }
+        if (hasPermission && !manager.setTorch(torch)) {
+            statusText = context.getString(R.string.life_pulse_torch_not_supported)
         }
     }
 
     LaunchedEffect(measuring) {
-        if (measuring) {
-            elapsed = 0
-            while (measuring && elapsed <= 35) {
-                kotlinx.coroutines.delay(1000)
-                elapsed += 1
-                if (elapsed >= 25 && signal.size > 100) {
-                    val fs = signal.size / elapsed.toDouble()
-                    val result = processor.process(signal.toList(), fs)
-                    quality = result.quality
-                    statusText = when (result.status) {
-                        PulseStatus.SUCCESS -> context.getString(R.string.life_pulse_status_finger_detected)
-                        PulseStatus.NO_FINGER -> context.getString(R.string.life_pulse_status_no_finger)
-                        PulseStatus.HOLD_STILL -> context.getString(R.string.life_pulse_status_hold_still)
-                        PulseStatus.SATURATED -> context.getString(R.string.life_pulse_status_pressure)
-                        PulseStatus.LOW_FPS -> context.getString(R.string.life_pulse_status_low_fps)
-                        PulseStatus.UNSTABLE -> context.getString(R.string.life_pulse_status_unstable)
-                        PulseStatus.LOW_QUALITY -> context.getString(R.string.life_pulse_quality_low)
-                        PulseStatus.INSUFFICIENT_DATA -> context.getString(R.string.life_pulse_status_longer)
-                    }
-                    if (elapsed >= 30 && result.bpm > 0) {
-                        resultText = context.getString(R.string.life_pulse_bpm, result.bpm)
-                        viewModel.addPulseMeasurement(result.bpm, result.quality, result.qualityLabel, elapsed)
-                        measuring = false
-                    }
+        if (!measuring) return@LaunchedEffect
+        elapsed = 0
+        resultText = ""
+        while (measuring && elapsed <= 35) {
+            kotlinx.coroutines.delay(1000)
+            elapsed += 1
+            if (elapsed >= 25 && signal.size > 100) {
+                val fs = signal.size / elapsed.toDouble()
+                val result = processor.process(signal.toList(), fs)
+                quality = result.quality
+                statusText = when (result.status) {
+                    PulseStatus.SUCCESS -> context.getString(R.string.life_pulse_status_finger_detected)
+                    PulseStatus.NO_FINGER -> context.getString(R.string.life_pulse_status_no_finger)
+                    PulseStatus.HOLD_STILL -> context.getString(R.string.life_pulse_status_hold_still)
+                    PulseStatus.SATURATED -> context.getString(R.string.life_pulse_status_pressure)
+                    PulseStatus.LOW_FPS -> context.getString(R.string.life_pulse_status_low_fps)
+                    PulseStatus.UNSTABLE -> context.getString(R.string.life_pulse_status_unstable)
+                    PulseStatus.LOW_QUALITY -> context.getString(R.string.life_pulse_quality_low)
+                    PulseStatus.INSUFFICIENT_DATA -> context.getString(R.string.life_pulse_status_longer)
+                }
+                if (elapsed >= 30 && result.bpm > 0) {
+                    resultText = context.getString(R.string.life_pulse_bpm, result.bpm)
+                    viewModel.addPulseMeasurement(result.bpm, result.quality, result.qualityLabel, elapsed)
+                    measuring = false
                 }
             }
-            if (elapsed >= 35) measuring = false
+        }
+        if (elapsed >= 35 && resultText.isEmpty()) {
+            resultText = context.getString(R.string.life_pulse_result_inconclusive)
+            measuring = false
         }
     }
 
@@ -132,9 +132,7 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         Card(modifier = Modifier.padding(16.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.life_pulse_permission_rationale))
-                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
-                    Text(stringResource(R.string.life_pulse_permission_button))
-                }
+                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) { Text(stringResource(R.string.life_pulse_permission_button)) }
                 if (denied) {
                     Button(onClick = {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
@@ -146,53 +144,62 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.life_pulse_measurement_live_title))
-                Text(stringResource(R.string.life_pulse_camera_hidden_info))
-                PulseWaveform(signal = signal, modifier = Modifier.fillMaxWidth().height(140.dp))
-            }
+        Text(
+            text = if (measuring) stringResource(R.string.life_pulse_measuring_now) else stringResource(R.string.life_pulse_ready),
+            fontWeight = FontWeight.Bold
+        )
+        Text(stringResource(R.string.life_pulse_timer, elapsed / 60, elapsed % 60), fontWeight = FontWeight.Bold)
+
+        Card(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+            PulseWaveform(signal = signal, modifier = Modifier.fillMaxSize().padding(8.dp))
         }
+
+        Text(statusText)
         Text(stringResource(R.string.life_pulse_quality, quality))
         LinearProgressIndicator(progress = { quality / 100f }, modifier = Modifier.fillMaxWidth())
-        Text(statusText)
+
+        if (resultText.isNotEmpty()) {
+            Text(stringResource(R.string.life_pulse_result_title), fontWeight = FontWeight.Bold)
+            Text(resultText, fontWeight = FontWeight.Bold)
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
-                if (measuring) measuring = false else {
-                    signal.clear(); resultText = ""; quality = 0; elapsed = 0; measuring = true
+                if (measuring) {
+                    measuring = false
+                } else {
+                    signal.clear()
+                    quality = 0
+                    elapsed = 0
+                    statusText = context.getString(R.string.life_pulse_status_hold_still)
+                    resultText = ""
+                    measuring = true
                 }
             }) { Text(stringResource(if (measuring) R.string.life_pulse_stop else R.string.life_pulse_start)) }
             Switch(checked = torch, onCheckedChange = { torch = it })
             if (!hasTorch) Text(stringResource(R.string.life_pulse_torch_not_supported))
-        }
-        Text(stringResource(R.string.life_pulse_timer, elapsed / 60, elapsed % 60))
-        if (resultText.isNotEmpty()) {
-            Text(stringResource(R.string.life_pulse_result_title))
-            Text(resultText)
         }
     }
 }
 
 @Composable
 private fun PulseWaveform(signal: List<Double>, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Box(Modifier.fillMaxSize().padding(8.dp)) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                if (signal.size < 2) return@Canvas
-                val points = signal.takeLast(240)
-                val min = points.minOrNull() ?: 0.0
-                val max = points.maxOrNull() ?: 1.0
-                val range = (max - min).coerceAtLeast(1e-6)
-                val path = Path()
-                points.forEachIndexed { index, value ->
-                    val x = size.width * index / (points.size - 1).toFloat()
-                    val normalized = ((value - min) / range).toFloat()
-                    val y = size.height - (normalized * size.height)
-                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                drawPath(path = path, color = Color(0xFFE91E63))
-                drawLine(Color(0xFFB39DDB), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 1f)
+    Box(modifier) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (signal.size < 2) return@Canvas
+            val points = signal.takeLast(240)
+            val min = points.minOrNull() ?: 0.0
+            val max = points.maxOrNull() ?: 1.0
+            val range = (max - min).coerceAtLeast(1e-6)
+            val path = Path()
+            points.forEachIndexed { index, value ->
+                val x = size.width * index / (points.size - 1).toFloat()
+                val normalized = ((value - min) / range).toFloat()
+                val y = size.height - (normalized * size.height)
+                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
+            drawLine(Color(0x332196F3), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 1f)
+            drawPath(path = path, color = Color(0xFFE91E63))
         }
     }
 }

@@ -302,4 +302,9 @@
     <string name="life_pulse_camera_hidden_info">Kamera görüntüsü gösterilmez. Ölçüm sadece flaş + arka kamera sensörü ile yapılır.</string>
     <string name="life_pulse_timer">%1$02d:%2$02d</string>
 
+
+    <string name="life_pulse_measuring_now">Ölçüm devam ediyor</string>
+    <string name="life_pulse_ready">Ölçüme hazır</string>
+    <string name="life_pulse_result_inconclusive">Ölçüm tamamlandı, sonuç yetersiz. Lütfen tekrar deneyin.</string>
+
 </resources>
