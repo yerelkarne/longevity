@@ -2453,6 +2453,9 @@ private fun NutritionMetricChartCard(
     onRangeChange: (NutritionChartRange) -> Unit
 ) {
     val max = (metrics.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    var reveal by remember(range, metrics) { mutableStateOf(false) }
+    LaunchedEffect(range, metrics) { reveal = true }
+    val revealFactor by animateFloatAsState(targetValue = if (reveal) 1f else 0f, animationSpec = tween(850), label = "nutrition-metric-reveal")
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -2466,7 +2469,8 @@ private fun NutritionMetricChartCard(
             }
             Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 metrics.forEach { m ->
-                    val h = if (m.value <= 0) 0.dp else (12 + (90 * (m.value / max.toFloat()))).dp
+                    val hBase = if (m.value <= 0) 0f else (12f + (90f * (m.value / max.toFloat())))
+                    val h = (hBase * revealFactor).dp
                     val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-metric-bar")
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                         Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
@@ -2493,6 +2497,9 @@ private fun NutritionTrendChartCard(
     data: List<NutritionTrendPoint>
 ) {
     val max = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    var reveal by remember(range, data) { mutableStateOf(false) }
+    LaunchedEffect(range, data) { reveal = true }
+    val revealFactor by animateFloatAsState(targetValue = if (reveal) 1f else 0f, animationSpec = tween(850), label = "nutrition-trend-reveal")
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -2506,7 +2513,8 @@ private fun NutritionTrendChartCard(
             }
             Row(modifier = Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 data.forEach { p ->
-                    val h = if (p.value <= 0) 0.dp else (12 + (96 * (p.value / max.toFloat()))).dp
+                    val hBase = if (p.value <= 0) 0f else (12f + (96f * (p.value / max.toFloat())))
+                    val h = (hBase * revealFactor).dp
                     val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-trend-bar")
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                         Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor, maxLines = 1)
