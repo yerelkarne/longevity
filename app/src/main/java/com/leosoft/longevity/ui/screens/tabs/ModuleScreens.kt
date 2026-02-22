@@ -1124,12 +1124,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val menstrualCycleLength = cycleLengthText.toIntOrNull()?.coerceIn(20, 40) ?: 28
     val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
-    LaunchedEffect(age, height, weight, selectedGender) {
-        if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
-            viewModel.saveProfile(age, height, weight, selectedGender)
-        }
-    }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
