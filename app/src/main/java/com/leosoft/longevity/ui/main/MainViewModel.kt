@@ -103,6 +103,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val menstrualCycleLogs = repository.observeMenstrualCycleLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val pulseMeasurements = repository.observePulseMeasurements()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val selectedNutritionDate = MutableStateFlow(LocalDate.now())
     val mealEntries = selectedNutritionDate
         .flatMapLatest { date -> repository.observeMealEntries(date) }
@@ -535,5 +538,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun syncNow() = viewModelScope.launch {
         if (!healthSyncPreferences.value.enabled) return@launch
         autoSyncHealthConnectIfEnabled()
+    }
+
+
+    fun addPulseMeasurement(bpm: Int, quality: Int, confidenceLabel: String, measurementSeconds: Int) = viewModelScope.launch {
+        repository.addPulseMeasurement(bpm, quality, confidenceLabel, measurementSeconds)
     }
 }

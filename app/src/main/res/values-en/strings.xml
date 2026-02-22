@@ -1,0 +1,35 @@
+<resources>
+    <string name="life_pulse_title">Pulse (Camera)</string>
+    <string name="life_pulse_tab_info">Information</string>
+    <string name="life_pulse_tab_measure">Measurement</string>
+    <string name="life_pulse_info_how_it_works_title">How does this measurement work?</string>
+    <string name="life_pulse_info_how_it_works_body">The camera and flash detect blood volume changes in your fingertip (PPG) and estimate pulse.</string>
+    <string name="life_pulse_info_best_results_title">Best-result steps</string>
+    <string name="life_pulse_info_step1">1) Fully cover rear camera and flash with your fingertip.</string>
+    <string name="life_pulse_info_step2">2) Use light contact, do not press too hard.</string>
+    <string name="life_pulse_info_step3">3) Keep phone steady, do not talk/move.</string>
+    <string name="life_pulse_info_step4">4) Wait 25–35 seconds.</string>
+    <string name="life_pulse_info_step5">5) Warm your hands first if they are cold.</string>
+    <string name="life_pulse_info_fail_title">When can measurement fail?</string>
+    <string name="life_pulse_info_fail_body">Motion, cold hands, low light, or missing flash support can degrade measurement.</string>
+    <string name="life_pulse_disclaimer">This feature is for wellness/fitness only; not a medical device and not for diagnosis.</string>
+    <string name="life_pulse_permission_rationale">Camera permission is required to measure pulse from camera.</string>
+    <string name="life_pulse_permission_button">Allow camera</string>
+    <string name="life_pulse_open_settings">Go to settings</string>
+    <string name="life_pulse_start">Start</string>
+    <string name="life_pulse_stop">Stop</string>
+    <string name="life_pulse_quality">Signal quality: %1$d</string>
+    <string name="life_pulse_status_no_finger">No finger detected</string>
+    <string name="life_pulse_status_finger_detected">Finger detected</string>
+    <string name="life_pulse_status_hold_still">Please hold still</string>
+    <string name="life_pulse_status_pressure">Too much pressure</string>
+    <string name="life_pulse_status_low_fps">FPS too low, try better light/device</string>
+    <string name="life_pulse_status_unstable">Unstable measurement</string>
+    <string name="life_pulse_status_longer">Longer measurement required</string>
+    <string name="life_pulse_torch_not_supported">Flash is not supported on this device</string>
+    <string name="life_pulse_result_title">Result</string>
+    <string name="life_pulse_bpm">%1$d BPM</string>
+    <string name="life_pulse_quality_low">Low quality</string>
+    <string name="life_pulse_try_again">Measure again</string>
+    <string name="life_pulse_history_title">Recent measurements</string>
+</resources>

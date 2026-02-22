@@ -262,4 +262,39 @@
     <string name="menstrual_phase_ovulation">Ovülasyon</string>
     <string name="menstrual_phase_normal">Diğer günler</string>
 
+
+    <string name="life_pulse_title">Nabız (Kamera)</string>
+    <string name="life_pulse_tab_info">Bilgilendirme</string>
+    <string name="life_pulse_tab_measure">Ölçüm</string>
+    <string name="life_pulse_info_how_it_works_title">Bu ölçüm nasıl çalışır?</string>
+    <string name="life_pulse_info_how_it_works_body">Kamera ve flaş, parmak ucundaki kan hacmi değişimlerini (PPG) algılar ve nabız tahmini üretir.</string>
+    <string name="life_pulse_info_best_results_title">En iyi sonuç için adımlar</string>
+    <string name="life_pulse_info_step1">1) Arka kamerayı ve flaşı tamamen parmağınla kapat.</string>
+    <string name="life_pulse_info_step2">2) Parmağı çok bastırma, hafif temas uygula.</string>
+    <string name="life_pulse_info_step3">3) Telefonu sabit tut, konuşma/hareket etme.</string>
+    <string name="life_pulse_info_step4">4) 25–35 saniye bekle.</string>
+    <string name="life_pulse_info_step5">5) Ellerin soğuksa ölçümden önce ısıt.</string>
+    <string name="life_pulse_info_fail_title">Ne zaman ölçüm başarısız olabilir?</string>
+    <string name="life_pulse_info_fail_body">Hareket, soğuk el, düşük ışık veya flaşın desteklenmemesi ölçümü bozabilir.</string>
+    <string name="life_pulse_disclaimer">Bu özellik wellness/fitness amaçlıdır; tıbbi cihaz değildir ve teşhis için kullanılamaz.</string>
+    <string name="life_pulse_permission_rationale">Nabzı kameradan ölçmek için kamera izni gerekir.</string>
+    <string name="life_pulse_permission_button">Kameraya izin ver</string>
+    <string name="life_pulse_open_settings">Ayarlar’a git</string>
+    <string name="life_pulse_start">Başlat</string>
+    <string name="life_pulse_stop">Durdur</string>
+    <string name="life_pulse_quality">Sinyal kalitesi: %1$d</string>
+    <string name="life_pulse_status_no_finger">Parmak algılanmadı</string>
+    <string name="life_pulse_status_finger_detected">Parmak algılandı</string>
+    <string name="life_pulse_status_hold_still">Lütfen sabit tutun</string>
+    <string name="life_pulse_status_pressure">Çok basınç var</string>
+    <string name="life_pulse_status_low_fps">FPS çok düşük, daha iyi ışık/cihaz deneyin</string>
+    <string name="life_pulse_status_unstable">Kararsız ölçüm</string>
+    <string name="life_pulse_status_longer">Daha uzun ölçüm gerekli</string>
+    <string name="life_pulse_torch_not_supported">Bu cihazda flaş desteklenmiyor</string>
+    <string name="life_pulse_result_title">Sonuç</string>
+    <string name="life_pulse_bpm">%1$d BPM</string>
+    <string name="life_pulse_quality_low">Düşük kalite</string>
+    <string name="life_pulse_try_again">Tekrar ölç</string>
+    <string name="life_pulse_history_title">Son ölçümler</string>
+
 </resources>

@@ -7,6 +7,7 @@ import androidx.room.Query
 import com.leosoft.longevity.data.local.entity.SyncState
 import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
+import com.leosoft.longevity.data.local.entity.PulseCameraMeasurementEntity
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -48,4 +49,12 @@ interface LifeDao {
 
     @Query("UPDATE sleep_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
     suspend fun updateSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
+
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPulseMeasurement(measurement: PulseCameraMeasurementEntity)
+
+    @Query("SELECT * FROM pulse_camera_measurements ORDER BY recordedAt DESC")
+    fun observePulseMeasurements(): Flow<List<PulseCameraMeasurementEntity>>
+
 }

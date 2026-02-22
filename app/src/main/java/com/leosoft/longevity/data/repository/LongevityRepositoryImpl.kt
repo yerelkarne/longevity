@@ -14,6 +14,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MealNutritionRecordEntity
+import com.leosoft.longevity.data.local.entity.PulseCameraMeasurementEntity
 import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
 import com.leosoft.longevity.data.local.entity.RecordSource
 import com.leosoft.longevity.data.local.entity.ReminderLogEntity
@@ -383,6 +384,22 @@ class LongevityRepositoryImpl(
     override suspend fun deleteReminderLog(id: Long) {
         quickAddDao.deleteReminder(id)
     }
+
+
+    override suspend fun addPulseMeasurement(bpm: Int, quality: Int, confidenceLabel: String, measurementSeconds: Int) {
+        lifeDao.insertPulseMeasurement(
+            PulseCameraMeasurementEntity(
+                recordedAt = LocalDateTime.now(),
+                bpm = bpm,
+                quality = quality,
+                confidenceLabel = confidenceLabel,
+                measurementSeconds = measurementSeconds,
+                syncState = SyncState.NONE
+            )
+        )
+    }
+
+    override fun observePulseMeasurements() = lifeDao.observePulseMeasurements()
 
     override suspend fun updateGoal(goalType: String, value: Int) {
         val current = goalsDao.getGoals() ?: defaultGoals()

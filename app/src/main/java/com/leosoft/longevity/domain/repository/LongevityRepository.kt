@@ -6,6 +6,7 @@ import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.GoalPlanEntity
 import com.leosoft.longevity.data.local.entity.MealEntryEntity
 import com.leosoft.longevity.data.local.entity.MenstrualCycleLogEntity
+import com.leosoft.longevity.data.local.entity.PulseCameraMeasurementEntity
 import com.leosoft.longevity.data.local.entity.StepsLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
@@ -72,6 +73,8 @@ interface LongevityRepository {
     suspend fun updateReminderLog(id: Long, reminderType: String, reminderTime: String, cadence: String, intervalHours: Int?)
     suspend fun deleteReminderLog(id: Long)
     suspend fun updateGoal(goalType: String, value: Int)
+    suspend fun addPulseMeasurement(bpm: Int, quality: Int, confidenceLabel: String, measurementSeconds: Int)
+    fun observePulseMeasurements(): Flow<List<PulseCameraMeasurementEntity>>
 
     fun observeDailyScore(date: LocalDate): Flow<DailyScoreEntity?>
     fun observeDashboard(date: LocalDate): Flow<DashboardSummary>
