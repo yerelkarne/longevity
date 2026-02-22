@@ -194,3 +194,18 @@ data class DailyScoreEntity(
     val totalScore: Float,
     val updatedAt: LocalDateTime
 )
+
+
+@Entity(tableName = "pulse_camera_measurements")
+data class PulseCameraMeasurementEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val recordedAt: LocalDateTime,
+    val bpm: Int,
+    val quality: Int,
+    val confidenceLabel: String,
+    val measurementSeconds: Int,
+    val source: RecordSource = RecordSource.LOCAL,
+    val syncState: SyncState = SyncState.NONE,
+    val hcRecordId: String? = null,
+    val lastSyncedAt: LocalDateTime? = null
+)

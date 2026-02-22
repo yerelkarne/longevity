@@ -70,6 +70,7 @@ import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
+import com.leosoft.longevity.ui.life.pulse.PulseCameraRoute
 
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
@@ -263,11 +264,11 @@ private fun ActivityGoalsScreen(viewModel: MainViewModel) {
 
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_routines), stringResource(R.string.life_tab_cycle))
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_pulse_title), stringResource(R.string.life_tab_cycle))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> YasamUykuScreen(viewModel)
-            1 -> YasamRutinlerScreen(viewModel)
+            1 -> YasamNabizScreen(viewModel)
             2 -> YasamReglScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_life))
         }
@@ -300,6 +301,39 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+
+
+@Composable
+private fun YasamNabizScreen(viewModel: MainViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.life_pulse_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.life_pulse_disclaimer))
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            PulseCameraRoute(viewModel)
         }
     }
 }
