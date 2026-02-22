@@ -1,7 +1,6 @@
 package com.leosoft.longevity.camera
 
 import android.content.Context
-import android.graphics.ImageFormat
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -29,7 +28,7 @@ class PulseCameraManager {
         providerFuture.addListener({
             val provider = providerFuture.get()
             val preview = Preview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
+                it.setSurfaceProvider(previewView.surfaceProvider)
             }
             analysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
