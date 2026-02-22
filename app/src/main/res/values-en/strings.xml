@@ -44,4 +44,21 @@
 
     <string name="life_pulse_camera_initializing">Camera is preparing...</string>
 
+    <string name="life_sleep_trend_title">Sleep trends</string>
+    <string name="life_sleep_range_daily">Daily</string>
+    <string name="life_sleep_range_weekly">Weekly</string>
+    <string name="life_sleep_range_monthly">Monthly</string>
+    <string name="activity_exercise_trend_title">Exercise trends</string>
+    <string name="activity_exercise_empty">No exercise records yet.</string>
+    <string name="activity_exercise_duration">Duration: %1$s</string>
+    <string name="activity_exercise_intensity">Intensity: %1$d/10</string>
+    <string name="menstrual_cycle_progress">Cycle progress</string>
+    <string name="menstrual_cycle_progress_days">Day %1$d / %2$d</string>
+    <string name="me_menstrual_cycle_length">Cycle length (days)</string>
+
+    <string name="medical_disclaimer_title">Medical disclaimer</string>
+    <string name="medical_disclaimer_body">This app is for general wellness tracking only. It does not replace a doctor or a registered dietitian and does not provide diagnosis, treatment, or personalized medical advice. Please consult qualified healthcare professionals for health decisions.</string>
+    <string name="medical_disclaimer_accept">I accept</string>
+    <string name="activity_steps_trend_title">Step trends</string>
+    <string name="card_calorie">Calories</string>
 </resources>

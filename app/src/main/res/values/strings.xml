@@ -42,6 +42,7 @@
     <string name="card_water">Su</string>
     <string name="card_macro">Makro</string>
     <string name="card_sleep">Uyku</string>
+    <string name="card_calorie">Kalori</string>
     <string name="today_longevity_score">Bugünün Longevity Skoru</string>
     <string name="score_nutrition">Beslenme</string>
     <string name="score_water">Su</string>
@@ -53,7 +54,7 @@
     <string name="what_to_add">Ne eklemek istersin?</string>
     <string name="select_prompt">Seçiniz</string>
     <string name="select_first_hint">Önce kayıt türünü seçiniz.</string>
-    <string name="add_type_food">Yemek</string>
+    <string name="add_type_food">Beslenme</string>
     <string name="add_type_water">Su Kaydı</string>
     <string name="add_type_supplement">Takviye Kaydı</string>
     <string name="add_type_sleep">Uyku Kaydı</string>
@@ -64,8 +65,9 @@
     <string name="food_name">Yemek</string>
     <string name="food_list_label">Yemek listesi</string>
     <string name="foods_loading_hint">Yemek listesi yükleniyor, lütfen bekleyin.</string>
-    <string name="food_name_custom_optional">Listede yoksa yemek adı (opsiyonel)</string>
+    <string name="food_name_custom_optional">Listede yoksa beslenme adı (opsiyonel)</string>
     <string name="supplement_name">Takviye</string>
+    <string name="supplement_name_optional">Takviye adı (opsiyonel)</string>
     <string name="grams">Gram</string>
     <string name="water_ml_input">Kaç ml içildi?</string>
     <string name="bed_time">Yatış (HH:mm)</string>
@@ -156,6 +158,7 @@
     <string name="reminder_delete_confirm">Bu hatırlatmayı silmek istediğinize emin misiniz?</string>
 
     <string name="meal_actions_title">Kayıt işlemleri</string>
+    <string name="record_actions_title">Kayıt işlemleri</string>
     <string name="meal_actions_hint">Bu kayıt için düzenleme veya silme işlemi yapabilirsiniz.</string>
     <string name="edit_meal">Kayıt düzenle</string>
     <string name="delete_meal_title">Kaydı sil</string>
@@ -181,11 +184,15 @@
     <string name="understood">İzin ekranını aç</string>
 
     <string name="activity_tab_steps">Adım</string>
-    <string name="activity_tab_add_exercise">Egzersiz Ekle</string>
+    <string name="activity_tab_add_exercise">Egzersiz</string>
     <string name="activity_tab_history">Geçmiş</string>
     <string name="activity_tab_goals">Hedefler</string>
     <string name="life_tab_sleep">Uyku</string>
     <string name="life_tab_routines">Rutinler</string>
+    <string name="life_sleep_trend_title">Uyku trendleri</string>
+    <string name="life_sleep_range_daily">Günlük</string>
+    <string name="life_sleep_range_weekly">Haftalık</string>
+    <string name="life_sleep_range_monthly">Aylık</string>
     <string name="life_sleep_empty">Henüz uyku kaydı yok.</string>
     <string name="life_sleep_bedtime">Yatış: %1$s</string>
     <string name="life_sleep_waketime">Kalkış: %1$s</string>
@@ -226,6 +233,10 @@
     <string name="battery_optimization_hint">Pil optimizasyonu adım takibini kısıtlayabilir. Arka plan takibi için pil optimizasyonunu kapatmanız önerilir.</string>
     <string name="monthly_total_steps">Aylık toplam adım: %1$d</string>
     <string name="activity_add_hint">Egzersiz ekleme için + butonunu kullanın.</string>
+    <string name="activity_exercise_trend_title">Egzersiz trendleri</string>
+    <string name="activity_exercise_empty">Henüz egzersiz kaydı yok.</string>
+    <string name="activity_exercise_duration">Süre: %1$s</string>
+    <string name="activity_exercise_intensity">Yoğunluk: %1$d/10</string>
     <string name="longevity_integration_title">Longevity entegrasyonu</string>
     <string name="goal_reached_streak">Hedef tamamlandı: streak arttı ve motivasyon bildirimi hazır.</string>
     <string name="goal_not_reached">Günlük adım hedefi henüz tamamlanmadı.</string>
@@ -261,6 +272,10 @@
     <string name="menstrual_phase_fertile">Doğurganlık</string>
     <string name="menstrual_phase_ovulation">Ovülasyon</string>
     <string name="menstrual_phase_normal">Diğer günler</string>
+
+    <string name="menstrual_cycle_progress">Döngü ilerleme</string>
+    <string name="menstrual_cycle_progress_days">%1$d / %2$d. gün</string>
+    <string name="me_menstrual_cycle_length">Regl döngü süresi (gün)</string>
 
 
     <string name="life_pulse_title">Nabız (Kamera)</string>
@@ -309,4 +324,8 @@
 
     <string name="life_pulse_camera_initializing">Kamera hazırlanıyor...</string>
 
+    <string name="medical_disclaimer_title">Tıbbi sorumluluk reddi</string>
+    <string name="medical_disclaimer_body">Bu uygulama yalnızca genel sağlık/iyi yaşam takibi içindir. Doktorun veya uzman diyetisyenin yerine geçmez; teşhis, tedavi veya kişiye özel tıbbi öneri sunmaz. Sağlık kararlarınızda mutlaka yetkin sağlık profesyoneline başvurun.</string>
+    <string name="medical_disclaimer_accept">Kabul ediyorum</string>
+    <string name="activity_steps_trend_title">Adım trendleri</string>
 </resources>

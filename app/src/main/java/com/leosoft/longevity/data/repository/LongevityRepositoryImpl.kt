@@ -75,6 +75,7 @@ class LongevityRepositoryImpl(
     override fun observeFoodsWithNutrition(): Flow<List<FoodEntity>> = nutritionDao.observeFoodsWithNutrition()
     override fun observeSupplements(): Flow<List<SupplementEntity>> = supplementsDao.observeSupplements()
     override fun observeMealEntries(date: LocalDate): Flow<List<MealEntryEntity>> = nutritionDao.observeMealEntries(date)
+    override fun observeAllMealEntries(): Flow<List<MealEntryEntity>> = nutritionDao.observeAllMealEntries()
 
     override suspend fun addMealEntry(entry: MealEntryEntity) {
         val mealEntryId = nutritionDao.insertMealEntry(entry)
@@ -154,6 +155,17 @@ class LongevityRepositoryImpl(
     }
 
     override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
+    override fun observeAllWaterLogs(): Flow<List<WaterLogEntity>> = waterDao.observeAll()
+
+    override suspend fun updateWaterLog(id: Long, date: LocalDate, amountMl: Int) {
+        waterDao.updateLogAmount(id, amountMl.coerceAtLeast(0))
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteWaterLog(id: Long, date: LocalDate) {
+        waterDao.deleteLog(id)
+        recalculateScore(date)
+    }
 
     override suspend fun addSteps(log: StepsLogEntity) {
         activityDao.upsertSteps(log.copy(syncState = SyncState.PENDING_UPLOAD))
@@ -164,6 +176,8 @@ class LongevityRepositoryImpl(
         val start = endDate.minusDays(6)
         return activityDao.observeStepsBetween(start, endDate)
     }
+
+    override fun observeAllSteps(): Flow<List<StepsLogEntity>> = activityDao.observeAllSteps()
 
     override fun observeMonthlyStepsTotal(monthDate: LocalDate): Flow<Int> {
         val start = monthDate.withDayOfMonth(1)
@@ -176,7 +190,27 @@ class LongevityRepositoryImpl(
         recalculateScore(date)
     }
 
+    override suspend fun addSupplementByNameAndLog(date: LocalDate, name: String) {
+        val clean = name.trim()
+        if (clean.isBlank()) return
+        val existing = supplementsDao.getSupplementByName(clean)
+        val id = existing?.id ?: supplementsDao.insertSupplement(SupplementEntity(name = clean, defaultDoseText = "1", notes = ""))
+        supplementsDao.insertLog(SupplementLogEntity(date = date, time = LocalDateTime.now(), supplementId = id, taken = true))
+        recalculateScore(date)
+    }
+
     override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
+    override fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>> = supplementsDao.observeAllLogs()
+
+    override suspend fun updateSupplementLog(id: Long, date: LocalDate, supplementId: Long, taken: Boolean) {
+        supplementsDao.updateLog(id, supplementId, taken)
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteSupplementLog(id: Long, date: LocalDate) {
+        supplementsDao.deleteLog(id)
+        recalculateScore(date)
+    }
 
     override fun observeSleepLogs(): Flow<List<SleepLogEntity>> = lifeDao.observeSleepLogs()
 
@@ -209,6 +243,18 @@ class LongevityRepositoryImpl(
 
     override suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) {
         activityDao.insertWorkout(WorkoutLogEntity(date = date, time = LocalDateTime.now(), type = type, durationMinutes = durationMinutes, intensity = intensity, notes = notes, syncState = SyncState.PENDING_UPLOAD))
+        recalculateScore(date)
+    }
+
+    override fun observeAllWorkouts() = activityDao.observeAllWorkouts()
+
+    override suspend fun updateWorkoutLog(id: Long, date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) {
+        activityDao.updateWorkout(id, type, durationMinutes, intensity, notes)
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteWorkoutLog(id: Long, date: LocalDate) {
+        activityDao.deleteWorkout(id)
         recalculateScore(date)
     }
 

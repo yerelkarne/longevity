@@ -17,12 +17,24 @@ interface SupplementsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSupplement(supplement: SupplementEntity): Long
 
+    @Query("SELECT * FROM supplements WHERE name = :name LIMIT 1")
+    suspend fun getSupplementByName(name: String): SupplementEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: SupplementLogEntity)
 
     @Query("SELECT * FROM supplement_logs WHERE date = :date ORDER BY time DESC")
     fun observeLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
 
+    @Query("SELECT * FROM supplement_logs ORDER BY date DESC, time DESC")
+    fun observeAllLogs(): Flow<List<SupplementLogEntity>>
+
     @Query("SELECT COUNT(*) FROM supplement_logs WHERE date = :date AND taken = 1")
     suspend fun takenCount(date: LocalDate): Int
+
+    @Query("UPDATE supplement_logs SET supplementId = :supplementId, taken = :taken WHERE id = :id")
+    suspend fun updateLog(id: Long, supplementId: Long, taken: Boolean)
+
+    @Query("DELETE FROM supplement_logs WHERE id = :id")
+    suspend fun deleteLog(id: Long)
 }

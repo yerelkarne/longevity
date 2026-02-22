@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,6 +83,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LongevityTheme {
                 val vm: MainViewModel = viewModel()
+                val medicalDisclaimerAccepted by vm.medicalDisclaimerAccepted.collectAsState()
                 MainScaffold(
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,
@@ -91,6 +93,18 @@ class MainActivity : ComponentActivity() {
                     onRequestNotificationPermission = { requestNotificationPermissionFromUser() },
                     onRequestActivityPermission = { requestActivityPermissionFromUser() }
                 )
+                if (!medicalDisclaimerAccepted) {
+                    AlertDialog(
+                        onDismissRequest = {},
+                        title = { Text(stringResource(R.string.medical_disclaimer_title)) },
+                        text = { Text(stringResource(R.string.medical_disclaimer_body)) },
+                        confirmButton = {
+                            TextButton(onClick = { vm.acceptMedicalDisclaimer() }) {
+                                Text(stringResource(R.string.medical_disclaimer_accept))
+                            }
+                        }
+                    )
+                }
             }
         }
     }

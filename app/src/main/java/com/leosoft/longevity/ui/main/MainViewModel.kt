@@ -15,6 +15,7 @@ import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
+import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import com.leosoft.longevity.steps.StepTrackerManager
@@ -111,19 +112,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { date -> repository.observeMealEntries(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allMealEntries = repository.observeAllMealEntries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val waterLogs: StateFlow<List<WaterLogEntity>> = selectedNutritionDate
         .flatMapLatest { date -> repository.observeWaterLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allWaterLogs: StateFlow<List<WaterLogEntity>> = repository.observeAllWaterLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val supplementLogs: StateFlow<List<SupplementLogEntity>> = selectedNutritionDate
         .flatMapLatest { date -> repository.observeSupplementLogs(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allSupplementLogs: StateFlow<List<SupplementLogEntity>> = repository.observeAllSupplementLogs()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val profilePreferences: StateFlow<ProfilePreferences> = app.preferences.profilePreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfilePreferences())
 
+    val medicalDisclaimerAccepted: StateFlow<Boolean> = app.preferences.medicalDisclaimerAccepted
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val userGoals: StateFlow<UserGoalsEntity?> = repository.observeGoals()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val workoutLogs: StateFlow<List<WorkoutLogEntity>> = repository.observeAllWorkouts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allStepsLogs = repository.observeAllSteps()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val weeklySteps = repository.observeWeeklySteps(LocalDate.now())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -183,40 +202,89 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> (10f * weightKg) + (6.25f * heightCm) - (5f * age) - 78f
         }
         val maintenanceCalories = (bmr * activityFactor).coerceAtLeast(1300f)
-        val idealWeight = ((heightCm / 100f) * (heightCm / 100f) * 22f).coerceIn(45f, 120f)
+        val heightInchesOverFiveFeet = ((heightCm - 152.4f) / 2.54f).coerceAtLeast(0f)
+        val idealWeight = when (gender) {
+            "male" -> 50f + (2.3f * heightInchesOverFiveFeet)
+            "female" -> 45.5f + (2.3f * heightInchesOverFiveFeet)
+            else -> 47.75f + (2.3f * heightInchesOverFiveFeet)
+        }.coerceIn(40f, 120f)
         val bmi = weightKg / ((heightCm / 100f) * (heightCm / 100f))
 
         val calorieMultiplier = when (goalMode) {
             WeightGoalMode.MAINTAIN -> 1f
             WeightGoalMode.REACH_IDEAL -> when {
-                weightKg < idealWeight * 0.97f -> if (bmi < 18.5f) 1.18f else 1.12f
-                weightKg > idealWeight * 1.03f -> if (bmi >= 30f) 0.78f else 0.85f
+                weightKg < idealWeight * 0.97f -> if (bmi < 18.5f) 1.15f else 1.10f
+                weightKg > idealWeight * 1.03f -> when {
+                    bmi >= 35f -> 0.80f
+                    bmi >= 30f -> 0.82f
+                    bmi >= 25f -> 0.87f
+                    else -> 0.90f
+                }
                 else -> 1f
             }
         }
         val targetCalories = (maintenanceCalories * calorieMultiplier).coerceIn(1300f, 3600f)
 
-        val protein = when (goalMode) {
+        val ageProteinMultiplier = when {
+            age < 18 -> 1.05f
+            age < 40 -> 1.0f
+            age < 60 -> 1.08f
+            else -> 1.15f
+        }
+        val protein = (when (goalMode) {
             WeightGoalMode.MAINTAIN -> (weightKg * 1.3f)
             WeightGoalMode.REACH_IDEAL -> when {
                 weightKg > idealWeight * 1.03f -> idealWeight * 1.7f
                 weightKg < idealWeight * 0.97f -> idealWeight * 1.5f
                 else -> weightKg * 1.35f
             }
-        }.coerceIn(70f, 220f)
+        } * ageProteinMultiplier).coerceIn(70f, 220f)
 
-        val fatRatio = when {
+        val fatRatioBase = when {
             calorieMultiplier < 1f -> 0.30f
             calorieMultiplier > 1f -> 0.26f
             else -> 0.28f
         }
+        val ageFatRatioAdjustment = when {
+            age < 18 -> 0.01f
+            age >= 60 -> 0.02f
+            else -> 0f
+        }
+        val fatRatio = (fatRatioBase + ageFatRatioAdjustment).coerceIn(0.24f, 0.35f)
         val fat = (targetCalories * fatRatio / 9f).coerceIn(40f, 120f)
         val carbs = ((targetCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
-        val fiber = (targetCalories / 1000f * 14f).coerceIn(25f, 45f)
+        val fiberBase = (targetCalories / 1000f * 14f)
+        val fiber = when {
+            age < 18 -> (fiberBase * 0.9f)
+            age >= 60 -> (fiberBase * 1.1f)
+            else -> fiberBase
+        }.coerceIn(22f, 45f)
         val water = ((weightKg * 33f) + (heightCm * 2f)).toInt().coerceIn(1800, 4500)
         val steps = ((heightCm * 20f) + (age * 35f)).toInt().coerceIn(7000, 13000)
         val sleep = if (age < 18) 540 else if (age < 65) 480 else 450
-        val iron = if (gender == "female" && age in 18..50) 18 else 8
+        val iron = when {
+            gender == "female" && age in 14..50 -> 18
+            age < 14 -> 10
+            else -> 8
+        }
+        val magnesium = when {
+            age < 14 -> 240
+            age < 19 -> if (gender == "male") 410 else 360
+            age < 31 -> if (gender == "male") 400 else 310
+            else -> if (gender == "male") 420 else 320
+        }
+        val potassium = when {
+            age < 14 -> 3000
+            age >= 51 -> 3400
+            else -> 3500
+        }
+        val vitaminD = if (age >= 65) 800 else 600
+        val omega3 = when {
+            age < 14 -> 1000
+            gender == "male" -> if (age >= 51) 1500 else 1600
+            gender == "female" -> if (age >= 51) 1000 else 1100
+            else -> if (age >= 51) 1250 else 1350
+        }
 
         val planSummary = when (goalMode) {
             WeightGoalMode.MAINTAIN -> "maintain"
@@ -236,10 +304,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             fatGrams = fat,
             fiberGrams = fiber,
             ironMg = iron,
-            magnesiumMg = if (gender == "male") 420 else 320,
-            potassiumMg = 3500,
-            vitaminDIu = 600,
-            omega3Mg = if (gender == "male") 1600 else 1100,
+            magnesiumMg = magnesium,
+            potassiumMg = potassium,
+            vitaminDIu = vitaminD,
+            omega3Mg = omega3,
             idealWeightKg = idealWeight,
             weightPlanSummary = planSummary
         )
@@ -296,6 +364,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveProfile(age: Int, heightCm: Int, weightKg: Float, gender: String) = viewModelScope.launch {
         app.preferences.saveProfile(age, heightCm, weightKg, gender)
         clearMenstrualLogsIfNotFemale(gender)
+    }
+
+    fun acceptMedicalDisclaimer() = viewModelScope.launch {
+        app.preferences.setMedicalDisclaimerAccepted(true)
     }
 
     private suspend fun clearMenstrualLogsIfNotFemale(gender: String) {
@@ -393,6 +465,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSelectedGoalsDate(date: LocalDate) {
         selectedGoalsDate.value = date
+        selectedNutritionDate.value = date
     }
 
     fun setSelectedNutritionDate(date: LocalDate) {
@@ -412,8 +485,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         autoSyncHealthConnectIfEnabled()
     }
 
+    fun updateWaterLog(id: Long, date: LocalDate, amountMl: Int) = viewModelScope.launch {
+        repository.updateWaterLog(id, date, amountMl)
+    }
+
+    fun deleteWaterLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteWaterLog(id, date)
+    }
+
     fun addSteps(steps: Int) = viewModelScope.launch {
-        repository.addSteps(StepsLogEntity(date = LocalDate.now(), steps = steps, updatedAt = LocalDateTime.now()))
+        repository.addSteps(StepsLogEntity(date = selectedGoalsDate.value, steps = steps, updatedAt = LocalDateTime.now()))
         autoSyncHealthConnectIfEnabled()
     }
 
@@ -421,14 +502,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addSupplementLog(selectedNutritionDate.value, supplementId, true)
     }
 
+    fun addSupplementByName(name: String) = viewModelScope.launch {
+        repository.addSupplementByNameAndLog(selectedNutritionDate.value, name)
+    }
+
+    fun updateSupplementLog(id: Long, date: LocalDate, supplementId: Long, taken: Boolean = true) = viewModelScope.launch {
+        repository.updateSupplementLog(id, date, supplementId, taken)
+    }
+
+    fun deleteSupplementLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteSupplementLog(id, date)
+    }
+
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
-        repository.addSleepLog(LocalDate.now(), bedtime, wakeTime)
+        repository.addSleepLog(selectedGoalsDate.value, bedtime, wakeTime)
         autoSyncHealthConnectIfEnabled()
     }
 
     fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
-        repository.addWorkoutLog(LocalDate.now(), type, durationMinutes, intensity, notes)
+        repository.addWorkoutLog(selectedGoalsDate.value, type, durationMinutes, intensity, notes)
         autoSyncHealthConnectIfEnabled()
+    }
+
+    fun updateWorkoutLog(id: Long, date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
+        repository.updateWorkoutLog(id, date, type, durationMinutes, intensity, notes)
+    }
+
+    fun deleteWorkoutLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteWorkoutLog(id, date)
     }
 
     fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5) = viewModelScope.launch {

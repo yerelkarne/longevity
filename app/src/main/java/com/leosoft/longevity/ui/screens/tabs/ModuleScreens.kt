@@ -3,6 +3,19 @@ package com.leosoft.longevity.ui.screens.tabs
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,25 +68,33 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
+import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.reminders.ReminderAlarmScheduler
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.YearMonth
+import java.util.Locale
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
 import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
-import com.leosoft.longevity.ui.life.pulse.PulseCameraRoute
 
 private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
+
+private val TrendBarColor = Color(0xFF9575CD)
+private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
+private val TrendChipSelectedTextColor = Color(0xFF4A148C)
+private val TrendChipDefaultTextColor = Color(0xFF6A1B9A)
+private val TrendValueTextColor = Color(0xFF5E35B1)
 
 @Composable
 fun ModuleTabLayout(
@@ -95,7 +117,15 @@ fun ModuleTabLayout(
                 Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab) })
             }
         }
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { content(it) }
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            AnimatedContent(
+                targetState = page,
+                transitionSpec = { (fadeIn(animationSpec = tween(350)) + slideInVertically(animationSpec = tween(350)) { it / 10 }) togetherWith (fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -it / 10 }) },
+                label = "module-page-transition"
+            ) { currentPage ->
+                content(currentPage)
+            }
+        }
     }
 }
 
@@ -138,16 +168,12 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 fun AktiviteModule(viewModel: MainViewModel) {
     val tabs = listOf(
         stringResource(R.string.activity_tab_steps),
-        stringResource(R.string.activity_tab_add_exercise),
-        stringResource(R.string.activity_tab_history),
-        stringResource(R.string.activity_tab_goals)
+        stringResource(R.string.activity_tab_add_exercise)
     )
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> ActivityStepsScreen(viewModel)
-            1 -> PlaceholderTab(stringResource(R.string.activity_add_hint))
-            2 -> ActivityHistoryScreen(viewModel)
-            3 -> ActivityGoalsScreen(viewModel)
+            1 -> ActivityExerciseScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_activity))
         }
     }
@@ -158,6 +184,10 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val state by viewModel.stepTrackingState.collectAsState()
     val userGoals by viewModel.userGoals.collectAsState()
+    val allStepsLogs by viewModel.allStepsLogs.collectAsState()
+    var range by remember { mutableStateOf(StepsChartRange.DAILY) }
+    val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
+    val maxSteps = (chartData.maxOfOrNull { it.steps } ?: 1).coerceAtLeast(1)
     val steps = dashboard?.steps ?: 0
     val goal = userGoals?.stepsTarget ?: 10000
     val progress = (steps / goal.toFloat()).coerceIn(0f, 1f)
@@ -177,19 +207,70 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = Color(0xFF6A1B9A))
+                    Text(stringResource(R.string.today_steps_label), style = MaterialTheme.typography.titleMedium, color = TrendChipDefaultTextColor)
                     Text("$steps", style = MaterialTheme.typography.displaySmall, color = Color(0xFF2D2A32))
-                    LinearProgressIndicator(
-                        progress = { progress },
+                    AnimatedProgressBar(
+                        target = progress,
                         modifier = Modifier.fillMaxWidth().height(10.dp),
                         color = Color(0xFF7E57C2),
                         trackColor = Color(0xFFEDE7F6)
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(stringResource(R.string.steps_goal_progress, steps, goal), style = MaterialTheme.typography.bodyLarge)
-                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF6A1B9A))
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.bodyLarge, color = TrendChipDefaultTextColor)
                     }
-                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = Color(0xFF5E35B1))
+                    Text(stringResource(R.string.activity_goal_sync_info, goal), style = MaterialTheme.typography.bodySmall, color = TrendValueTextColor)
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.activity_steps_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(14.dp)).padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_daily), range == StepsChartRange.DAILY) { range = StepsChartRange.DAILY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_weekly), range == StepsChartRange.WEEKLY) { range = StepsChartRange.WEEKLY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_monthly), range == StepsChartRange.MONTHLY) { range = StepsChartRange.MONTHLY }
+                    }
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.activity_exercise_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(160.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.Bottom
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.steps / maxSteps.toFloat()
+                                val barHeight = if (point.steps <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "steps-bar")
+                                Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    Text(point.steps.toString(), style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(animatedBarHeight)
+                                                .background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -210,7 +291,7 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                colors = CardDefaults.cardColors(containerColor = TrendChipBackgroundColor)
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -231,45 +312,250 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
     }
 }
 
+
 @Composable
-private fun ActivityHistoryScreen(viewModel: MainViewModel) {
-    val weekly by viewModel.weeklySteps.collectAsState()
-    val monthly by viewModel.monthlyStepsTotal.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Text(stringResource(R.string.monthly_total_steps, monthly), style = MaterialTheme.typography.titleMedium) }
-        items(weekly, key = { it.date.toString() }) { row ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(row.date.toString())
-                    Text(row.steps.toString())
+private fun ActivityExerciseScreen(viewModel: MainViewModel) {
+    val workoutLogs by viewModel.workoutLogs.collectAsState()
+    var range by remember { mutableStateOf(ActivityChartRange.DAILY) }
+    var workoutToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
+    var workoutToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
+    val chartData = remember(workoutLogs, range) { buildWorkoutChartData(workoutLogs, range) }
+    val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.activity_exercise_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(TrendChipBackgroundColor, RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_daily), range == ActivityChartRange.DAILY) { range = ActivityChartRange.DAILY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_weekly), range == ActivityChartRange.WEEKLY) { range = ActivityChartRange.WEEKLY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_monthly), range == ActivityChartRange.MONTHLY) { range = ActivityChartRange.MONTHLY }
+                    }
+
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.activity_exercise_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(190.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.minutes / maxMinutes.toFloat()
+                                val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "activity-bar")
+                                Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    Text(formatSleepHoursShort(point.minutes), style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                               .height(animatedBarHeight)
+                                                .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+        }
+
+        if (workoutLogs.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.activity_exercise_empty), modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            items(workoutLogs, key = { it.id }) { workout ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { workoutToEdit = workout }) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(workout.date.toString(), style = MaterialTheme.typography.titleSmall)
+                        Text(resolveWorkoutTypeLabel(workout.type))
+                        Text(stringResource(R.string.activity_exercise_duration, formatSleepDurationLabel(workout.durationMinutes)))
+                        Text(stringResource(R.string.activity_exercise_intensity, workout.intensity))
+                    }
+                }
+            }
+        }
+    }
+
+    workoutToEdit?.let { current ->
+        var durationText by remember(current.id) { mutableStateOf(current.durationMinutes.toString()) }
+        var intensityText by remember(current.id) { mutableStateOf(current.intensity.toString()) }
+        var notesText by remember(current.id) { mutableStateOf(current.notes) }
+        AlertDialog(
+            onDismissRequest = { workoutToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = durationText, onValueChange = { durationText = it }, label = { Text(stringResource(R.string.duration_min)) })
+                    OutlinedTextField(value = intensityText, onValueChange = { intensityText = it }, label = { Text(stringResource(R.string.intensity_1_3)) })
+                    OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateWorkoutLog(current.id, current.date, current.type, durationText.toIntOrNull() ?: current.durationMinutes, intensityText.toIntOrNull() ?: current.intensity, notesText)
+                    workoutToEdit = null
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { workoutToEdit = null; workoutToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { workoutToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    workoutToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { workoutToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteWorkoutLog(current.id, current.date); workoutToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { workoutToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+private enum class StepsChartRange { DAILY, WEEKLY, MONTHLY }
+private data class StepsChartPoint(val label: String, val steps: Int)
+
+private fun buildStepsChartData(
+    stepLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    range: StepsChartRange
+): List<StepsChartPoint> {
+    return when (range) {
+        StepsChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day ->
+                    val total = stepLogs.filter { it.date == day }.sumOf { it.steps }
+                    StepsChartPoint(day.dayOfMonth.toString(), total)
+                }
+                .toList()
+        }
+
+        StepsChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (0..3).map { idx ->
+                val anchor = today.minusWeeks((3 - idx).toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val total = stepLogs.filter { it.date in start..end }.sumOf { it.steps }
+                StepsChartPoint("W${idx + 1}", total)
+            }
+        }
+
+        StepsChartRange.MONTHLY -> {
+            val currentMonth = YearMonth.now()
+            (0..5).map { idx ->
+                val month = currentMonth.minusMonths((5 - idx).toLong())
+                val start = month.atDay(1)
+                val end = month.atEndOfMonth()
+                val total = stepLogs.filter { it.date in start..end }.sumOf { it.steps }
+                StepsChartPoint(month.month.name.take(3), total)
+            }
+        }
+    }
+}
+
+private enum class ActivityChartRange { DAILY, WEEKLY, MONTHLY }
+private data class ActivityChartPoint(val label: String, val minutes: Int)
+
+private fun buildWorkoutChartData(
+    workoutLogs: List<com.leosoft.longevity.data.local.entity.WorkoutLogEntity>,
+    range: ActivityChartRange
+): List<ActivityChartPoint> {
+    return when (range) {
+        ActivityChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day ->
+                    val total = workoutLogs.filter { it.date == day }.sumOf { it.durationMinutes }
+                    ActivityChartPoint(day.dayOfMonth.toString(), total)
+                }
+                .toList()
+        }
+        ActivityChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { weeksAgo ->
+                val anchor = today.minusWeeks(weeksAgo.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val total = workoutLogs.filter { it.date >= start && it.date <= end }.sumOf { it.durationMinutes }
+                ActivityChartPoint("W${start.dayOfMonth}", total)
+            }
+        }
+        ActivityChartRange.MONTHLY -> {
+            val current = YearMonth.now()
+            (5 downTo 0).map { mAgo ->
+                val month = current.minusMonths(mAgo.toLong())
+                val total = workoutLogs.filter { YearMonth.from(it.date) == month }.sumOf { it.durationMinutes }
+                ActivityChartPoint(month.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), total)
             }
         }
     }
 }
 
 @Composable
-private fun ActivityGoalsScreen(viewModel: MainViewModel) {
-    val dashboard by viewModel.dashboard.collectAsState()
-    val steps = dashboard?.steps ?: 0
-    val reached = steps >= 10000
-    Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.longevity_integration_title))
-            Text(if (reached) stringResource(R.string.goal_reached_streak) else stringResource(R.string.goal_not_reached))
-            if (reached) Text(stringResource(R.string.goal_badge_message))
-        }
-    }
-}
+private fun resolveWorkoutTypeLabel(type: WorkoutType): String = stringResource(workoutTypeLabel(type))
+
 
 @Composable
 fun YasamModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_pulse_title), stringResource(R.string.life_tab_cycle))
+    val tabs = listOf(stringResource(R.string.life_tab_sleep), stringResource(R.string.life_tab_cycle))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> YasamUykuScreen(viewModel)
-            1 -> YasamNabizScreen(viewModel)
-            2 -> YasamReglScreen(viewModel)
+            1 -> YasamReglScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_life))
         }
     }
@@ -278,19 +564,88 @@ fun YasamModule(viewModel: MainViewModel) {
 @Composable
 private fun YasamUykuScreen(viewModel: MainViewModel) {
     val sleepLogs by viewModel.sleepLogs.collectAsState()
+    var range by remember { mutableStateOf(SleepChartRange.DAILY) }
+    val chartData = remember(sleepLogs, range) { buildSleepChartData(sleepLogs, range) }
+    val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (sleepLogs.isEmpty()) {
-            item {
-                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.life_sleep_empty), modifier = Modifier.padding(16.dp))
+        item {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.life_sleep_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(TrendChipBackgroundColor, RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_daily),
+                            selected = range == SleepChartRange.DAILY,
+                            onClick = { range = SleepChartRange.DAILY }
+                        )
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_weekly),
+                            selected = range == SleepChartRange.WEEKLY,
+                            onClick = { range = SleepChartRange.WEEKLY }
+                        )
+                        SleepRangeChip(
+                            text = stringResource(R.string.life_sleep_range_monthly),
+                            selected = range == SleepChartRange.MONTHLY,
+                            onClick = { range = SleepChartRange.MONTHLY }
+                        )
+                    }
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.life_sleep_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(190.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.minutes / maxMinutes.toFloat()
+                                val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "sleep-bar")
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = formatSleepHoursShort(point.minutes),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TrendChipDefaultTextColor
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(animatedBarHeight)
+                                                .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        } else {
+        }
+
+        if (sleepLogs.isNotEmpty()) {
             items(sleepLogs, key = { it.id }) { sleep ->
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -305,39 +660,73 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
     }
 }
 
-
-
 @Composable
-private fun YasamNabizScreen(viewModel: MainViewModel) {
-    Column(
+private fun androidx.compose.foundation.layout.RowScope.SleepRangeChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .weight(1f)
+            .background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.life_pulse_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.life_pulse_disclaimer))
-            }
-        }
-
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            PulseCameraRoute(viewModel)
-        }
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
     }
 }
 
+private enum class SleepChartRange { DAILY, WEEKLY, MONTHLY }
+
+private data class SleepChartPoint(val label: String, val minutes: Int)
+
+
+private fun formatSleepHoursShort(minutes: Int): String {
+    if (minutes <= 0) return "0s"
+    val hours = minutes / 60f
+    return String.format(Locale.getDefault(), "%.1f s", hours)
+}
+
+private fun buildSleepChartData(
+    sleepLogs: List<com.leosoft.longevity.data.local.entity.SleepLogEntity>,
+    range: SleepChartRange
+): List<SleepChartPoint> {
+    val byDate = sleepLogs.associateBy { it.date }
+    return when (range) {
+        SleepChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day -> SleepChartPoint(day.dayOfMonth.toString(), byDate[day]?.durationMinutes ?: 0) }
+                .toList()
+        }
+        SleepChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { weeksAgo ->
+                val anchor = today.minusWeeks(weeksAgo.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val avg = sleepLogs.filter { it.date >= start && it.date <= end }
+                    .map { it.durationMinutes }
+                    .let { if (it.isEmpty()) 0 else it.sum() / it.size }
+                SleepChartPoint("W${start.dayOfMonth}", avg)
+            }
+        }
+        SleepChartRange.MONTHLY -> {
+            val current = YearMonth.now()
+            (5 downTo 0).map { mAgo ->
+                val month = current.minusMonths(mAgo.toLong())
+                val avg = sleepLogs.filter { YearMonth.from(it.date) == month }
+                    .map { it.durationMinutes }
+                    .let { if (it.isEmpty()) 0 else it.sum() / it.size }
+                SleepChartPoint(month.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), avg)
+            }
+        }
+    }
+}
 @Composable
 private fun YasamRutinlerScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
@@ -346,7 +735,7 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -436,7 +825,7 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = Color(0xFF6A1B9A))
+                        Text(stringResource(R.string.menstrual_cycle_title), style = MaterialTheme.typography.titleLarge, color = TrendChipDefaultTextColor)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Card(
                                 modifier = Modifier.weight(1f),
@@ -467,6 +856,39 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(stringResource(R.string.menstrual_phase_fertile), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
                                 Text("${fertileStart} - ${fertileEnd}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEDE7F6)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val cycleProgress = ((daysFromStart % cycleLength).coerceAtLeast(0) / cycleLength.toFloat()).coerceIn(0f, 1f)
+                            val animatedCycleProgress by animateFloatAsState(targetValue = cycleProgress, animationSpec = tween(900), label = "cycle-progress")
+                            val infiniteTransition = rememberInfiniteTransition(label = "cycle-progress-glow")
+                            val progressAlpha by infiniteTransition.animateFloat(
+                                initialValue = 0.72f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(animation = tween(1200), repeatMode = RepeatMode.Reverse),
+                                label = "cycle-progress-alpha"
+                            )
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.menstrual_cycle_progress), style = MaterialTheme.typography.labelSmall, color = TrendChipDefaultTextColor)
+                                AnimatedProgressBar(
+                                    target = animatedCycleProgress,
+                                    modifier = Modifier.fillMaxWidth().height(14.dp),
+                                    color = TrendChipDefaultTextColor.copy(alpha = progressAlpha),
+                                    trackColor = Color(0xFFD1C4E9)
+                                )
+                                Text(
+                                    stringResource(
+                                        R.string.menstrual_cycle_progress_days,
+                                        ((cycleProgress * cycleLength).toInt() + 1).coerceAtMost(cycleLength),
+                                        cycleLength
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TrendChipDefaultTextColor
+                                )
                             }
                         }
                     }
@@ -573,6 +995,14 @@ fun SettingsModule(viewModel: MainViewModel) {
             }
         }
         item {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.medical_disclaimer_title), style = MaterialTheme.typography.titleSmall, color = Color(0xFFBF360C))
+                    Text(stringResource(R.string.medical_disclaimer_body), style = MaterialTheme.typography.bodySmall, color = Color(0xFF6D4C41))
+                }
+            }
+        }
+        item {
             Button(
                 onClick = {
                     scope.launch {
@@ -595,33 +1025,181 @@ fun SettingsModule(viewModel: MainViewModel) {
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
-    val data by viewModel.dashboard.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val selectedDate by viewModel.selectedGoalsDate.collectAsState()
+    val foods by viewModel.foods.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
+    val allWater by viewModel.allWaterLogs.collectAsState()
+    val allSteps by viewModel.allStepsLogs.collectAsState()
+    val sleepLogs by viewModel.sleepLogs.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
+    var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+
+    val summary = remember(selectedDate, range, allMeals, allWater, allSteps, sleepLogs, foods, userGoals) {
+        buildGunumSummaryMetrics(
+            selectedDate = selectedDate,
+            range = range,
+            meals = allMeals,
+            foodsById = foods.associateBy { it.id },
+            waterLogs = allWater,
+            stepsLogs = allSteps,
+            sleepLogs = sleepLogs,
+            stepsTarget = userGoals?.stepsTarget ?: 10000,
+            waterTarget = userGoals?.waterTargetMl ?: 2000,
+            proteinTarget = userGoals?.proteinTarget?.toInt() ?: 120,
+            calorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt(),
+            sleepTarget = userGoals?.sleepTargetMinutes ?: 480
+        )
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
-                MiniProgressCard(stringResource(R.string.card_water), "${data?.waterMl ?: 0} ml", ((data?.waterMl ?: 0) / 2000f), Modifier.weight(1f))
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedGoalsDate(it) }
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                GunumRangeChip(stringResource(R.string.life_sleep_range_daily), range == GunumSummaryRange.DAILY) { range = GunumSummaryRange.DAILY }
+                GunumRangeChip(stringResource(R.string.life_sleep_range_weekly), range == GunumSummaryRange.WEEKLY) { range = GunumSummaryRange.WEEKLY }
+                GunumRangeChip(stringResource(R.string.life_sleep_range_monthly), range == GunumSummaryRange.MONTHLY) { range = GunumSummaryRange.MONTHLY }
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniProgressCard(stringResource(R.string.card_macro), "P ${data?.macroTotals?.protein?.toInt() ?: 0}g", ((data?.macroTotals?.protein ?: 0f) / 120f), Modifier.weight(1f))
-                MiniProgressCard(stringResource(R.string.card_sleep), "${data?.sleepMinutes ?: 0} dk", ((data?.sleepMinutes ?: 0) / 480f), Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_steps), "${summary.steps}", summary.stepsProgress, Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_water), "${summary.waterMl} ml", summary.waterProgress, Modifier.weight(1f))
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
-                    Text("${data?.score?.totalScore ?: 0f}/100", style = MaterialTheme.typography.headlineMedium)
-                    ScoreBar(stringResource(R.string.score_nutrition), data?.score?.nutritionScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_water), data?.score?.hydrationScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_activity), data?.score?.activityScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_sleep), data?.score?.sleepScore ?: 0f)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MiniProgressCard(stringResource(R.string.card_macro), "P ${summary.proteinGr}g", summary.proteinProgress, Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_calorie), "${summary.calories} kcal", summary.calorieProgress, Modifier.weight(1f))
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MiniProgressCard(stringResource(R.string.card_sleep), "${summary.sleepMinutes} dk", summary.sleepProgress, Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+        item {
+            AnimatedSummaryBarsCard(summary)
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.GunumRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+@Composable
+private fun AnimatedSummaryBarsCard(summary: GunumSummaryMetrics) {
+    val stepsAnim by animateFloatAsState(targetValue = summary.stepsProgress, animationSpec = tween(700))
+    val waterAnim by animateFloatAsState(targetValue = summary.waterProgress, animationSpec = tween(700))
+    val proteinAnim by animateFloatAsState(targetValue = summary.proteinProgress, animationSpec = tween(700))
+    val calorieAnim by animateFloatAsState(targetValue = summary.calorieProgress, animationSpec = tween(700))
+    val sleepAnim by animateFloatAsState(targetValue = summary.sleepProgress, animationSpec = tween(700))
+
+    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
+            Row(modifier = Modifier.fillMaxWidth().height(180.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(
+                    stringResource(R.string.card_steps) to stepsAnim,
+                    stringResource(R.string.card_water) to waterAnim,
+                    stringResource(R.string.card_macro) to proteinAnim,
+                    stringResource(R.string.card_calorie) to calorieAnim,
+                    stringResource(R.string.card_sleep) to sleepAnim
+                ).forEach { (label, progress) ->
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height((10 + 110 * progress).dp).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
     }
+}
+
+private enum class GunumSummaryRange { DAILY, WEEKLY, MONTHLY }
+
+private data class GunumSummaryMetrics(
+    val steps: Int,
+    val waterMl: Int,
+    val proteinGr: Int,
+    val calories: Int,
+    val sleepMinutes: Int,
+    val stepsProgress: Float,
+    val waterProgress: Float,
+    val proteinProgress: Float,
+    val calorieProgress: Float,
+    val sleepProgress: Float
+)
+
+private fun buildGunumSummaryMetrics(
+    selectedDate: LocalDate,
+    range: GunumSummaryRange,
+    meals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    waterLogs: List<com.leosoft.longevity.data.local.entity.WaterLogEntity>,
+    stepsLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    sleepLogs: List<SleepLogEntity>,
+    stepsTarget: Int,
+    waterTarget: Int,
+    proteinTarget: Int,
+    calorieTarget: Int,
+    sleepTarget: Int
+): GunumSummaryMetrics {
+    val (start, end) = when (range) {
+        GunumSummaryRange.DAILY -> selectedDate to selectedDate
+        GunumSummaryRange.WEEKLY -> {
+            val s = selectedDate.minusDays((selectedDate.dayOfWeek.value - 1).toLong())
+            s to s.plusDays(6)
+        }
+        GunumSummaryRange.MONTHLY -> {
+            val ym = YearMonth.from(selectedDate)
+            ym.atDay(1) to ym.atEndOfMonth()
+        }
+    }
+    val dayCount = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
+    val steps = stepsLogs.filter { it.date in start..end }.sumOf { it.steps }
+    val water = waterLogs.filter { it.date in start..end }.sumOf { it.amountMl }
+    val macroTotals = CalculateMacroTotalsUseCase().invoke(meals.filter { it.date in start..end }, foodsById)
+    val protein = macroTotals.protein.toInt()
+    val calories = macroTotals.calories
+    val sleep = sleepLogs.filter { it.date in start..end }.sumOf { it.durationMinutes }
+    val avgSteps = if (range == GunumSummaryRange.DAILY) steps else (steps / dayCount)
+    val avgWater = if (range == GunumSummaryRange.DAILY) water else (water / dayCount)
+    val avgProtein = if (range == GunumSummaryRange.DAILY) protein else (protein / dayCount)
+    val avgCalories = if (range == GunumSummaryRange.DAILY) calories else (calories / dayCount)
+    val avgSleep = if (range == GunumSummaryRange.DAILY) sleep else (sleep / dayCount)
+    return GunumSummaryMetrics(
+        steps = avgSteps,
+        waterMl = avgWater,
+        proteinGr = avgProtein,
+        calories = avgCalories,
+        sleepMinutes = avgSleep,
+        stepsProgress = (avgSteps / stepsTarget.toFloat()).coerceIn(0f, 1f),
+        waterProgress = (avgWater / waterTarget.toFloat()).coerceIn(0f, 1f),
+        proteinProgress = (avgProtein / proteinTarget.toFloat()).coerceIn(0f, 1f),
+        calorieProgress = (avgCalories / calorieTarget.toFloat()).coerceIn(0f, 1f),
+        sleepProgress = (avgSleep / sleepTarget.toFloat()).coerceIn(0f, 1f)
+    )
 }
 
 @Composable
@@ -638,6 +1216,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
     var selectedPeriodStartDate by remember { mutableStateOf(menstrualLogs.firstOrNull()?.periodStartDate) }
+    var cycleLengthText by remember { mutableStateOf(menstrualLogs.firstOrNull()?.cycleLengthDays?.toString() ?: "28") }
     val context = LocalContext.current
 
     LaunchedEffect(profile, menstrualLogs) {
@@ -656,6 +1235,9 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         if (selectedPeriodStartDate == null) {
             selectedPeriodStartDate = menstrualLogs.firstOrNull()?.periodStartDate
         }
+        if (cycleLengthText.isBlank()) {
+            cycleLengthText = menstrualLogs.firstOrNull()?.cycleLengthDays?.toString() ?: "28"
+        }
     }
 
     val age = ageText.toIntOrNull()
@@ -664,16 +1246,11 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
     val selectedGender = genderKeys[genderIndex]
     val selectedWeightGoalMode = weightGoalModes[selectedWeightGoalModeIndex]
+    val menstrualCycleLength = cycleLengthText.toIntOrNull()?.coerceIn(20, 40) ?: 28
     val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
-    LaunchedEffect(age, height, weight, selectedGender) {
-        if (age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0f) {
-            viewModel.saveProfile(age, height, weight, selectedGender)
-        }
-    }
-
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -734,7 +1311,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                                 { _, y, m, d ->
                                     val picked = java.time.LocalDate.of(y, m + 1, d)
                                     selectedPeriodStartDate = picked
-                                    viewModel.addMenstrualCycleLog(picked)
                                 },
                                 initial.year,
                                 initial.monthValue - 1,
@@ -749,7 +1325,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                                 { _, y, m, d ->
                                     val picked = java.time.LocalDate.of(y, m + 1, d)
                                     selectedPeriodStartDate = picked
-                                    viewModel.addMenstrualCycleLog(picked)
                                 },
                                 initial.year,
                                 initial.monthValue - 1,
@@ -759,6 +1334,15 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             Text(stringResource(R.string.me_select_date))
                         }
                     }
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = cycleLengthText,
+                    onValueChange = { cycleLengthText = it.filter(Char::isDigit).take(2) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.me_menstrual_cycle_length)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
         }
@@ -835,6 +1419,11 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 TextButton(onClick = {
                     if (!canCalculate || isCreatingGoals) return@TextButton
                     isCreatingGoals = true
+                    if (selectedGender == "female") {
+                        selectedPeriodStartDate?.let { date ->
+                            viewModel.addMenstrualCycleLog(date, cycleLengthDays = menstrualCycleLength)
+                        }
+                    }
                     viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) { success ->
                         isCreatingGoals = false
                         showResetGoalsDialog = false
@@ -923,7 +1512,7 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -965,8 +1554,8 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                         }
                         Text(stringResource(R.string.goal_frequency_label, cadenceLabel(goal.cadence)))
                         Text(goalProgressLabel(goal.goalType, progress.current, goal.target))
-                        androidx.compose.material3.LinearProgressIndicator(
-                            progress = { if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f) },
+                        AnimatedProgressBar(
+                            target = if (goal.target == 0) 0f else (progress.current / goal.target.toFloat()).coerceIn(0f, 1f),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -1041,7 +1630,7 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
     var reminderToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.ReminderLogEntity?>(null) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -1419,6 +2008,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var selectedFoodId by remember { mutableStateOf<Long?>(null) }
     var customFoodName by remember { mutableStateOf("") }
     var selectedSupplementId by remember { mutableLongStateOf(supplements.firstOrNull()?.id ?: 0L) }
+    var customSupplementName by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var secondaryText by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
@@ -1462,12 +2052,21 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
-                    QuickAddType.SUPPLEMENT -> ExposedDropdownSimple(
-                        label = stringResource(R.string.supplement_name),
-                        options = supplements.map { it.name },
-                        selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
-                        onSelect = { idx -> selectedSupplementId = supplements[idx].id }
-                    )
+                    QuickAddType.SUPPLEMENT -> {
+                        if (supplements.isNotEmpty()) {
+                            ExposedDropdownSimple(
+                                label = stringResource(R.string.supplement_name),
+                                options = supplements.map { it.name },
+                                selected = supplements.indexOfFirst { it.id == selectedSupplementId }.coerceAtLeast(0),
+                                onSelect = { idx -> selectedSupplementId = supplements[idx].id }
+                            )
+                        }
+                        OutlinedTextField(
+                            value = customSupplementName,
+                            onValueChange = { customSupplementName = it },
+                            label = { Text(stringResource(R.string.supplement_name_optional)) }
+                        )
+                    }
                     QuickAddType.SLEEP -> {
                         val now = java.time.LocalTime.now()
                         val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
@@ -1550,7 +2149,10 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     null -> Unit
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
-                    QuickAddType.SUPPLEMENT -> viewModel.addSupplementLog(selectedSupplementId)
+                    QuickAddType.SUPPLEMENT -> {
+                        if (customSupplementName.isNotBlank()) viewModel.addSupplementByName(customSupplementName)
+                        else if (selectedSupplementId > 0L) viewModel.addSupplementLog(selectedSupplementId)
+                    }
                     QuickAddType.SLEEP -> {
                         val now = java.time.LocalTime.now()
                         val bed = amountText.takeIf { it.contains(":") } ?: String.format("%02d:%02d", now.hour, now.minute)
@@ -1652,15 +2254,18 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val mealsSorted = remember(meals) { meals.sortedByDescending { it.time } }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val caloriesChartData = remember(allMeals, foodsById, range) { buildCaloriesChartData(allMeals, foodsById, range) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
 
     var mealToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
     var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 TextButton(onClick = {
@@ -1677,6 +2282,15 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
                     Text(stringResource(R.string.nutrition_selected_date, selectedDate.format(dateFormatter)))
                 }
             }
+        }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_log),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "kcal",
+                data = caloriesChartData
+            )
         }
 
         if (mealsSorted.isEmpty()) {
@@ -1822,13 +2436,17 @@ private fun MealEntryActionsDialog(
 @Composable
 fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
+    val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
-    val totals = remember(meals, foods) { CalculateMacroTotalsUseCase().invoke(meals, foods.associateBy { it.id }) }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val scopedMeals = remember(allMeals, selectedDate, range) { filterMealsByRange(allMeals, selectedDate, range) }
+    val totals = remember(scopedMeals, foodsById) { CalculateMacroTotalsUseCase().invoke(scopedMeals, foodsById) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -1843,9 +2461,21 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
             if (meals.isEmpty()) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
+                val metrics = listOf(
+                    NutritionMetric(stringResource(R.string.nutrient_protein), totals.protein.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_carbs), totals.carbs.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_fat), totals.fat.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_fiber), totals.fiber.toInt(), TrendBarColor)
+                )
+                NutritionMetricChartCard(
+                    title = stringResource(R.string.tab_macros),
+                    metrics = metrics,
+                    unit = "g",
+                    range = range,
+                    onRangeChange = { range = it }
+                )
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.tab_macros), style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             NutrientChip(label = stringResource(R.string.nutrient_protein), value = stringResource(R.string.nutrient_grams_value, totals.protein), modifier = Modifier.weight(1f))
                             NutrientChip(label = stringResource(R.string.nutrient_carbs), value = stringResource(R.string.nutrient_grams_value, totals.carbs), modifier = Modifier.weight(1f))
@@ -1866,9 +2496,12 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     val foods by viewModel.foods.collectAsState()
     val foodsById = remember(foods) { foods.associateBy { it.id } }
     val meals by viewModel.mealEntries.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
-    val total = meals.fold(NutrientTotals()) { acc, meal ->
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    val scopedMeals = remember(allMeals, selectedDate, range) { filterMealsByRange(allMeals, selectedDate, range) }
+    val total = scopedMeals.fold(NutrientTotals()) { acc, meal ->
         val n = foodsById[meal.foodId]?.let { nutrientByGrams(it, meal.grams) } ?: NutrientTotals()
         acc.copy(
             iron = acc.iron + n.iron,
@@ -1880,7 +2513,7 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -1895,9 +2528,21 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
             if (meals.isEmpty()) {
                 EmptyDateRecordCard(stringResource(R.string.nutrition_no_records_for_date))
             } else {
+                val metrics = listOf(
+                    NutritionMetric(stringResource(R.string.nutrient_iron), total.iron.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_magnesium), total.magnesium.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_potassium), total.potassium.toInt(), TrendBarColor),
+                    NutritionMetric(stringResource(R.string.nutrient_omega3), total.omega3.toInt(), TrendBarColor)
+                )
+                NutritionMetricChartCard(
+                    title = stringResource(R.string.tab_micros),
+                    metrics = metrics,
+                    unit = "mg",
+                    range = range,
+                    onRangeChange = { range = it }
+                )
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.tab_micros), style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             NutrientChip(label = stringResource(R.string.nutrient_iron), value = stringResource(R.string.nutrient_mg_value, total.iron), modifier = Modifier.weight(1f))
                             NutrientChip(label = stringResource(R.string.nutrient_magnesium), value = stringResource(R.string.nutrient_mg_value, total.magnesium), modifier = Modifier.weight(1f))
@@ -1918,12 +2563,17 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
 @Composable
 fun BeslenmeSuScreen(viewModel: MainViewModel) {
     val logs by viewModel.waterLogs.collectAsState()
+    val allLogs by viewModel.allWaterLogs.collectAsState()
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    var waterToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WaterLogEntity?>(null) }
+    var waterToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WaterLogEntity?>(null) }
+    val waterChartData = remember(allLogs, range) { buildWaterChartData(allLogs, range) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -1934,12 +2584,21 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
                 onDateSelected = { viewModel.setSelectedNutritionDate(it) }
             )
         }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_water),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "ml",
+                data = waterChartData
+            )
+        }
 
         if (logs.isEmpty()) {
             item { EmptyDateRecordCard(stringResource(R.string.water_no_records_for_date)) }
         } else {
             items(logs, key = { it.id }) { log ->
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { waterToEdit = log }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.water_ml_logged, log.amountMl), style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
@@ -1948,19 +2607,55 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
             }
         }
     }
+
+    waterToEdit?.let { current ->
+        var amountText by remember(current.id) { mutableStateOf(current.amountMl.toString()) }
+        AlertDialog(
+            onDismissRequest = { waterToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = { OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) }) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateWaterLog(current.id, current.date, amountText.toIntOrNull() ?: current.amountMl)
+                    waterToEdit = null
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { waterToEdit = null; waterToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { waterToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    waterToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { waterToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteWaterLog(current.id, current.date); waterToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { waterToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
 }
 
 @Composable
 fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
     val logs by viewModel.supplementLogs.collectAsState()
+    val allLogs by viewModel.allSupplementLogs.collectAsState()
     val supplements by viewModel.supplements.collectAsState()
     val supplementsById = remember(supplements) { supplements.associateBy { it.id } }
     val selectedDate by viewModel.selectedNutritionDate.collectAsState()
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
+    var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    var supplementToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.SupplementLogEntity?>(null) }
+    var supplementToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.SupplementLogEntity?>(null) }
+    val supplementChartData = remember(allLogs, range) { buildSupplementChartData(allLogs, range) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -1971,18 +2666,234 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
                 onDateSelected = { viewModel.setSelectedNutritionDate(it) }
             )
         }
+        item {
+            NutritionTrendChartCard(
+                title = stringResource(R.string.tab_supplements),
+                range = range,
+                onRangeChange = { range = it },
+                unit = "adet",
+                data = supplementChartData
+            )
+        }
 
         if (logs.isEmpty()) {
             item { EmptyDateRecordCard(stringResource(R.string.supplement_no_records_for_date)) }
         } else {
             items(logs, key = { it.id }) { log ->
                 val name = supplementsById[log.supplementId]?.name ?: stringResource(R.string.supplement_unknown)
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { supplementToEdit = log }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(name, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
                     }
                 }
+            }
+        }
+    }
+
+    supplementToEdit?.let { current ->
+        var selectedId by remember(current.id) { mutableLongStateOf(current.supplementId) }
+        AlertDialog(
+            onDismissRequest = { supplementToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = {
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.supplement_name),
+                    options = supplements.map { it.name },
+                    selected = supplements.indexOfFirst { it.id == selectedId }.coerceAtLeast(0),
+                    onSelect = { idx -> selectedId = supplements[idx].id }
+                )
+            },
+            confirmButton = { TextButton(onClick = { viewModel.updateSupplementLog(current.id, current.date, selectedId, true); supplementToEdit = null }) { Text(stringResource(R.string.save)) } },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { supplementToEdit = null; supplementToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { supplementToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    supplementToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { supplementToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteSupplementLog(current.id, current.date); supplementToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { supplementToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+}
+
+private data class NutritionMetric(val label: String, val value: Int, val color: Color)
+
+@Composable
+private fun NutritionMetricChartCard(
+    title: String,
+    metrics: List<NutritionMetric>,
+    unit: String,
+    range: NutritionChartRange,
+    onRangeChange: (NutritionChartRange) -> Unit
+) {
+    val max = (metrics.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    var reveal by remember(range, metrics) { mutableStateOf(false) }
+    LaunchedEffect(range, metrics) { reveal = true }
+    val revealFactor by animateFloatAsState(targetValue = if (reveal) 1f else 0f, animationSpec = tween(850), label = "nutrition-metric-reveal")
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_daily), range == NutritionChartRange.DAILY) { onRangeChange(NutritionChartRange.DAILY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_weekly), range == NutritionChartRange.WEEKLY) { onRangeChange(NutritionChartRange.WEEKLY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_monthly), range == NutritionChartRange.MONTHLY) { onRangeChange(NutritionChartRange.MONTHLY) }
+            }
+            Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                metrics.forEach { m ->
+                    val hBase = if (m.value <= 0) 0f else (12f + (90f * (m.value / max.toFloat())))
+                    val h = (hBase * revealFactor).dp
+                    val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-metric-bar")
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(m.label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private enum class NutritionChartRange { DAILY, WEEKLY, MONTHLY }
+private data class NutritionTrendPoint(val label: String, val value: Int)
+
+@Composable
+private fun NutritionTrendChartCard(
+    title: String,
+    range: NutritionChartRange,
+    onRangeChange: (NutritionChartRange) -> Unit,
+    unit: String,
+    data: List<NutritionTrendPoint>
+) {
+    val max = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+    var reveal by remember(range, data) { mutableStateOf(false) }
+    LaunchedEffect(range, data) { reveal = true }
+    val revealFactor by animateFloatAsState(targetValue = if (reveal) 1f else 0f, animationSpec = tween(850), label = "nutrition-trend-reveal")
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_daily), range == NutritionChartRange.DAILY) { onRangeChange(NutritionChartRange.DAILY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_weekly), range == NutritionChartRange.WEEKLY) { onRangeChange(NutritionChartRange.WEEKLY) }
+                NutritionRangeChip(stringResource(R.string.life_sleep_range_monthly), range == NutritionChartRange.MONTHLY) { onRangeChange(NutritionChartRange.MONTHLY) }
+            }
+            Row(modifier = Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                data.forEach { p ->
+                    val hBase = if (p.value <= 0) 0f else (12f + (96f * (p.value / max.toFloat())))
+                    val h = (hBase * revealFactor).dp
+                    val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-trend-bar")
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor, maxLines = 1)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(p.label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.NutritionRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+private fun filterMealsByRange(
+    allMeals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    anchor: LocalDate,
+    range: NutritionChartRange
+): List<com.leosoft.longevity.data.local.entity.MealEntryEntity> {
+    return when (range) {
+        NutritionChartRange.DAILY -> allMeals.filter { it.date == anchor }
+        NutritionChartRange.WEEKLY -> {
+            val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+            val end = start.plusDays(6)
+            allMeals.filter { it.date >= start && it.date <= end }
+        }
+        NutritionChartRange.MONTHLY -> {
+            val ym = YearMonth.from(anchor)
+            allMeals.filter { YearMonth.from(it.date) == ym }
+        }
+    }
+}
+
+private fun buildCaloriesChartData(
+    allMeals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allMeals.filter { it.date == day }.sumOf { meal ->
+        val kcal = foodsById[meal.foodId]?.kcalPer100g ?: 0
+        ((kcal * meal.grams) / 100f).toInt()
+    }
+}
+
+private fun buildWaterChartData(
+    allLogs: List<com.leosoft.longevity.data.local.entity.WaterLogEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allLogs.filter { it.date == day }.sumOf { it.amountMl }
+}
+
+private fun buildSupplementChartData(
+    allLogs: List<com.leosoft.longevity.data.local.entity.SupplementLogEntity>,
+    range: NutritionChartRange
+): List<NutritionTrendPoint> = buildNutritionPeriodData(range) { day ->
+    allLogs.count { it.date == day && it.taken }
+}
+
+private fun buildNutritionPeriodData(
+    range: NutritionChartRange,
+    dayValue: (LocalDate) -> Int
+): List<NutritionTrendPoint> {
+    return when (range) {
+        NutritionChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { NutritionTrendPoint(it.dayOfMonth.toString(), dayValue(it)) }
+                .toList()
+        }
+        NutritionChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { w ->
+                val anchor = today.minusWeeks(w.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val total = (0..6).sumOf { dayValue(start.plusDays(it.toLong())) }
+                NutritionTrendPoint("W${start.dayOfMonth}", total)
+            }
+        }
+        NutritionChartRange.MONTHLY -> {
+            val cur = YearMonth.now()
+            (5 downTo 0).map { m ->
+                val ym = cur.minusMonths(m.toLong())
+                val total = (1..ym.lengthOfMonth()).sumOf { dayValue(ym.atDay(it)) }
+                NutritionTrendPoint(ym.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), total)
             }
         }
     }
@@ -2017,6 +2928,22 @@ private fun NutritionDatePickerCard(
             Text(stringResource(R.string.nutrition_selected_date, selectedDateText))
         }
     }
+}
+
+@Composable
+private fun AnimatedProgressBar(
+    target: Float,
+    modifier: Modifier = Modifier,
+    color: Color = TrendBarColor,
+    trackColor: Color = Color(0xFFEDE7F6)
+) {
+    val animated by animateFloatAsState(targetValue = target.coerceIn(0f, 1f), animationSpec = tween(700), label = "animated-progress")
+    LinearProgressIndicator(
+        progress = { animated },
+        modifier = modifier,
+        color = color,
+        trackColor = trackColor
+    )
 }
 
 @Composable

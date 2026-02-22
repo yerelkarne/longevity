@@ -24,6 +24,9 @@ interface ActivityDao {
     @Query("SELECT * FROM steps_logs WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun observeStepsBetween(startDate: LocalDate, endDate: LocalDate): Flow<List<StepsLogEntity>>
 
+    @Query("SELECT * FROM steps_logs ORDER BY date DESC")
+    fun observeAllSteps(): Flow<List<StepsLogEntity>>
+
     @Query("SELECT COALESCE(SUM(steps), 0) FROM steps_logs WHERE date BETWEEN :startDate AND :endDate")
     fun observeStepsTotalBetween(startDate: LocalDate, endDate: LocalDate): Flow<Int>
 
@@ -39,6 +42,9 @@ interface ActivityDao {
     @Query("SELECT * FROM workout_logs WHERE date = :date")
     fun observeWorkouts(date: LocalDate): Flow<List<WorkoutLogEntity>>
 
+    @Query("SELECT * FROM workout_logs ORDER BY date DESC, time DESC")
+    fun observeAllWorkouts(): Flow<List<WorkoutLogEntity>>
+
     @Query("SELECT * FROM workout_logs WHERE date = :date")
     suspend fun getWorkouts(date: LocalDate): List<WorkoutLogEntity>
 
@@ -50,4 +56,10 @@ interface ActivityDao {
 
     @Query("UPDATE workout_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
     suspend fun updateWorkoutSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
+
+    @Query("UPDATE workout_logs SET type = :type, durationMinutes = :durationMinutes, intensity = :intensity, notes = :notes WHERE id = :id")
+    suspend fun updateWorkout(id: Long, type: com.leosoft.longevity.data.local.entity.WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
+
+    @Query("DELETE FROM workout_logs WHERE id = :id")
+    suspend fun deleteWorkout(id: Long)
 }
