@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1046,6 +1047,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
             stepsTarget = userGoals?.stepsTarget ?: 10000,
             waterTarget = userGoals?.waterTargetMl ?: 2000,
             proteinTarget = userGoals?.proteinTarget?.toInt() ?: 120,
+            calorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt(),
             sleepTarget = userGoals?.sleepTargetMinutes ?: 480
         )
     }
@@ -1077,7 +1079,13 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniProgressCard(stringResource(R.string.card_macro), "P ${summary.proteinGr}g", summary.proteinProgress, Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_calorie), "${summary.calories} kcal", summary.calorieProgress, Modifier.weight(1f))
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniProgressCard(stringResource(R.string.card_sleep), "${summary.sleepMinutes} dk", summary.sleepProgress, Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
         item {
@@ -1101,6 +1109,7 @@ private fun AnimatedSummaryBarsCard(summary: GunumSummaryMetrics) {
     val stepsAnim by animateFloatAsState(targetValue = summary.stepsProgress, animationSpec = tween(700))
     val waterAnim by animateFloatAsState(targetValue = summary.waterProgress, animationSpec = tween(700))
     val proteinAnim by animateFloatAsState(targetValue = summary.proteinProgress, animationSpec = tween(700))
+    val calorieAnim by animateFloatAsState(targetValue = summary.calorieProgress, animationSpec = tween(700))
     val sleepAnim by animateFloatAsState(targetValue = summary.sleepProgress, animationSpec = tween(700))
 
     Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
@@ -1111,6 +1120,7 @@ private fun AnimatedSummaryBarsCard(summary: GunumSummaryMetrics) {
                     stringResource(R.string.card_steps) to stepsAnim,
                     stringResource(R.string.card_water) to waterAnim,
                     stringResource(R.string.card_macro) to proteinAnim,
+                    stringResource(R.string.card_calorie) to calorieAnim,
                     stringResource(R.string.card_sleep) to sleepAnim
                 ).forEach { (label, progress) ->
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
@@ -1132,10 +1142,12 @@ private data class GunumSummaryMetrics(
     val steps: Int,
     val waterMl: Int,
     val proteinGr: Int,
+    val calories: Int,
     val sleepMinutes: Int,
     val stepsProgress: Float,
     val waterProgress: Float,
     val proteinProgress: Float,
+    val calorieProgress: Float,
     val sleepProgress: Float
 )
 
@@ -1150,6 +1162,7 @@ private fun buildGunumSummaryMetrics(
     stepsTarget: Int,
     waterTarget: Int,
     proteinTarget: Int,
+    calorieTarget: Int,
     sleepTarget: Int
 ): GunumSummaryMetrics {
     val (start, end) = when (range) {
@@ -1166,20 +1179,25 @@ private fun buildGunumSummaryMetrics(
     val dayCount = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
     val steps = stepsLogs.filter { it.date in start..end }.sumOf { it.steps }
     val water = waterLogs.filter { it.date in start..end }.sumOf { it.amountMl }
-    val protein = CalculateMacroTotalsUseCase().invoke(meals.filter { it.date in start..end }, foodsById).protein.toInt()
+    val macroTotals = CalculateMacroTotalsUseCase().invoke(meals.filter { it.date in start..end }, foodsById)
+    val protein = macroTotals.protein.toInt()
+    val calories = macroTotals.calories
     val sleep = sleepLogs.filter { it.date in start..end }.sumOf { it.durationMinutes }
     val avgSteps = if (range == GunumSummaryRange.DAILY) steps else (steps / dayCount)
     val avgWater = if (range == GunumSummaryRange.DAILY) water else (water / dayCount)
     val avgProtein = if (range == GunumSummaryRange.DAILY) protein else (protein / dayCount)
+    val avgCalories = if (range == GunumSummaryRange.DAILY) calories else (calories / dayCount)
     val avgSleep = if (range == GunumSummaryRange.DAILY) sleep else (sleep / dayCount)
     return GunumSummaryMetrics(
         steps = avgSteps,
         waterMl = avgWater,
         proteinGr = avgProtein,
+        calories = avgCalories,
         sleepMinutes = avgSleep,
         stepsProgress = (avgSteps / stepsTarget.toFloat()).coerceIn(0f, 1f),
         waterProgress = (avgWater / waterTarget.toFloat()).coerceIn(0f, 1f),
         proteinProgress = (avgProtein / proteinTarget.toFloat()).coerceIn(0f, 1f),
+        calorieProgress = (avgCalories / calorieTarget.toFloat()).coerceIn(0f, 1f),
         sleepProgress = (avgSleep / sleepTarget.toFloat()).coerceIn(0f, 1f)
     )
 }
