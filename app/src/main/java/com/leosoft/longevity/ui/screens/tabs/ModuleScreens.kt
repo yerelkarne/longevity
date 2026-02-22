@@ -9,8 +9,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -755,15 +758,36 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                             }
                         }
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEDE7F6)),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val cycleProgress = ((daysFromStart % cycleLength).coerceAtLeast(0) / cycleLength.toFloat()).coerceIn(0f, 1f)
-                            val animatedCycleProgress by animateFloatAsState(targetValue = cycleProgress, animationSpec = tween(750), label = "cycle-progress")
-                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Döngü ilerleme", style = MaterialTheme.typography.labelSmall, color = TrendChipDefaultTextColor)
-                                AnimatedProgressBar(target = animatedCycleProgress, modifier = Modifier.fillMaxWidth().height(8.dp))
+                            val animatedCycleProgress by animateFloatAsState(targetValue = cycleProgress, animationSpec = tween(900), label = "cycle-progress")
+                            val infiniteTransition = rememberInfiniteTransition(label = "cycle-progress-glow")
+                            val progressAlpha by infiniteTransition.animateFloat(
+                                initialValue = 0.72f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(animation = tween(1200), repeatMode = RepeatMode.Reverse),
+                                label = "cycle-progress-alpha"
+                            )
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.menstrual_cycle_progress), style = MaterialTheme.typography.labelSmall, color = TrendChipDefaultTextColor)
+                                AnimatedProgressBar(
+                                    target = animatedCycleProgress,
+                                    modifier = Modifier.fillMaxWidth().height(14.dp),
+                                    color = TrendChipDefaultTextColor.copy(alpha = progressAlpha),
+                                    trackColor = Color(0xFFD1C4E9)
+                                )
+                                Text(
+                                    stringResource(
+                                        R.string.menstrual_cycle_progress_days,
+                                        ((cycleProgress * cycleLength).toInt() + 1).coerceAtMost(cycleLength),
+                                        cycleLength
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TrendChipDefaultTextColor
+                                )
                             }
                         }
                     }
@@ -1066,6 +1090,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     var showResetGoalsDialog by remember { mutableStateOf(false) }
     var isCreatingGoals by remember { mutableStateOf(false) }
     var selectedPeriodStartDate by remember { mutableStateOf(menstrualLogs.firstOrNull()?.periodStartDate) }
+    var cycleLengthText by remember { mutableStateOf(menstrualLogs.firstOrNull()?.cycleLengthDays?.toString() ?: "28") }
     val context = LocalContext.current
 
     LaunchedEffect(profile, menstrualLogs) {
@@ -1084,6 +1109,9 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         if (selectedPeriodStartDate == null) {
             selectedPeriodStartDate = menstrualLogs.firstOrNull()?.periodStartDate
         }
+        if (cycleLengthText.isBlank()) {
+            cycleLengthText = menstrualLogs.firstOrNull()?.cycleLengthDays?.toString() ?: "28"
+        }
     }
 
     val age = ageText.toIntOrNull()
@@ -1092,6 +1120,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
     val selectedGender = genderKeys[genderIndex]
     val selectedWeightGoalMode = weightGoalModes[selectedWeightGoalModeIndex]
+    val menstrualCycleLength = cycleLengthText.toIntOrNull()?.coerceIn(21, 40) ?: 28
+    val canSaveMenstrualCycle = selectedPeriodStartDate != null && cycleLengthText.toIntOrNull() != null
     val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
     LaunchedEffect(age, height, weight, selectedGender) {
@@ -1162,7 +1192,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                                 { _, y, m, d ->
                                     val picked = java.time.LocalDate.of(y, m + 1, d)
                                     selectedPeriodStartDate = picked
-                                    viewModel.addMenstrualCycleLog(picked)
                                 },
                                 initial.year,
                                 initial.monthValue - 1,
@@ -1177,7 +1206,6 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                                 { _, y, m, d ->
                                     val picked = java.time.LocalDate.of(y, m + 1, d)
                                     selectedPeriodStartDate = picked
-                                    viewModel.addMenstrualCycleLog(picked)
                                 },
                                 initial.year,
                                 initial.monthValue - 1,
@@ -1188,6 +1216,30 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                         }
                     }
                 )
+            }
+            item {
+                OutlinedTextField(
+                    value = cycleLengthText,
+                    onValueChange = { cycleLengthText = it.filter(Char::isDigit).take(2) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.me_menstrual_cycle_length)) },
+                    supportingText = { Text(stringResource(R.string.me_menstrual_cycle_length_hint)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+            item {
+                Button(
+                    onClick = {
+                        selectedPeriodStartDate?.let { date ->
+                            viewModel.addMenstrualCycleLog(date, cycleLengthDays = menstrualCycleLength)
+                            Toast.makeText(context, context.getString(R.string.me_menstrual_saved), Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = canSaveMenstrualCycle,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.me_menstrual_save_cycle))
+                }
             }
         }
         item {
