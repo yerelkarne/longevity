@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -297,6 +298,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                             chartData.forEach { point ->
                                 val ratio = point.minutes / maxMinutes.toFloat()
                                 val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "activity-bar")
                                 Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                                     Text(formatSleepHoursShort(point.minutes), style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
                                     Box(
@@ -306,7 +308,7 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(barHeight)
+                                               .height(animatedBarHeight)
                                                 .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                         )
                                     }
@@ -465,6 +467,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                             chartData.forEach { point ->
                                 val ratio = point.minutes / maxMinutes.toFloat()
                                 val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                val animatedBarHeight by animateDpAsState(targetValue = barHeight, animationSpec = tween(650), label = "sleep-bar")
                                 Column(
                                     modifier = Modifier.weight(1f),
                                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
@@ -484,7 +487,7 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(barHeight)
+                                                .height(animatedBarHeight)
                                                 .background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                         )
                                     }
@@ -708,6 +711,18 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
                             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(stringResource(R.string.menstrual_phase_fertile), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
                                 Text("${fertileStart} - ${fertileEnd}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val cycleProgress = ((daysFromStart % cycleLength).coerceAtLeast(0) / cycleLength.toFloat()).coerceIn(0f, 1f)
+                            val animatedCycleProgress by animateFloatAsState(targetValue = cycleProgress, animationSpec = tween(750), label = "cycle-progress")
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Döngü ilerleme", style = MaterialTheme.typography.labelSmall, color = TrendChipDefaultTextColor)
+                                AnimatedProgressBar(target = animatedCycleProgress, modifier = Modifier.fillMaxWidth().height(8.dp))
                             }
                         }
                     }
@@ -2452,10 +2467,11 @@ private fun NutritionMetricChartCard(
             Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 metrics.forEach { m ->
                     val h = if (m.value <= 0) 0.dp else (12 + (90 * (m.value / max.toFloat()))).dp
+                    val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-metric-bar")
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                         Text("${m.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
-                            Box(modifier = Modifier.fillMaxWidth().height(h).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                            Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(m.color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
                         Text(m.label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -2491,10 +2507,11 @@ private fun NutritionTrendChartCard(
             Row(modifier = Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 data.forEach { p ->
                     val h = if (p.value <= 0) 0.dp else (12 + (96 * (p.value / max.toFloat()))).dp
+                    val animatedH by animateDpAsState(targetValue = h, animationSpec = tween(650), label = "nutrition-trend-bar")
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                         Text("${p.value} $unit", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor, maxLines = 1)
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
-                            Box(modifier = Modifier.fillMaxWidth().height(h).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                            Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
                         Text(p.label, style = MaterialTheme.typography.labelSmall)
                     }
