@@ -42,4 +42,6 @@
     <string name="life_pulse_ready">Ready to measure</string>
     <string name="life_pulse_result_inconclusive">Measurement finished, insufficient result. Please try again.</string>
 
+    <string name="life_pulse_camera_initializing">Camera is preparing...</string>
+
 </resources>

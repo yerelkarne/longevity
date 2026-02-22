@@ -307,4 +307,6 @@
     <string name="life_pulse_ready">Ölçüme hazır</string>
     <string name="life_pulse_result_inconclusive">Ölçüm tamamlandı, sonuç yetersiz. Lütfen tekrar deneyin.</string>
 
+    <string name="life_pulse_camera_initializing">Kamera hazırlanıyor...</string>
+
 </resources>

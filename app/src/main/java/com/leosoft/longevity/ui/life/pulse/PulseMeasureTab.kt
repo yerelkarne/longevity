@@ -51,14 +51,18 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     val owner = LocalLifecycleOwner.current
     val manager = remember { PulseCameraManager() }
     val processor = remember { PulseSignalProcessor() }
-    val signal = remember { mutableStateListOf<Double>() }
+
+    val liveSignal = remember { mutableStateListOf<Double>() }
+    val measureSignal = remember { mutableStateListOf<Double>() }
+
     var hasPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var denied by remember { mutableStateOf(false) }
     var measuring by remember { mutableStateOf(false) }
+    var cameraReady by remember { mutableStateOf(false) }
     var quality by remember { mutableStateOf(0) }
-    var statusText by remember { mutableStateOf(context.getString(R.string.life_pulse_status_no_finger)) }
+    var statusText by remember { mutableStateOf(context.getString(R.string.life_pulse_camera_initializing)) }
     var elapsed by remember { mutableStateOf(0) }
     var torch by remember { mutableStateOf(true) }
     var hasTorch by remember { mutableStateOf(true) }
@@ -69,39 +73,57 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         denied = !it
     }
 
-    LaunchedEffect(hasPermission) {
+    DisposableEffect(hasPermission, owner) {
         if (hasPermission) {
+            cameraReady = false
             manager.bindForPulse(
                 context = context,
                 lifecycleOwner = owner,
                 onFrame = { luma, _ ->
+                    liveSignal.add(luma)
+                    if (liveSignal.size > 300) liveSignal.removeAt(0)
                     if (measuring) {
-                        signal.add(luma)
-                        if (signal.size > 900) signal.removeAt(0)
+                        measureSignal.add(luma)
+                        if (measureSignal.size > 1050) measureSignal.removeAt(0)
                     }
                 },
-                onTorchAvailability = { hasTorch = it }
+                onTorchAvailability = {
+                    hasTorch = it
+                    cameraReady = true
+                    statusText = if (it) context.getString(R.string.life_pulse_ready) else context.getString(R.string.life_pulse_torch_not_supported)
+                }
             )
-            if (torch) manager.setTorch(true)
         }
+        onDispose { manager.unbind(context) }
     }
 
-    LaunchedEffect(torch, hasPermission) {
-        if (hasPermission && !manager.setTorch(torch)) {
+    LaunchedEffect(torch, hasPermission, cameraReady) {
+        if (hasPermission && cameraReady && !manager.setTorch(torch)) {
             statusText = context.getString(R.string.life_pulse_torch_not_supported)
         }
     }
 
     LaunchedEffect(measuring) {
         if (!measuring) return@LaunchedEffect
+        if (!cameraReady) {
+            statusText = context.getString(R.string.life_pulse_camera_initializing)
+            measuring = false
+            return@LaunchedEffect
+        }
+
+        torch = true
         elapsed = 0
+        quality = 0
         resultText = ""
+        measureSignal.clear()
+        statusText = context.getString(R.string.life_pulse_measuring_now)
+
         while (measuring && elapsed <= 35) {
             kotlinx.coroutines.delay(1000)
             elapsed += 1
-            if (elapsed >= 25 && signal.size > 100) {
-                val fs = signal.size / elapsed.toDouble()
-                val result = processor.process(signal.toList(), fs)
+            if (elapsed >= 25 && measureSignal.size > 120) {
+                val fs = measureSignal.size / elapsed.toDouble()
+                val result = processor.process(measureSignal.toList(), fs)
                 quality = result.quality
                 statusText = when (result.status) {
                     PulseStatus.SUCCESS -> context.getString(R.string.life_pulse_status_finger_detected)
@@ -126,8 +148,6 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         }
     }
 
-    DisposableEffect(Unit) { onDispose { manager.unbind(context) } }
-
     if (!hasPermission) {
         Card(modifier = Modifier.padding(16.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -144,19 +164,15 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = if (measuring) stringResource(R.string.life_pulse_measuring_now) else stringResource(R.string.life_pulse_ready),
-            fontWeight = FontWeight.Bold
-        )
+        Text(if (measuring) stringResource(R.string.life_pulse_measuring_now) else stringResource(R.string.life_pulse_ready), fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.life_pulse_timer, elapsed / 60, elapsed % 60), fontWeight = FontWeight.Bold)
 
-        Card(modifier = Modifier.fillMaxWidth().height(180.dp)) {
-            PulseWaveform(signal = signal, modifier = Modifier.fillMaxSize().padding(8.dp))
+        Card(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+            PulseWaveform(signal = liveSignal, modifier = Modifier.fillMaxSize().padding(8.dp))
         }
 
+        LinearProgressIndicator(progress = { (elapsed / 35f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
         Text(statusText)
-        Text(stringResource(R.string.life_pulse_quality, quality))
-        LinearProgressIndicator(progress = { quality / 100f }, modifier = Modifier.fillMaxWidth())
 
         if (resultText.isNotEmpty()) {
             Text(stringResource(R.string.life_pulse_result_title), fontWeight = FontWeight.Bold)
@@ -164,18 +180,9 @@ fun PulseMeasureTab(viewModel: MainViewModel) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                if (measuring) {
-                    measuring = false
-                } else {
-                    signal.clear()
-                    quality = 0
-                    elapsed = 0
-                    statusText = context.getString(R.string.life_pulse_status_hold_still)
-                    resultText = ""
-                    measuring = true
-                }
-            }) { Text(stringResource(if (measuring) R.string.life_pulse_stop else R.string.life_pulse_start)) }
+            Button(onClick = { measuring = !measuring }) {
+                Text(stringResource(if (measuring) R.string.life_pulse_stop else R.string.life_pulse_start))
+            }
             Switch(checked = torch, onCheckedChange = { torch = it })
             if (!hasTorch) Text(stringResource(R.string.life_pulse_torch_not_supported))
         }
@@ -194,8 +201,7 @@ private fun PulseWaveform(signal: List<Double>, modifier: Modifier = Modifier) {
             val path = Path()
             points.forEachIndexed { index, value ->
                 val x = size.width * index / (points.size - 1).toFloat()
-                val normalized = ((value - min) / range).toFloat()
-                val y = size.height - (normalized * size.height)
+                val y = size.height - (((value - min) / range).toFloat() * size.height)
                 if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             drawLine(Color(0x332196F3), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 1f)
