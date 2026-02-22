@@ -275,9 +275,6 @@
     <string name="menstrual_cycle_progress">Döngü ilerleme</string>
     <string name="menstrual_cycle_progress_days">%1$d / %2$d. gün</string>
     <string name="me_menstrual_cycle_length">Regl döngü süresi (gün)</string>
-    <string name="me_menstrual_cycle_length_hint">Kişiye göre değişir (ör. 28 veya 30 gün)</string>
-    <string name="me_menstrual_save_cycle">Regl bilgilerini kaydet</string>
-    <string name="me_menstrual_saved">Regl döngü bilgisi kaydedildi</string>
 
 
     <string name="life_pulse_title">Nabız (Kamera)</string>

@@ -1121,8 +1121,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
     val canCalculate = age != null && height != null && weight != null && age > 0 && height > 0 && weight > 0
     val selectedGender = genderKeys[genderIndex]
     val selectedWeightGoalMode = weightGoalModes[selectedWeightGoalModeIndex]
-    val menstrualCycleLength = cycleLengthText.toIntOrNull()?.coerceIn(21, 40) ?: 28
-    val canSaveMenstrualCycle = selectedPeriodStartDate != null && cycleLengthText.toIntOrNull() != null
+    val menstrualCycleLength = cycleLengthText.toIntOrNull()?.coerceIn(20, 40) ?: 28
     val targets = if (canCalculate) viewModel.buildPersonalizedTargets(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) else null
 
     LaunchedEffect(age, height, weight, selectedGender) {
@@ -1224,23 +1223,8 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                     onValueChange = { cycleLengthText = it.filter(Char::isDigit).take(2) },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.me_menstrual_cycle_length)) },
-                    supportingText = { Text(stringResource(R.string.me_menstrual_cycle_length_hint)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-            }
-            item {
-                Button(
-                    onClick = {
-                        selectedPeriodStartDate?.let { date ->
-                            viewModel.addMenstrualCycleLog(date, cycleLengthDays = menstrualCycleLength)
-                            Toast.makeText(context, context.getString(R.string.me_menstrual_saved), Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    enabled = canSaveMenstrualCycle,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.me_menstrual_save_cycle))
-                }
             }
         }
         item {
@@ -1316,6 +1300,11 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                 TextButton(onClick = {
                     if (!canCalculate || isCreatingGoals) return@TextButton
                     isCreatingGoals = true
+                    if (selectedGender == "female") {
+                        selectedPeriodStartDate?.let { date ->
+                            viewModel.addMenstrualCycleLog(date, cycleLengthDays = menstrualCycleLength)
+                        }
+                    }
                     viewModel.createPersonalizedGoals(age!!, height!!, weight!!, selectedGender, selectedWeightGoalMode) { success ->
                         isCreatingGoals = false
                         showResetGoalsDialog = false

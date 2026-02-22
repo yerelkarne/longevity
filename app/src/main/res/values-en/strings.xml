@@ -55,8 +55,5 @@
     <string name="menstrual_cycle_progress">Cycle progress</string>
     <string name="menstrual_cycle_progress_days">Day %1$d / %2$d</string>
     <string name="me_menstrual_cycle_length">Cycle length (days)</string>
-    <string name="me_menstrual_cycle_length_hint">Varies by person (e.g. 28 or 30 days)</string>
-    <string name="me_menstrual_save_cycle">Save cycle details</string>
-    <string name="me_menstrual_saved">Menstrual cycle details saved</string>
 
 </resources>
