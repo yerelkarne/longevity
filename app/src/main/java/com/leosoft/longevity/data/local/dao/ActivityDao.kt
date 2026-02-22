@@ -39,6 +39,9 @@ interface ActivityDao {
     @Query("SELECT * FROM workout_logs WHERE date = :date")
     fun observeWorkouts(date: LocalDate): Flow<List<WorkoutLogEntity>>
 
+    @Query("SELECT * FROM workout_logs ORDER BY date DESC, time DESC")
+    fun observeAllWorkouts(): Flow<List<WorkoutLogEntity>>
+
     @Query("SELECT * FROM workout_logs WHERE date = :date")
     suspend fun getWorkouts(date: LocalDate): List<WorkoutLogEntity>
 

@@ -212,6 +212,8 @@ class LongevityRepositoryImpl(
         recalculateScore(date)
     }
 
+    override fun observeAllWorkouts() = activityDao.observeAllWorkouts()
+
     override suspend fun syncWithHealthConnect(options: LongevityRepository.ExternalSyncOptions): LongevityRepository.ExternalSyncResult {
         if (!healthConnectAdapter.isAvailable()) {
             return LongevityRepository.ExternalSyncResult(0, 0, 0, "Health Connect kullanılamıyor")

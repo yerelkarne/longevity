@@ -14,6 +14,7 @@ import com.leosoft.longevity.data.local.entity.ReminderLogEntity
 import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
+import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import java.time.LocalDate
@@ -59,6 +60,7 @@ interface LongevityRepository {
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     fun observeSleepLogs(): Flow<List<SleepLogEntity>>
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
+    fun observeAllWorkouts(): Flow<List<WorkoutLogEntity>>
     suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5)
     suspend fun clearMenstrualCycleLogs()
     fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>

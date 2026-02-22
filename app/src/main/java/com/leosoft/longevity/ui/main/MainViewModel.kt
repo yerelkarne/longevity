@@ -15,6 +15,7 @@ import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.SupplementLogEntity
 import com.leosoft.longevity.data.local.entity.WaterLogEntity
 import com.leosoft.longevity.data.local.entity.UserGoalsEntity
+import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.model.DashboardSummary
 import com.leosoft.longevity.steps.StepTrackerManager
@@ -124,6 +125,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val userGoals: StateFlow<UserGoalsEntity?> = repository.observeGoals()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val workoutLogs: StateFlow<List<WorkoutLogEntity>> = repository.observeAllWorkouts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val weeklySteps = repository.observeWeeklySteps(LocalDate.now())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

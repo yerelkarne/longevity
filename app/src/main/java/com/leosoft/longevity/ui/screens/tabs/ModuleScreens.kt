@@ -145,7 +145,7 @@ fun AktiviteModule(viewModel: MainViewModel) {
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> ActivityStepsScreen(viewModel)
-            1 -> PlaceholderTab(stringResource(R.string.activity_add_hint))
+            1 -> ActivityExerciseScreen(viewModel)
             2 -> ActivityHistoryScreen(viewModel)
             3 -> ActivityGoalsScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.nav_activity))
@@ -230,6 +230,156 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
         }
     }
 }
+
+
+@Composable
+private fun ActivityExerciseScreen(viewModel: MainViewModel) {
+    val workoutLogs by viewModel.workoutLogs.collectAsState()
+    var range by remember { mutableStateOf(ActivityChartRange.DAILY) }
+    val chartData = remember(workoutLogs, range) { buildWorkoutChartData(workoutLogs, range) }
+    val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F5FF))
+            .padding(16.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.activity_exercise_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFEDE7F6), RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_daily), range == ActivityChartRange.DAILY) { range = ActivityChartRange.DAILY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_weekly), range == ActivityChartRange.WEEKLY) { range = ActivityChartRange.WEEKLY }
+                        ActivityRangeChip(stringResource(R.string.life_sleep_range_monthly), range == ActivityChartRange.MONTHLY) { range = ActivityChartRange.MONTHLY }
+                    }
+
+                    if (chartData.isEmpty()) {
+                        Text(stringResource(R.string.activity_exercise_empty), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(190.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chartData.forEach { point ->
+                                val ratio = point.minutes / maxMinutes.toFloat()
+                                val barHeight = if (point.minutes <= 0) 0.dp else (12 + (108 * ratio)).dp
+                                Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    Text(formatSleepHoursShort(point.minutes), style = MaterialTheme.typography.labelSmall, color = Color(0xFF5E35B1))
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(barHeight)
+                                                .background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                        )
+                                    }
+                                    Text(point.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (workoutLogs.isEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.activity_exercise_empty), modifier = Modifier.padding(16.dp))
+                }
+            }
+        } else {
+            items(workoutLogs, key = { it.id }) { workout ->
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(workout.date.toString(), style = MaterialTheme.typography.titleSmall)
+                        Text(resolveWorkoutTypeLabel(workout.type))
+                        Text(stringResource(R.string.activity_exercise_duration, formatSleepDurationLabel(workout.durationMinutes)))
+                        Text(stringResource(R.string.activity_exercise_intensity, workout.intensity))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF4A148C) else Color(0xFF6A1B9A))
+    }
+}
+
+private enum class ActivityChartRange { DAILY, WEEKLY, MONTHLY }
+private data class ActivityChartPoint(val label: String, val minutes: Int)
+
+private fun buildWorkoutChartData(
+    workoutLogs: List<com.leosoft.longevity.data.local.entity.WorkoutLogEntity>,
+    range: ActivityChartRange
+): List<ActivityChartPoint> {
+    return when (range) {
+        ActivityChartRange.DAILY -> {
+            val end = LocalDate.now()
+            val start = end.minusDays(6)
+            generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }
+                .take(7)
+                .map { day ->
+                    val total = workoutLogs.filter { it.date == day }.sumOf { it.durationMinutes }
+                    ActivityChartPoint(day.dayOfMonth.toString(), total)
+                }
+                .toList()
+        }
+        ActivityChartRange.WEEKLY -> {
+            val today = LocalDate.now()
+            (5 downTo 0).map { weeksAgo ->
+                val anchor = today.minusWeeks(weeksAgo.toLong())
+                val start = anchor.minusDays((anchor.dayOfWeek.value - 1).toLong())
+                val end = start.plusDays(6)
+                val total = workoutLogs.filter { it.date >= start && it.date <= end }.sumOf { it.durationMinutes }
+                ActivityChartPoint("W${start.dayOfMonth}", total)
+            }
+        }
+        ActivityChartRange.MONTHLY -> {
+            val current = YearMonth.now()
+            (5 downTo 0).map { mAgo ->
+                val month = current.minusMonths(mAgo.toLong())
+                val total = workoutLogs.filter { YearMonth.from(it.date) == month }.sumOf { it.durationMinutes }
+                ActivityChartPoint(month.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())), total)
+            }
+        }
+    }
+}
+
+@Composable
+private fun resolveWorkoutTypeLabel(type: WorkoutType): String = stringResource(workoutTypeLabel(type))
 
 @Composable
 private fun ActivityHistoryScreen(viewModel: MainViewModel) {

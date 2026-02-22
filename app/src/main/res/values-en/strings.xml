@@ -48,4 +48,8 @@
     <string name="life_sleep_range_daily">Daily</string>
     <string name="life_sleep_range_weekly">Weekly</string>
     <string name="life_sleep_range_monthly">Monthly</string>
+    <string name="activity_exercise_trend_title">Exercise trends</string>
+    <string name="activity_exercise_empty">No exercise records yet.</string>
+    <string name="activity_exercise_duration">Duration: %1$s</string>
+    <string name="activity_exercise_intensity">Intensity: %1$d/10</string>
 </resources>
