@@ -17,7 +17,7 @@ interface LifeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMenstrualCycleLog(log: MenstrualCycleLogEntity)
 
-    @Query("SELECT * FROM menstrual_cycle_logs ORDER BY periodStartDate DESC")
+    @Query("SELECT * FROM menstrual_cycle_logs ORDER BY periodStartDate DESC, id DESC")
     fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>
 
     @Query("SELECT * FROM menstrual_cycle_logs WHERE syncState = 'PENDING_UPLOAD'")
