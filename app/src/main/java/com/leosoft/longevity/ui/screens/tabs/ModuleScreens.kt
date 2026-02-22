@@ -3,6 +3,8 @@ package com.leosoft.longevity.ui.screens.tabs
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
 import com.leosoft.longevity.data.local.entity.MealType
+import com.leosoft.longevity.data.local.entity.SleepLogEntity
 import com.leosoft.longevity.data.local.entity.WorkoutType
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
 import com.leosoft.longevity.reminders.ReminderAlarmScheduler
@@ -819,33 +822,164 @@ fun SettingsModule(viewModel: MainViewModel) {
 
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
-    val data by viewModel.dashboard.collectAsState()
+    val selectedDate by viewModel.selectedGoalsDate.collectAsState()
+    val foods by viewModel.foods.collectAsState()
+    val allMeals by viewModel.allMealEntries.collectAsState()
+    val allWater by viewModel.allWaterLogs.collectAsState()
+    val allSteps by viewModel.allStepsLogs.collectAsState()
+    val sleepLogs by viewModel.sleepLogs.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
+    var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+
+    val summary = remember(selectedDate, range, allMeals, allWater, allSteps, sleepLogs, foods, userGoals) {
+        buildGunumSummaryMetrics(
+            selectedDate = selectedDate,
+            range = range,
+            meals = allMeals,
+            foodsById = foods.associateBy { it.id },
+            waterLogs = allWater,
+            stepsLogs = allSteps,
+            sleepLogs = sleepLogs,
+            stepsTarget = userGoals?.stepsTarget ?: 10000,
+            waterTarget = userGoals?.waterTargetMl ?: 2000,
+            proteinTarget = userGoals?.proteinTarget?.toInt() ?: 120,
+            sleepTarget = userGoals?.sleepTargetMinutes ?: 480
+        )
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniProgressCard(stringResource(R.string.card_steps), "${data?.steps ?: 0}", ((data?.steps ?: 0) / 10000f), Modifier.weight(1f))
-                MiniProgressCard(stringResource(R.string.card_water), "${data?.waterMl ?: 0} ml", ((data?.waterMl ?: 0) / 2000f), Modifier.weight(1f))
+            NutritionDatePickerCard(
+                selectedDate = selectedDate,
+                selectedDateText = selectedDate.format(dateFormatter),
+                onDateSelected = { viewModel.setSelectedGoalsDate(it) }
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().background(TrendChipBackgroundColor, RoundedCornerShape(16.dp)).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                GunumRangeChip(stringResource(R.string.life_sleep_range_daily), range == GunumSummaryRange.DAILY) { range = GunumSummaryRange.DAILY }
+                GunumRangeChip(stringResource(R.string.life_sleep_range_weekly), range == GunumSummaryRange.WEEKLY) { range = GunumSummaryRange.WEEKLY }
+                GunumRangeChip(stringResource(R.string.life_sleep_range_monthly), range == GunumSummaryRange.MONTHLY) { range = GunumSummaryRange.MONTHLY }
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniProgressCard(stringResource(R.string.card_macro), "P ${data?.macroTotals?.protein?.toInt() ?: 0}g", ((data?.macroTotals?.protein ?: 0f) / 120f), Modifier.weight(1f))
-                MiniProgressCard(stringResource(R.string.card_sleep), "${data?.sleepMinutes ?: 0} dk", ((data?.sleepMinutes ?: 0) / 480f), Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_steps), "${summary.steps}", summary.stepsProgress, Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_water), "${summary.waterMl} ml", summary.waterProgress, Modifier.weight(1f))
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
-                    Text("${data?.score?.totalScore ?: 0f}/100", style = MaterialTheme.typography.headlineMedium)
-                    ScoreBar(stringResource(R.string.score_nutrition), data?.score?.nutritionScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_water), data?.score?.hydrationScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_activity), data?.score?.activityScore ?: 0f)
-                    ScoreBar(stringResource(R.string.score_sleep), data?.score?.sleepScore ?: 0f)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MiniProgressCard(stringResource(R.string.card_macro), "P ${summary.proteinGr}g", summary.proteinProgress, Modifier.weight(1f))
+                MiniProgressCard(stringResource(R.string.card_sleep), "${summary.sleepMinutes} dk", summary.sleepProgress, Modifier.weight(1f))
+            }
+        }
+        item {
+            AnimatedSummaryBarsCard(summary)
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.GunumRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+    }
+}
+
+@Composable
+private fun AnimatedSummaryBarsCard(summary: GunumSummaryMetrics) {
+    val stepsAnim by animateFloatAsState(targetValue = summary.stepsProgress, animationSpec = tween(700))
+    val waterAnim by animateFloatAsState(targetValue = summary.waterProgress, animationSpec = tween(700))
+    val proteinAnim by animateFloatAsState(targetValue = summary.proteinProgress, animationSpec = tween(700))
+    val sleepAnim by animateFloatAsState(targetValue = summary.sleepProgress, animationSpec = tween(700))
+
+    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.today_longevity_score), style = MaterialTheme.typography.titleMedium)
+            Row(modifier = Modifier.fillMaxWidth().height(180.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(
+                    stringResource(R.string.card_steps) to stepsAnim,
+                    stringResource(R.string.card_water) to waterAnim,
+                    stringResource(R.string.card_macro) to proteinAnim,
+                    stringResource(R.string.card_sleep) to sleepAnim
+                ).forEach { (label, progress) ->
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("%${(progress * 100).toInt()}", style = MaterialTheme.typography.labelSmall, color = TrendValueTextColor)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            Box(modifier = Modifier.fillMaxWidth().height((10 + 110 * progress).dp).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                        }
+                        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
     }
+}
+
+private enum class GunumSummaryRange { DAILY, WEEKLY, MONTHLY }
+
+private data class GunumSummaryMetrics(
+    val steps: Int,
+    val waterMl: Int,
+    val proteinGr: Int,
+    val sleepMinutes: Int,
+    val stepsProgress: Float,
+    val waterProgress: Float,
+    val proteinProgress: Float,
+    val sleepProgress: Float
+)
+
+private fun buildGunumSummaryMetrics(
+    selectedDate: LocalDate,
+    range: GunumSummaryRange,
+    meals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    waterLogs: List<com.leosoft.longevity.data.local.entity.WaterLogEntity>,
+    stepsLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    sleepLogs: List<SleepLogEntity>,
+    stepsTarget: Int,
+    waterTarget: Int,
+    proteinTarget: Int,
+    sleepTarget: Int
+): GunumSummaryMetrics {
+    val (start, end) = when (range) {
+        GunumSummaryRange.DAILY -> selectedDate to selectedDate
+        GunumSummaryRange.WEEKLY -> {
+            val s = selectedDate.minusDays((selectedDate.dayOfWeek.value - 1).toLong())
+            s to s.plusDays(6)
+        }
+        GunumSummaryRange.MONTHLY -> {
+            val ym = YearMonth.from(selectedDate)
+            ym.atDay(1) to ym.atEndOfMonth()
+        }
+    }
+    val dayCount = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
+    val steps = stepsLogs.filter { it.date in start..end }.sumOf { it.steps }
+    val water = waterLogs.filter { it.date in start..end }.sumOf { it.amountMl }
+    val protein = CalculateMacroTotalsUseCase().invoke(meals.filter { it.date in start..end }, foodsById).protein.toInt()
+    val sleep = sleepLogs.filter { it.date in start..end }.sumOf { it.durationMinutes }
+    val avgSteps = if (range == GunumSummaryRange.DAILY) steps else (steps / dayCount)
+    val avgWater = if (range == GunumSummaryRange.DAILY) water else (water / dayCount)
+    val avgProtein = if (range == GunumSummaryRange.DAILY) protein else (protein / dayCount)
+    val avgSleep = if (range == GunumSummaryRange.DAILY) sleep else (sleep / dayCount)
+    return GunumSummaryMetrics(
+        steps = avgSteps,
+        waterMl = avgWater,
+        proteinGr = avgProtein,
+        sleepMinutes = avgSleep,
+        stepsProgress = (avgSteps / stepsTarget.toFloat()).coerceIn(0f, 1f),
+        waterProgress = (avgWater / waterTarget.toFloat()).coerceIn(0f, 1f),
+        proteinProgress = (avgProtein / proteinTarget.toFloat()).coerceIn(0f, 1f),
+        sleepProgress = (avgSleep / sleepTarget.toFloat()).coerceIn(0f, 1f)
+    )
 }
 
 @Composable

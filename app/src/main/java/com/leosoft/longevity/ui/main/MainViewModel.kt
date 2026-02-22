@@ -138,6 +138,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val workoutLogs: StateFlow<List<WorkoutLogEntity>> = repository.observeAllWorkouts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allStepsLogs = repository.observeAllSteps()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val weeklySteps = repository.observeWeeklySteps(LocalDate.now())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

@@ -167,6 +167,8 @@ class LongevityRepositoryImpl(
         return activityDao.observeStepsBetween(start, endDate)
     }
 
+    override fun observeAllSteps(): Flow<List<StepsLogEntity>> = activityDao.observeAllSteps()
+
     override fun observeMonthlyStepsTotal(monthDate: LocalDate): Flow<Int> {
         val start = monthDate.withDayOfMonth(1)
         val end = monthDate.withDayOfMonth(monthDate.lengthOfMonth())
