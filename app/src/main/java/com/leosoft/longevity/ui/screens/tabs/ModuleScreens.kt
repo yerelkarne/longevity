@@ -257,6 +257,8 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
 private fun ActivityExerciseScreen(viewModel: MainViewModel) {
     val workoutLogs by viewModel.workoutLogs.collectAsState()
     var range by remember { mutableStateOf(ActivityChartRange.DAILY) }
+    var workoutToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
+    var workoutToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
     val chartData = remember(workoutLogs, range) { buildWorkoutChartData(workoutLogs, range) }
     val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
@@ -339,6 +341,45 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
                 }
             }
         }
+    }
+
+    workoutToEdit?.let { current ->
+        var durationText by remember(current.id) { mutableStateOf(current.durationMinutes.toString()) }
+        var intensityText by remember(current.id) { mutableStateOf(current.intensity.toString()) }
+        var notesText by remember(current.id) { mutableStateOf(current.notes) }
+        AlertDialog(
+            onDismissRequest = { workoutToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = durationText, onValueChange = { durationText = it }, label = { Text(stringResource(R.string.duration_min)) })
+                    OutlinedTextField(value = intensityText, onValueChange = { intensityText = it }, label = { Text(stringResource(R.string.intensity_1_3)) })
+                    OutlinedTextField(value = notesText, onValueChange = { notesText = it }, label = { Text(stringResource(R.string.notes_optional)) })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateWorkoutLog(current.id, current.date, current.type, durationText.toIntOrNull() ?: current.durationMinutes, intensityText.toIntOrNull() ?: current.intensity, notesText)
+                    workoutToEdit = null
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { workoutToEdit = null; workoutToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { workoutToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    workoutToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { workoutToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteWorkoutLog(current.id, current.date); workoutToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { workoutToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
     }
 }
 
@@ -2366,6 +2407,8 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
     var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    var waterToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WaterLogEntity?>(null) }
+    var waterToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WaterLogEntity?>(null) }
     val waterChartData = remember(allLogs, range) { buildWaterChartData(allLogs, range) }
 
     LazyColumn(
@@ -2394,7 +2437,7 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
             item { EmptyDateRecordCard(stringResource(R.string.water_no_records_for_date)) }
         } else {
             items(logs, key = { it.id }) { log ->
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { waterToEdit = log }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.water_ml_logged, log.amountMl), style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
@@ -2402,6 +2445,37 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
                 }
             }
         }
+    }
+
+    waterToEdit?.let { current ->
+        var amountText by remember(current.id) { mutableStateOf(current.amountMl.toString()) }
+        AlertDialog(
+            onDismissRequest = { waterToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = { OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) }) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateWaterLog(current.id, current.date, amountText.toIntOrNull() ?: current.amountMl)
+                    waterToEdit = null
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { waterToEdit = null; waterToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { waterToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    waterToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { waterToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteWaterLog(current.id, current.date); waterToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { waterToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
     }
 }
 
@@ -2415,6 +2489,8 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm") }
     var range by remember { mutableStateOf(NutritionChartRange.DAILY) }
+    var supplementToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.SupplementLogEntity?>(null) }
+    var supplementToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.SupplementLogEntity?>(null) }
     val supplementChartData = remember(allLogs, range) { buildSupplementChartData(allLogs, range) }
 
     LazyColumn(
@@ -2444,7 +2520,7 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
         } else {
             items(logs, key = { it.id }) { log ->
                 val name = supplementsById[log.supplementId]?.name ?: stringResource(R.string.supplement_unknown)
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { supplementToEdit = log }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(name, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.record_date_time, log.time.format(dateTimeFormatter)), style = MaterialTheme.typography.bodySmall)
@@ -2452,6 +2528,39 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
                 }
             }
         }
+    }
+
+    supplementToEdit?.let { current ->
+        var selectedId by remember(current.id) { mutableLongStateOf(current.supplementId) }
+        AlertDialog(
+            onDismissRequest = { supplementToEdit = null },
+            title = { Text(stringResource(R.string.record_actions_title)) },
+            text = {
+                ExposedDropdownSimple(
+                    label = stringResource(R.string.supplement_name),
+                    options = supplements.map { it.name },
+                    selected = supplements.indexOfFirst { it.id == selectedId }.coerceAtLeast(0),
+                    onSelect = { idx -> selectedId = supplements[idx].id }
+                )
+            },
+            confirmButton = { TextButton(onClick = { viewModel.updateSupplementLog(current.id, current.date, selectedId, true); supplementToEdit = null }) { Text(stringResource(R.string.save)) } },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { supplementToEdit = null; supplementToDelete = current }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = { supplementToEdit = null }) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        )
+    }
+
+    supplementToDelete?.let { current ->
+        AlertDialog(
+            onDismissRequest = { supplementToDelete = null },
+            title = { Text(stringResource(R.string.delete_meal_title)) },
+            text = { Text(stringResource(R.string.delete_meal_confirm)) },
+            confirmButton = { TextButton(onClick = { viewModel.deleteSupplementLog(current.id, current.date); supplementToDelete = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { supplementToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
     }
 }
 

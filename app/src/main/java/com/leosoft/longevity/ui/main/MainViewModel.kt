@@ -430,6 +430,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         autoSyncHealthConnectIfEnabled()
     }
 
+    fun updateWaterLog(id: Long, date: LocalDate, amountMl: Int) = viewModelScope.launch {
+        repository.updateWaterLog(id, date, amountMl)
+    }
+
+    fun deleteWaterLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteWaterLog(id, date)
+    }
+
     fun addSteps(steps: Int) = viewModelScope.launch {
         repository.addSteps(StepsLogEntity(date = selectedGoalsDate.value, steps = steps, updatedAt = LocalDateTime.now()))
         autoSyncHealthConnectIfEnabled()
@@ -443,6 +451,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.addSupplementByNameAndLog(selectedNutritionDate.value, name)
     }
 
+    fun updateSupplementLog(id: Long, date: LocalDate, supplementId: Long, taken: Boolean = true) = viewModelScope.launch {
+        repository.updateSupplementLog(id, date, supplementId, taken)
+    }
+
+    fun deleteSupplementLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteSupplementLog(id, date)
+    }
+
     fun addSleepLog(bedtime: String, wakeTime: String) = viewModelScope.launch {
         repository.addSleepLog(selectedGoalsDate.value, bedtime, wakeTime)
         autoSyncHealthConnectIfEnabled()
@@ -451,6 +467,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addWorkout(type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
         repository.addWorkoutLog(selectedGoalsDate.value, type, durationMinutes, intensity, notes)
         autoSyncHealthConnectIfEnabled()
+    }
+
+    fun updateWorkoutLog(id: Long, date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) = viewModelScope.launch {
+        repository.updateWorkoutLog(id, date, type, durationMinutes, intensity, notes)
+    }
+
+    fun deleteWorkoutLog(id: Long, date: LocalDate) = viewModelScope.launch {
+        repository.deleteWorkoutLog(id, date)
     }
 
     fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5) = viewModelScope.launch {

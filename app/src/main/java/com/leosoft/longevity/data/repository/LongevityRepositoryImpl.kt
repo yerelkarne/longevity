@@ -157,6 +157,16 @@ class LongevityRepositoryImpl(
     override fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>> = waterDao.observeByDate(date)
     override fun observeAllWaterLogs(): Flow<List<WaterLogEntity>> = waterDao.observeAll()
 
+    override suspend fun updateWaterLog(id: Long, date: LocalDate, amountMl: Int) {
+        waterDao.updateLogAmount(id, amountMl.coerceAtLeast(0))
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteWaterLog(id: Long, date: LocalDate) {
+        waterDao.deleteLog(id)
+        recalculateScore(date)
+    }
+
     override suspend fun addSteps(log: StepsLogEntity) {
         activityDao.upsertSteps(log.copy(syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(log.date)
@@ -191,6 +201,16 @@ class LongevityRepositoryImpl(
 
     override fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>> = supplementsDao.observeLogs(date)
     override fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>> = supplementsDao.observeAllLogs()
+
+    override suspend fun updateSupplementLog(id: Long, date: LocalDate, supplementId: Long, taken: Boolean) {
+        supplementsDao.updateLog(id, supplementId, taken)
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteSupplementLog(id: Long, date: LocalDate) {
+        supplementsDao.deleteLog(id)
+        recalculateScore(date)
+    }
 
     override fun observeSleepLogs(): Flow<List<SleepLogEntity>> = lifeDao.observeSleepLogs()
 
@@ -227,6 +247,16 @@ class LongevityRepositoryImpl(
     }
 
     override fun observeAllWorkouts() = activityDao.observeAllWorkouts()
+
+    override suspend fun updateWorkoutLog(id: Long, date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String) {
+        activityDao.updateWorkout(id, type, durationMinutes, intensity, notes)
+        recalculateScore(date)
+    }
+
+    override suspend fun deleteWorkoutLog(id: Long, date: LocalDate) {
+        activityDao.deleteWorkout(id)
+        recalculateScore(date)
+    }
 
     override suspend fun syncWithHealthConnect(options: LongevityRepository.ExternalSyncOptions): LongevityRepository.ExternalSyncResult {
         if (!healthConnectAdapter.isAvailable()) {

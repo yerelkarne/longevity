@@ -157,6 +157,7 @@
     <string name="reminder_delete_confirm">Bu hatırlatmayı silmek istediğinize emin misiniz?</string>
 
     <string name="meal_actions_title">Kayıt işlemleri</string>
+    <string name="record_actions_title">Kayıt işlemleri</string>
     <string name="meal_actions_hint">Bu kayıt için düzenleme veya silme işlemi yapabilirsiniz.</string>
     <string name="edit_meal">Kayıt düzenle</string>
     <string name="delete_meal_title">Kaydı sil</string>

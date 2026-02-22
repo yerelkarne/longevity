@@ -56,4 +56,10 @@ interface ActivityDao {
 
     @Query("UPDATE workout_logs SET syncState = :state, hcRecordId = :hcRecordId, lastSyncedAt = :syncedAt WHERE id = :id")
     suspend fun updateWorkoutSyncState(id: Long, state: SyncState, hcRecordId: String?, syncedAt: java.time.LocalDateTime)
+
+    @Query("UPDATE workout_logs SET type = :type, durationMinutes = :durationMinutes, intensity = :intensity, notes = :notes WHERE id = :id")
+    suspend fun updateWorkout(id: Long, type: com.leosoft.longevity.data.local.entity.WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
+
+    @Query("DELETE FROM workout_logs WHERE id = :id")
+    suspend fun deleteWorkout(id: Long)
 }

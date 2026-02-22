@@ -54,6 +54,8 @@ interface LongevityRepository {
     suspend fun addWater(date: LocalDate, amountMl: Int)
     fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>>
     fun observeAllWaterLogs(): Flow<List<WaterLogEntity>>
+    suspend fun updateWaterLog(id: Long, date: LocalDate, amountMl: Int)
+    suspend fun deleteWaterLog(id: Long, date: LocalDate)
     suspend fun addSteps(log: StepsLogEntity)
     fun observeWeeklySteps(endDate: LocalDate = LocalDate.now()): Flow<List<StepsLogEntity>>
     fun observeAllSteps(): Flow<List<StepsLogEntity>>
@@ -62,10 +64,14 @@ interface LongevityRepository {
     suspend fun addSupplementByNameAndLog(date: LocalDate, name: String)
     fun observeSupplementLogs(date: LocalDate): Flow<List<SupplementLogEntity>>
     fun observeAllSupplementLogs(): Flow<List<SupplementLogEntity>>
+    suspend fun updateSupplementLog(id: Long, date: LocalDate, supplementId: Long, taken: Boolean)
+    suspend fun deleteSupplementLog(id: Long, date: LocalDate)
     suspend fun addSleepLog(date: LocalDate, bedtime: String, wakeTime: String)
     fun observeSleepLogs(): Flow<List<SleepLogEntity>>
     suspend fun addWorkoutLog(date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
     fun observeAllWorkouts(): Flow<List<WorkoutLogEntity>>
+    suspend fun updateWorkoutLog(id: Long, date: LocalDate, type: WorkoutType, durationMinutes: Int, intensity: Int, notes: String)
+    suspend fun deleteWorkoutLog(id: Long, date: LocalDate)
     suspend fun addMenstrualCycleLog(periodStartDate: LocalDate, cycleLengthDays: Int = 28, periodLengthDays: Int = 5)
     suspend fun clearMenstrualCycleLogs()
     fun observeMenstrualCycleLogs(): Flow<List<MenstrualCycleLogEntity>>

@@ -31,4 +31,10 @@ interface SupplementsDao {
 
     @Query("SELECT COUNT(*) FROM supplement_logs WHERE date = :date AND taken = 1")
     suspend fun takenCount(date: LocalDate): Int
+
+    @Query("UPDATE supplement_logs SET supplementId = :supplementId, taken = :taken WHERE id = :id")
+    suspend fun updateLog(id: Long, supplementId: Long, taken: Boolean)
+
+    @Query("DELETE FROM supplement_logs WHERE id = :id")
+    suspend fun deleteLog(id: Long)
 }
