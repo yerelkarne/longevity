@@ -365,7 +365,11 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
 }
 
 @Composable
-private fun SleepRangeChip(text: String, selected: Boolean, onClick: () -> Unit) {
+private fun androidx.compose.foundation.layout.RowScope.SleepRangeChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .weight(1f)
