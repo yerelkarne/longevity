@@ -470,7 +470,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSelectedNutritionDate(date: LocalDate) {
         selectedNutritionDate.value = date
-        selectedGoalsDate.value = date
     }
 
     fun updateMealEntry(entry: MealEntryEntity) = viewModelScope.launch {
