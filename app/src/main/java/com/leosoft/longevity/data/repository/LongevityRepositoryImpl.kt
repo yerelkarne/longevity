@@ -553,11 +553,7 @@ class LongevityRepositoryImpl(
 
 
     override suspend fun ensureCoreFoods() {
-        val defaults = listOf(
-            FoodEntity(name = "Yumurta", kcalPer100g = 155, protein = 13f, carbs = 1.1f, fat = 11f, fiber = 0f, vitaminDUi = 82f),
-            FoodEntity(name = "Zeytin", kcalPer100g = 115, protein = 0.8f, carbs = 6.3f, fat = 10.7f, fiber = 3.2f, ironMg = 3.3f, potassiumMg = 42f)
-        )
-        defaults.forEach { food ->
+        FoodDataset.defaults.forEach { food ->
             val existing = nutritionDao.getFoodByName(food.name)
             if (existing == null) {
                 nutritionDao.insertFood(food)
