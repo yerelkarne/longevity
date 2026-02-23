@@ -61,4 +61,7 @@
     <string name="medical_disclaimer_accept">I accept</string>
     <string name="activity_steps_trend_title">Step trends</string>
     <string name="card_calorie">Calories</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_language_turkish">Turkish</string>
+    <string name="settings_language_english">English</string>
 </resources>

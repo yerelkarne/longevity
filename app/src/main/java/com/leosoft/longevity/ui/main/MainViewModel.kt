@@ -157,6 +157,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val healthSyncPreferences: StateFlow<HealthSyncPreferences> = app.preferences.healthSyncPreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HealthSyncPreferences())
 
+    val appLanguage: StateFlow<String> = app.preferences.appLanguage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "tr")
+
     val healthConnectAvailable: Boolean get() = healthConnectAdapter.isAvailable()
     val healthConnectInstallable: Boolean get() = healthConnectAdapter.isInstallable()
     val healthConnectPermissions = healthConnectAdapter.allPermissions
@@ -650,6 +653,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
+
+    fun setAppLanguage(languageCode: String) = viewModelScope.launch {
+        app.preferences.setAppLanguage(languageCode)
+    }
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
         app.preferences.updateHealthSyncPreferences {

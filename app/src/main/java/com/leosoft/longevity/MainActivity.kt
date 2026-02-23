@@ -37,6 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -84,6 +87,10 @@ class MainActivity : ComponentActivity() {
             LongevityTheme {
                 val vm: MainViewModel = viewModel()
                 val medicalDisclaimerAccepted by vm.medicalDisclaimerAccepted.collectAsState()
+                val appLanguage by vm.appLanguage.collectAsState()
+                LaunchedEffect(appLanguage) {
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(appLanguage))
+                }
                 MainScaffold(
                     vm = vm,
                     showNotificationPermissionWarning = showNotificationPermissionWarning,

@@ -963,6 +963,7 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
+    val appLanguage by viewModel.appLanguage.collectAsState()
     val scope = rememberCoroutineScope()
     var pendingSyncAfterPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
@@ -976,6 +977,14 @@ fun SettingsModule(viewModel: MainViewModel) {
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            ExposedDropdownSimple(
+                label = stringResource(R.string.settings_language),
+                options = listOf(stringResource(R.string.settings_language_turkish), stringResource(R.string.settings_language_english)),
+                selected = if (appLanguage == "en") 1 else 0,
+                onSelect = { idx -> viewModel.setAppLanguage(if (idx == 1) "en" else "tr") }
+            )
+        }
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.settings_health_connect))
