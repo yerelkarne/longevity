@@ -470,7 +470,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val kcal = ((protein + carbs) * 4f + (fat * 9f)).toInt()
             val foodId = repository.addCustomFoodWithNutrition(
-                name = "$name ${LocalDateTime.now()}",
+                name = name,
                 kcalPer100g = kcal,
                 protein = protein,
                 carbs = carbs,

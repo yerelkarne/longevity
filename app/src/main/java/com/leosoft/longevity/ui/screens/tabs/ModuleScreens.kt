@@ -2180,8 +2180,15 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         val carbs = macroCarbsText.toFloatOrNull() ?: 0f
                         val fat = macroFatText.toFloatOrNull() ?: 0f
                         val fiber = macroFiberText.toFloatOrNull() ?: 0f
+                        val macroNames = buildList {
+                            if (protein > 0f) add(context.getString(R.string.nutrient_protein))
+                            if (carbs > 0f) add(context.getString(R.string.nutrient_carbs))
+                            if (fat > 0f) add(context.getString(R.string.nutrient_fat))
+                            if (fiber > 0f) add(context.getString(R.string.nutrient_fiber))
+                        }
+                        val entryName = if (macroNames.size == 1) macroNames.first() else context.getString(R.string.tab_macros)
                         viewModel.addCustomNutrientMeal(
-                            name = context.getString(R.string.tab_macros),
+                            name = entryName,
                             protein = protein,
                             carbs = carbs,
                             fat = fat,
@@ -2189,13 +2196,26 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         )
                     }
                     QuickAddType.MICRO -> {
+                        val iron = microIronText.toFloatOrNull() ?: 0f
+                        val magnesium = microMagnesiumText.toFloatOrNull() ?: 0f
+                        val potassium = microPotassiumText.toFloatOrNull() ?: 0f
+                        val vitaminD = microVitaminDText.toFloatOrNull() ?: 0f
+                        val omega3 = microOmega3Text.toFloatOrNull() ?: 0f
+                        val microNames = buildList {
+                            if (iron > 0f) add(context.getString(R.string.nutrient_iron))
+                            if (magnesium > 0f) add(context.getString(R.string.nutrient_magnesium))
+                            if (potassium > 0f) add(context.getString(R.string.nutrient_potassium))
+                            if (vitaminD > 0f) add(context.getString(R.string.nutrient_vitamin_d))
+                            if (omega3 > 0f) add(context.getString(R.string.nutrient_omega3))
+                        }
+                        val entryName = if (microNames.size == 1) microNames.first() else context.getString(R.string.tab_micros)
                         viewModel.addCustomNutrientMeal(
-                            name = context.getString(R.string.tab_micros),
-                            ironMg = microIronText.toFloatOrNull() ?: 0f,
-                            magnesiumMg = microMagnesiumText.toFloatOrNull() ?: 0f,
-                            potassiumMg = microPotassiumText.toFloatOrNull() ?: 0f,
-                            vitaminDUi = microVitaminDText.toFloatOrNull() ?: 0f,
-                            omega3Mg = microOmega3Text.toFloatOrNull() ?: 0f
+                            name = entryName,
+                            ironMg = iron,
+                            magnesiumMg = magnesium,
+                            potassiumMg = potassium,
+                            vitaminDUi = vitaminD,
+                            omega3Mg = omega3
                         )
                     }
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
