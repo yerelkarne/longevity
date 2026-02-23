@@ -465,22 +465,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         magnesiumMg: Float = 0f,
         potassiumMg: Float = 0f,
         vitaminDUi: Float = 0f,
-        omega3Mg: Float = 0f
+        omega3Mg: Float = 0f,
+        servingGrams: Int = 1
     ) {
         viewModelScope.launch {
-            val kcalForInput = ((protein + carbs) * 4f + (fat * 9f)).toInt()
+            val safeServingGrams = servingGrams.coerceAtLeast(1)
+            val multiplier = 100f / safeServingGrams
+            val kcalForInput = ((protein + carbs) * 4f + (fat * 9f))
             val foodId = repository.addCustomFoodWithNutrition(
                 name = name,
-                kcalPer100g = kcalForInput * 100,
-                protein = protein * 100f,
-                carbs = carbs * 100f,
-                fat = fat * 100f,
-                fiber = fiber * 100f,
-                ironMg = ironMg * 100f,
-                magnesiumMg = magnesiumMg * 100f,
-                potassiumMg = potassiumMg * 100f,
-                vitaminDUi = vitaminDUi * 100f,
-                omega3Mg = omega3Mg * 100f
+                kcalPer100g = (kcalForInput * multiplier).toInt(),
+                protein = protein * multiplier,
+                carbs = carbs * multiplier,
+                fat = fat * multiplier,
+                fiber = fiber * multiplier,
+                ironMg = ironMg * multiplier,
+                magnesiumMg = magnesiumMg * multiplier,
+                potassiumMg = potassiumMg * multiplier,
+                vitaminDUi = vitaminDUi * multiplier,
+                omega3Mg = omega3Mg * multiplier
             )
             repository.addMealEntry(
                 MealEntryEntity(
@@ -488,7 +491,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     time = LocalDateTime.now(),
                     mealType = MealType.SNACK,
                     foodId = foodId,
-                    grams = 1
+                    grams = safeServingGrams
                 )
             )
             autoSyncHealthConnectIfEnabled()

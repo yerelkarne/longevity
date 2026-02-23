@@ -2187,12 +2187,14 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             if (fiber > 0f) add(context.getString(R.string.nutrient_fiber))
                         }
                         val entryName = if (macroNames.size == 1) macroNames.first() else context.getString(R.string.tab_macros)
+                        val servingGrams = maxOf(protein, carbs, fat, fiber).toInt().coerceAtLeast(1)
                         viewModel.addCustomNutrientMeal(
                             name = entryName,
                             protein = protein,
                             carbs = carbs,
                             fat = fat,
-                            fiber = fiber
+                            fiber = fiber,
+                            servingGrams = servingGrams
                         )
                     }
                     QuickAddType.MICRO -> {
