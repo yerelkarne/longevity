@@ -151,7 +151,7 @@ fun GunumModule(viewModel: MainViewModel) {
 
 @Composable
 fun BeslenmeModule(viewModel: MainViewModel) {
-    val tabs = listOf(stringResource(R.string.tab_log), stringResource(R.string.tab_macros), stringResource(R.string.tab_micros), stringResource(R.string.tab_water), stringResource(R.string.tab_supplements))
+    val tabs = listOf(stringResource(R.string.tab_log), stringResource(R.string.tab_macros), stringResource(R.string.tab_micros), stringResource(R.string.tab_water), stringResource(R.string.tab_supplements), stringResource(R.string.tab_food_dataset))
     ModuleTabLayout(tabs) { page ->
         when (page) {
             0 -> BeslenmeKayitScreen(viewModel)
@@ -159,6 +159,7 @@ fun BeslenmeModule(viewModel: MainViewModel) {
             2 -> BeslenmeMikrolarScreen(viewModel)
             3 -> BeslenmeSuScreen(viewModel)
             4 -> BeslenmeTakviyelerScreen(viewModel)
+            5 -> BeslenmeVeriSetiScreen(viewModel)
             else -> PlaceholderTab(stringResource(R.string.placeholder_ready_template, page))
         }
     }
@@ -2635,6 +2636,49 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
     }
 }
 
+
+
+
+@Composable
+fun BeslenmeVeriSetiScreen(viewModel: MainViewModel) {
+    val foods by viewModel.foods.collectAsState()
+    val foodsSorted = remember(foods) { foods.sortedBy { it.name.lowercase() } }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.tab_food_dataset), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.food_dataset_intro), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.food_dataset_count, foodsSorted.size), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        items(foodsSorted, key = { it.id }) { food ->
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(food.name, style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.food_dataset_calorie_line, food.kcalPer100g), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.macros_line, food.protein, food.carbs, food.fat, food.fiber), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.micros_line, food.ironMg, food.magnesiumMg, food.potassiumMg, food.vitaminDUi, food.omega3Mg), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun BeslenmeSuScreen(viewModel: MainViewModel) {

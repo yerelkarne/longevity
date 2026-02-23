@@ -36,6 +36,7 @@
     <string name="tab_micros">Mikrolar</string>
     <string name="tab_water">Su</string>
     <string name="tab_supplements">Takviyeler</string>
+    <string name="tab_food_dataset">Veri Seti</string>
     <string name="placeholder_coming_soon">%1$d. sekme yakında</string>
     <string name="placeholder_ready_template">%1$d. sekme hazır şablon</string>
     <string name="card_steps">Adım</string>
@@ -109,6 +110,9 @@
     <string name="workout_other">Diğer</string>
 
     <string name="unknown_food">Bilinmeyen gıda</string>
+    <string name="food_dataset_intro">Hazır yemek veri seti burada listelenir. Makro ve mikro içerikleri bu kaynaktan kullanılır.</string>
+    <string name="food_dataset_count">Toplam yemek: %1$d</string>
+    <string name="food_dataset_calorie_line">Kalori: %1$d kcal / 100g</string>
     <string name="macros_line">P: %1$.1fg • K: %2$.1fg • Y: %3$.1fg • Fiber: %4$.1fg</string>
     <string name="micros_line">Fe: %1$.1fmg • Mg: %2$.1fmg • K: %3$.1fmg • D: %4$.1fIU • Omega-3: %5$.1fmg</string>
 
