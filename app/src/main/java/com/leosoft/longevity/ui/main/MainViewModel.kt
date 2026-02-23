@@ -468,19 +468,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         omega3Mg: Float = 0f
     ) {
         viewModelScope.launch {
-            val kcal = ((protein + carbs) * 4f + (fat * 9f)).toInt()
+            val kcalForInput = ((protein + carbs) * 4f + (fat * 9f)).toInt()
             val foodId = repository.addCustomFoodWithNutrition(
                 name = name,
-                kcalPer100g = kcal,
-                protein = protein,
-                carbs = carbs,
-                fat = fat,
-                fiber = fiber,
-                ironMg = ironMg,
-                magnesiumMg = magnesiumMg,
-                potassiumMg = potassiumMg,
-                vitaminDUi = vitaminDUi,
-                omega3Mg = omega3Mg
+                kcalPer100g = kcalForInput * 100,
+                protein = protein * 100f,
+                carbs = carbs * 100f,
+                fat = fat * 100f,
+                fiber = fiber * 100f,
+                ironMg = ironMg * 100f,
+                magnesiumMg = magnesiumMg * 100f,
+                potassiumMg = potassiumMg * 100f,
+                vitaminDUi = vitaminDUi * 100f,
+                omega3Mg = omega3Mg * 100f
             )
             repository.addMealEntry(
                 MealEntryEntity(
@@ -488,7 +488,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     time = LocalDateTime.now(),
                     mealType = MealType.SNACK,
                     foodId = foodId,
-                    grams = 100
+                    grams = 1
                 )
             )
             autoSyncHealthConnectIfEnabled()
