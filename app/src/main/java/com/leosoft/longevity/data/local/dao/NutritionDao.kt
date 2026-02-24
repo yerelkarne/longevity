@@ -77,12 +77,16 @@ interface NutritionDao {
     @Query("SELECT * FROM foods WHERE name = :name LIMIT 1")
     suspend fun getFoodByName(name: String): FoodEntity?
 
+    @Query("SELECT * FROM foods WHERE name IN (:names)")
+    suspend fun getFoodsByNames(names: List<String>): List<FoodEntity>
+
     @Query("SELECT * FROM foods WHERE id = :id LIMIT 1")
     suspend fun getFoodById(id: Long): FoodEntity?
 
     @Query("""
         UPDATE foods
-        SET kcalPer100g = :kcalPer100g,
+        SET name = :name,
+            kcalPer100g = :kcalPer100g,
             protein = :protein,
             carbs = :carbs,
             fat = :fat,
@@ -96,6 +100,7 @@ interface NutritionDao {
     """)
     suspend fun updateFoodNutritionById(
         id: Long,
+        name: String,
         kcalPer100g: Int,
         protein: Float,
         carbs: Float,

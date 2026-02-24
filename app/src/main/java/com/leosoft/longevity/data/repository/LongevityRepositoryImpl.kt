@@ -553,23 +553,27 @@ class LongevityRepositoryImpl(
 
 
     override suspend fun ensureCoreFoods() {
-        FoodDataset.defaults.forEach { food ->
-            val existing = nutritionDao.getFoodByName(food.name)
+        val language = FoodDataset.currentLanguage()
+        FoodDataset.defaults.forEach { seed ->
+            val aliases = seed.names.values.distinct()
+            val existing = nutritionDao.getFoodsByNames(aliases).firstOrNull()
+            val localized = seed.toFoodEntity(language)
             if (existing == null) {
-                nutritionDao.insertFood(food)
+                nutritionDao.insertFood(localized)
             } else {
                 nutritionDao.updateFoodNutritionById(
                     id = existing.id,
-                    kcalPer100g = food.kcalPer100g,
-                    protein = food.protein,
-                    carbs = food.carbs,
-                    fat = food.fat,
-                    fiber = food.fiber,
-                    ironMg = food.ironMg,
-                    magnesiumMg = food.magnesiumMg,
-                    potassiumMg = food.potassiumMg,
-                    vitaminDUi = food.vitaminDUi,
-                    omega3Mg = food.omega3Mg
+                    name = localized.name,
+                    kcalPer100g = localized.kcalPer100g,
+                    protein = localized.protein,
+                    carbs = localized.carbs,
+                    fat = localized.fat,
+                    fiber = localized.fiber,
+                    ironMg = localized.ironMg,
+                    magnesiumMg = localized.magnesiumMg,
+                    potassiumMg = localized.potassiumMg,
+                    vitaminDUi = localized.vitaminDUi,
+                    omega3Mg = localized.omega3Mg
                 )
             }
         }
