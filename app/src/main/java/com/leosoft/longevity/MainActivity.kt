@@ -225,7 +225,7 @@ private fun MainScaffold(
                                     fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.72f
                                 )
                             ) {
-                                append("♥")
+                                append("♥︎")
                             }
                         },
                         style = MaterialTheme.typography.headlineMedium,
