@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -217,12 +218,12 @@ private fun MainScaffold(
                     Text(
                         text = buildAnnotatedString {
                             append(stringResource(R.string.app_name))
-                            append(" ")
                             withStyle(
                                 style = SpanStyle(
                                     color = Color.Black,
                                     fontStyle = FontStyle.Italic,
-                                    fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.72f
+                                    baselineShift = BaselineShift(0.24f),
+                                    fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.86f
                                 )
                             ) {
                                 append("♥︎")
