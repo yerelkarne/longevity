@@ -34,7 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
@@ -211,7 +215,18 @@ private fun MainScaffold(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = topBarColor),
                 title = {
                     Text(
-                        text = "${stringResource(R.string.app_name)} ♥",
+                        text = buildAnnotatedString {
+                            append(stringResource(R.string.app_name))
+                            append(" ")
+                            withStyle(
+                                style = SpanStyle(
+                                    fontStyle = FontStyle.Italic,
+                                    fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.72f
+                                )
+                            ) {
+                                append("♥")
+                            }
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontFamily = FontFamily.Cursive
                     )
