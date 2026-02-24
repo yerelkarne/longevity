@@ -254,6 +254,7 @@
     <string name="settings_language_italian">İtalyanca</string>
     <string name="settings_language_french">Fransızca</string>
     <string name="settings_language_german">Almanca</string>
+    <string name="settings_language_spanish">İspanyolca</string>
     <string name="settings_health_disclosure">Health Connect bağlandığında su, uyku, adım, egzersiz ve beslenme (kalori/makro) verileri kullanıcı onayıyla okunur/yazılır. Takviyeler ve mikrolar yalnızca uygulama içinde kalır.</string>
     <string name="settings_health_connect">Health Connect’i bağla</string>
     <string name="settings_manage_permissions">İzinleri yönet</string>

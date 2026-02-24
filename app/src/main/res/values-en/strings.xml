@@ -241,6 +241,7 @@
     <string name="settings_language_italian">Italian</string>
     <string name="settings_language_french">French</string>
     <string name="settings_language_german">German</string>
+    <string name="settings_language_spanish">Spanish</string>
     <string name="settings_health_disclosure">Settings Health Disclosure</string>
     <string name="settings_health_connect">Settings Health Connect</string>
     <string name="settings_manage_permissions">Manage permissions</string>

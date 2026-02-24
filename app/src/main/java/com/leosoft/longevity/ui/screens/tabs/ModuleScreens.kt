@@ -987,13 +987,15 @@ fun SettingsModule(viewModel: MainViewModel) {
                     stringResource(R.string.settings_language_english),
                     stringResource(R.string.settings_language_italian),
                     stringResource(R.string.settings_language_french),
-                    stringResource(R.string.settings_language_german)
+                    stringResource(R.string.settings_language_german),
+                    stringResource(R.string.settings_language_spanish)
                 ),
                 selected = when (appLanguage) {
                     "en" -> 1
                     "it" -> 2
                     "fr" -> 3
                     "de" -> 4
+                    "es" -> 5
                     else -> 0
                 },
                 onSelect = { idx ->
@@ -1002,6 +1004,7 @@ fun SettingsModule(viewModel: MainViewModel) {
                         2 -> "it"
                         3 -> "fr"
                         4 -> "de"
+                        5 -> "es"
                         else -> "tr"
                     }
                     viewModel.setAppLanguage(languageCode)
