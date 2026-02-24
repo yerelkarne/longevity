@@ -220,6 +220,7 @@ private fun MainScaffold(
                             append(" ")
                             withStyle(
                                 style = SpanStyle(
+                                    color = Color.Black,
                                     fontStyle = FontStyle.Italic,
                                     fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.72f
                                 )
