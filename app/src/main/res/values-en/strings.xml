@@ -213,8 +213,8 @@
     <string name="today_steps_label">Today Steps Label</string>
     <string name="steps_goal_progress">Steps Goal Progress %1$d %2$d</string>
     <string name="custom_goal">Custom Goal</string>
-    <string name="enable_background">Enable Background</string>
-    <string name="disable_background">Disable Background</string>
+    <string name="enable_background">Enable bg...</string>
+    <string name="disable_background">Disable bg...</string>
     <string name="step_tracking_on">Step Tracking On</string>
     <string name="step_tracking_off">Step Tracking Off</string>
     <string name="step_tracking_channel_name">Step Tracking Channel Name</string>
