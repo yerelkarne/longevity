@@ -315,9 +315,9 @@
     <string name="medical_disclaimer_accept">I accept</string>
     <string name="activity_steps_trend_title">Pas trends</string>
     <string name="daily_goal_check_title">Résumé des objectifs du soir</string>
-    <string name="daily_goal_water_behind">Vous êtes en retard sur votre objectif d&apos;eau aujourd&apos;hui. Quelques verres de plus peuvent vous aider à bien terminer la journée.</string>
-    <string name="daily_goal_macro_behind">Vous êtes en retard sur vos objectifs en macronutriments aujourd&apos;hui. Ajoutez un repas équilibré et complétez vos enregistrements.</string>
-    <string name="daily_goal_micro_behind">Vous êtes en retard sur vos objectifs en micronutriments aujourd&apos;hui. Un repas riche en nutriments peut vous aider à rattraper.</string>
+    <string name="daily_goal_water_behind">Vous êtes en retard sur votre objectif d’eau aujourd’hui. Quelques verres de plus peuvent vous aider à bien terminer la journée.</string>
+    <string name="daily_goal_macro_behind">Vous êtes en retard sur vos objectifs en macronutriments aujourd’hui. Ajoutez un repas équilibré et complétez vos enregistrements.</string>
+    <string name="daily_goal_micro_behind">Vous êtes en retard sur vos objectifs en micronutriments aujourd’hui. Un repas riche en nutriments peut vous aider à rattraper.</string>
     <string name="daily_logging_reminder_title">Rappel de suivi quotidien</string>
-    <string name="daily_logging_reminder_message">Veuillez mettre à jour vos enregistrements de repas et d&apos;eau d&apos;aujourd&apos;hui pour garder un suivi précis de vos progrès.</string>
+    <string name="daily_logging_reminder_message">Veuillez mettre à jour vos enregistrements de repas et d’eau d’aujourd’hui pour garder un suivi précis de vos progrès.</string>
 </resources>
