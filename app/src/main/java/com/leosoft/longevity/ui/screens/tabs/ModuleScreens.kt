@@ -34,6 +34,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -982,7 +984,11 @@ fun SettingsModule(viewModel: MainViewModel) {
                 label = stringResource(R.string.settings_language),
                 options = listOf(stringResource(R.string.settings_language_turkish), stringResource(R.string.settings_language_english)),
                 selected = if (appLanguage == "en") 1 else 0,
-                onSelect = { idx -> viewModel.setAppLanguage(if (idx == 1) "en" else "tr") }
+                onSelect = { idx ->
+                    val languageCode = if (idx == 1) "en" else "tr"
+                    viewModel.setAppLanguage(languageCode)
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
+                }
             )
         }
         item {
