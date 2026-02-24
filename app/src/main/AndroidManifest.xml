@@ -59,6 +59,7 @@
             android:exported="false" />
 
         <receiver android:name=".reminders.ReminderAlarmReceiver" android:exported="false" />
+        <receiver android:name=".reminders.DailyCoachReminderReceiver" android:exported="false" />
     </application>
 
 </manifest>

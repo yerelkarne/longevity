@@ -8,6 +8,7 @@ import com.leosoft.longevity.data.repository.LongevityRepositoryImpl
 import com.leosoft.longevity.domain.repository.LongevityRepository
 import com.leosoft.longevity.domain.usecase.CalculateDailyScoreUseCase
 import com.leosoft.longevity.domain.usecase.CalculateMacroTotalsUseCase
+import com.leosoft.longevity.reminders.DailyCoachReminderScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +38,7 @@ class LongevityApp : Application() {
             calculateMacroTotals = macroUseCase
         )
         preferences = AppPreferences(this)
+        DailyCoachReminderScheduler.scheduleAll(this)
         appScope.launch {
             db.nutritionDao().seedFoodsIfEmpty()
             repository.ensureCoreFoods()

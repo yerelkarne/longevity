@@ -338,4 +338,10 @@
     <string name="medical_disclaimer_body">Bu uygulama yalnızca genel sağlık/iyi yaşam takibi içindir. Doktorun veya uzman diyetisyenin yerine geçmez; teşhis, tedavi veya kişiye özel tıbbi öneri sunmaz. Sağlık kararlarınızda mutlaka yetkin sağlık profesyoneline başvurun.</string>
     <string name="medical_disclaimer_accept">Kabul ediyorum</string>
     <string name="activity_steps_trend_title">Adım trendleri</string>
+    <string name="daily_goal_check_title">Akşam hedef özeti</string>
+    <string name="daily_goal_water_behind">Bugün su hedefinizin gerisindesiniz. Birkaç bardak su ekleyerek günü tamamlayabilirsiniz.</string>
+    <string name="daily_goal_macro_behind">Bugün makro hedeflerinizin gerisindesiniz. Besin kayıtlarınızı tamamlayıp dengeli bir öğün eklemeyi deneyin.</string>
+    <string name="daily_goal_micro_behind">Bugün mikro besin hedeflerinizin gerisindesiniz. Zengin içerikli bir öğünle hedefe yaklaşabilirsiniz.</string>
+    <string name="daily_logging_reminder_title">Günlük kayıt hatırlatması</string>
+    <string name="daily_logging_reminder_message">Lütfen bugünkü besin ve su kayıtlarınızı güncelleyin; hedef takibinizin doğru kalmasına yardımcı olur.</string>
 </resources>
