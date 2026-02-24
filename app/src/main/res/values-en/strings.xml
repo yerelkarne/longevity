@@ -319,5 +319,5 @@
     <string name="daily_goal_macro_behind">You are behind your macro goals today. Try adding a balanced meal and complete your food logs.</string>
     <string name="daily_goal_micro_behind">You are behind your micronutrient goals today. A nutrient-dense meal can help you catch up.</string>
     <string name="daily_logging_reminder_title">Daily logging reminder</string>
-    <string name="daily_logging_reminder_message">Please update today's food and water logs to keep your progress tracking accurate.</string>
+    <string name="daily_logging_reminder_message">Please update today&apos;s food and water logs to keep your progress tracking accurate.</string>
 </resources>
