@@ -234,13 +234,13 @@
     <string name="goal_badge_message">Goal Badge Message</string>
     <string name="activity_goal_sync_info">Activity Goal Sync Info %1$d</string>
     <string name="settings_health_title">Health Connect</string>
-    <string name="settings_language">App language</string>
-    <string name="settings_language_turkish">Turkish</string>
-    <string name="settings_language_english">English</string>
+    <string name="settings_language">Langue de l'application</string>
+    <string name="settings_language_turkish">Turc</string>
+    <string name="settings_language_english">Anglais</string>
 
-    <string name="settings_language_italian">Italian</string>
-    <string name="settings_language_french">French</string>
-    <string name="settings_language_german">German</string>
+    <string name="settings_language_italian">Italien</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Allemand</string>
     <string name="settings_health_disclosure">Settings Health Disclosure</string>
     <string name="settings_health_connect">Settings Health Connect</string>
     <string name="settings_manage_permissions">Manage permissions</string>

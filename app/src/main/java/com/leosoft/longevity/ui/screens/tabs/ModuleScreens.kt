@@ -982,10 +982,28 @@ fun SettingsModule(viewModel: MainViewModel) {
         item {
             ExposedDropdownSimple(
                 label = stringResource(R.string.settings_language),
-                options = listOf(stringResource(R.string.settings_language_turkish), stringResource(R.string.settings_language_english)),
-                selected = if (appLanguage == "en") 1 else 0,
+                options = listOf(
+                    stringResource(R.string.settings_language_turkish),
+                    stringResource(R.string.settings_language_english),
+                    stringResource(R.string.settings_language_italian),
+                    stringResource(R.string.settings_language_french),
+                    stringResource(R.string.settings_language_german)
+                ),
+                selected = when (appLanguage) {
+                    "en" -> 1
+                    "it" -> 2
+                    "fr" -> 3
+                    "de" -> 4
+                    else -> 0
+                },
                 onSelect = { idx ->
-                    val languageCode = if (idx == 1) "en" else "tr"
+                    val languageCode = when (idx) {
+                        1 -> "en"
+                        2 -> "it"
+                        3 -> "fr"
+                        4 -> "de"
+                        else -> "tr"
+                    }
                     viewModel.setAppLanguage(languageCode)
                     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
                 }
