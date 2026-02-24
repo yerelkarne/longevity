@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.leosoft.longevity.R
 import com.leosoft.longevity.ui.main.MainViewModel
 
@@ -22,7 +23,7 @@ fun PulseCameraRoute(viewModel: MainViewModel) {
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selected) {
             tabs.forEachIndexed { idx, title ->
-                Tab(selected = selected == idx, onClick = { selected = idx }, text = { Text(title) })
+                Tab(selected = selected == idx, onClick = { selected = idx }, text = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
         }
         if (selected == 0) PulseInfoTab() else PulseMeasureTab(viewModel)

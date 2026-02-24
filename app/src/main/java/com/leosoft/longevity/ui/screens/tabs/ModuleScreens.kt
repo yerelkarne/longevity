@@ -116,7 +116,7 @@ fun ModuleTabLayout(
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
             tabs.forEachIndexed { index, tab ->
-                Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab) })
+                Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab, maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
         }
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -459,7 +459,7 @@ private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -676,7 +676,7 @@ private fun androidx.compose.foundation.layout.RowScope.SleepRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1136,7 +1136,7 @@ private fun androidx.compose.foundation.layout.RowScope.GunumRangeChip(text: Str
         modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -2918,7 +2918,7 @@ private fun NutritionTrendChartCard(
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
                             Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
-                        Text(p.label, style = MaterialTheme.typography.labelSmall)
+                        Text(p.label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -2932,7 +2932,7 @@ private fun androidx.compose.foundation.layout.RowScope.NutritionRangeChip(text:
         modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -229,7 +230,7 @@ private fun MainScaffold(
                         selected = currentRoute == destination.route,
                         onClick = { navController.navigate(destination.route) },
                         icon = { Icon(destination.icon, contentDescription = stringResource(destination.titleRes)) },
-                        label = { Text(stringResource(destination.titleRes)) }
+                        label = { Text(stringResource(destination.titleRes), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     )
                 }
             }
