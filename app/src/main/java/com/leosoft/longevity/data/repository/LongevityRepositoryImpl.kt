@@ -149,6 +149,36 @@ class LongevityRepositoryImpl(
         )
     }
 
+    override suspend fun addCustomFoodWithNutrition(
+        name: String,
+        kcalPer100g: Int,
+        protein: Float,
+        carbs: Float,
+        fat: Float,
+        fiber: Float,
+        ironMg: Float,
+        magnesiumMg: Float,
+        potassiumMg: Float,
+        vitaminDUi: Float,
+        omega3Mg: Float
+    ): Long {
+        return nutritionDao.insertFood(
+            FoodEntity(
+                name = name,
+                kcalPer100g = kcalPer100g,
+                protein = protein,
+                carbs = carbs,
+                fat = fat,
+                fiber = fiber,
+                ironMg = ironMg,
+                magnesiumMg = magnesiumMg,
+                potassiumMg = potassiumMg,
+                vitaminDUi = vitaminDUi,
+                omega3Mg = omega3Mg
+            )
+        )
+    }
+
     override suspend fun addWater(date: LocalDate, amountMl: Int) {
         waterDao.insert(WaterLogEntity(date = date, time = LocalDateTime.now(), amountMl = amountMl, syncState = SyncState.PENDING_UPLOAD))
         recalculateScore(date)
@@ -523,27 +553,27 @@ class LongevityRepositoryImpl(
 
 
     override suspend fun ensureCoreFoods() {
-        val defaults = listOf(
-            FoodEntity(name = "Yumurta", kcalPer100g = 155, protein = 13f, carbs = 1.1f, fat = 11f, fiber = 0f, vitaminDUi = 82f),
-            FoodEntity(name = "Zeytin", kcalPer100g = 115, protein = 0.8f, carbs = 6.3f, fat = 10.7f, fiber = 3.2f, ironMg = 3.3f, potassiumMg = 42f)
-        )
-        defaults.forEach { food ->
-            val existing = nutritionDao.getFoodByName(food.name)
+        val language = FoodDataset.currentLanguage()
+        FoodDataset.defaults.forEach { seed ->
+            val aliases = seed.names.values.distinct()
+            val existing = nutritionDao.getFoodsByNames(aliases).firstOrNull()
+            val localized = seed.toFoodEntity(language)
             if (existing == null) {
-                nutritionDao.insertFood(food)
+                nutritionDao.insertFood(localized)
             } else {
                 nutritionDao.updateFoodNutritionById(
                     id = existing.id,
-                    kcalPer100g = food.kcalPer100g,
-                    protein = food.protein,
-                    carbs = food.carbs,
-                    fat = food.fat,
-                    fiber = food.fiber,
-                    ironMg = food.ironMg,
-                    magnesiumMg = food.magnesiumMg,
-                    potassiumMg = food.potassiumMg,
-                    vitaminDUi = food.vitaminDUi,
-                    omega3Mg = food.omega3Mg
+                    name = localized.name,
+                    kcalPer100g = localized.kcalPer100g,
+                    protein = localized.protein,
+                    carbs = localized.carbs,
+                    fat = localized.fat,
+                    fiber = localized.fiber,
+                    ironMg = localized.ironMg,
+                    magnesiumMg = localized.magnesiumMg,
+                    potassiumMg = localized.potassiumMg,
+                    vitaminDUi = localized.vitaminDUi,
+                    omega3Mg = localized.omega3Mg
                 )
             }
         }

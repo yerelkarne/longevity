@@ -50,6 +50,19 @@ interface LongevityRepository {
     suspend fun updateMealEntry(entry: MealEntryEntity)
     suspend fun deleteMealEntry(id: Long, date: LocalDate)
     suspend fun addCustomFood(name: String): Long
+    suspend fun addCustomFoodWithNutrition(
+        name: String,
+        kcalPer100g: Int,
+        protein: Float,
+        carbs: Float,
+        fat: Float,
+        fiber: Float,
+        ironMg: Float,
+        magnesiumMg: Float,
+        potassiumMg: Float,
+        vitaminDUi: Float,
+        omega3Mg: Float
+    ): Long
 
     suspend fun addWater(date: LocalDate, amountMl: Int)
     fun observeWaterLogs(date: LocalDate): Flow<List<WaterLogEntity>>

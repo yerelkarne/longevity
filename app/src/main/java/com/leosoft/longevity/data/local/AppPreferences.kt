@@ -62,6 +62,7 @@ class AppPreferences(private val context: Context) {
     private val hcNutritionEnabledKey = booleanPreferencesKey("hc_nutrition_enabled")
     private val hcConflictRuleKey = stringPreferencesKey("hc_conflict_rule")
     private val hcLastSyncAtKey = stringPreferencesKey("hc_last_sync_at")
+    private val appLanguageKey = stringPreferencesKey("app_language")
 
     val onboardingDone: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[onboardingKey] ?: false }
     val medicalDisclaimerAccepted: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[medicalDisclaimerAcceptedKey] ?: false }
@@ -83,6 +84,8 @@ class AppPreferences(private val context: Context) {
             isForegroundTrackingEnabled = prefs[foregroundTrackingEnabledKey] ?: false
         )
     }
+
+    val appLanguage: Flow<String> = context.dataStore.data.map { prefs -> prefs[appLanguageKey] ?: "tr" }
 
     val healthSyncPreferences: Flow<HealthSyncPreferences> = context.dataStore.data.map { prefs ->
         HealthSyncPreferences(
@@ -130,6 +133,12 @@ class AppPreferences(private val context: Context) {
     suspend fun setForegroundTrackingEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[foregroundTrackingEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setAppLanguage(languageCode: String) {
+        context.dataStore.edit { prefs ->
+            prefs[appLanguageKey] = languageCode
         }
     }
 

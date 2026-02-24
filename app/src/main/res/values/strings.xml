@@ -55,12 +55,14 @@
     <string name="select_prompt">Seçiniz</string>
     <string name="select_first_hint">Önce kayıt türünü seçiniz.</string>
     <string name="add_type_food">Beslenme</string>
-    <string name="add_type_water">Su Kaydı</string>
-    <string name="add_type_supplement">Takviye Kaydı</string>
-    <string name="add_type_sleep">Uyku Kaydı</string>
-    <string name="add_type_activity">Aktivite Kaydı</string>
-    <string name="add_type_task">Görev Kaydı</string>
-    <string name="add_type_reminder">Hatırlatıcı Kaydı</string>
+    <string name="add_type_macro">Makro</string>
+    <string name="add_type_micro">Mikro</string>
+    <string name="add_type_water">Su</string>
+    <string name="add_type_supplement">Takviye</string>
+    <string name="add_type_sleep">Uyku</string>
+    <string name="add_type_activity">Aktivite</string>
+    <string name="add_type_task">Görev</string>
+    <string name="add_type_reminder">Hatırlatıcı</string>
     <string name="add_type_goal">Hedef Ekle</string>
     <string name="food_name">Yemek</string>
     <string name="food_list_label">Yemek listesi</string>
@@ -245,6 +247,14 @@
 
 
     <string name="settings_health_title">Health Connect</string>
+    <string name="settings_language">Uygulama dili</string>
+    <string name="settings_language_turkish">Türkçe</string>
+    <string name="settings_language_english">English</string>
+
+    <string name="settings_language_italian">İtalyanca</string>
+    <string name="settings_language_french">Fransızca</string>
+    <string name="settings_language_german">Almanca</string>
+    <string name="settings_language_spanish">İspanyolca</string>
     <string name="settings_health_disclosure">Health Connect bağlandığında su, uyku, adım, egzersiz ve beslenme (kalori/makro) verileri kullanıcı onayıyla okunur/yazılır. Takviyeler ve mikrolar yalnızca uygulama içinde kalır.</string>
     <string name="settings_health_connect">Health Connect’i bağla</string>
     <string name="settings_manage_permissions">İzinleri yönet</string>

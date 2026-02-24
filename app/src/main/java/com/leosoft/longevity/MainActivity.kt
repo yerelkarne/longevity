@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,12 +35,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
@@ -53,7 +56,7 @@ import com.leosoft.longevity.ui.screens.tabs.SettingsModule
 import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
     private var showActivityPermissionWarning by mutableStateOf(false)
     private var hasRequestedNotificationPermission = false
@@ -79,6 +82,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val app = application as LongevityApp
         trackerManager = StepTrackerManager(this, app.repository, app.preferences)
+        runBlocking {
+            val language = app.preferences.appLanguage.first()
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(language))
+        }
         enableEdgeToEdge()
         setContent {
             LongevityTheme {
@@ -223,7 +230,7 @@ private fun MainScaffold(
                         selected = currentRoute == destination.route,
                         onClick = { navController.navigate(destination.route) },
                         icon = { Icon(destination.icon, contentDescription = stringResource(destination.titleRes)) },
-                        label = { Text(stringResource(destination.titleRes)) }
+                        label = { Text(stringResource(destination.titleRes), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     )
                 }
             }

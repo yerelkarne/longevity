@@ -34,6 +34,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -88,7 +90,7 @@ import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
 import kotlinx.coroutines.launch
 
-private enum class QuickAddType { FOOD, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
+private enum class QuickAddType { FOOD, MACRO, MICRO, WATER, SUPPLEMENT, SLEEP, ACTIVITY }
 
 private val TrendBarColor = Color(0xFF9575CD)
 private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
@@ -114,7 +116,7 @@ fun ModuleTabLayout(
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
             tabs.forEachIndexed { index, tab ->
-                Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab) })
+                Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab, maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
         }
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -182,8 +184,8 @@ fun AktiviteModule(viewModel: MainViewModel) {
 @Composable
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
-    val state by viewModel.stepTrackingState.collectAsState()
     val userGoals by viewModel.userGoals.collectAsState()
+    val state by viewModel.stepTrackingState.collectAsState()
     val allStepsLogs by viewModel.allStepsLogs.collectAsState()
     var range by remember { mutableStateOf(StepsChartRange.DAILY) }
     val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
@@ -457,7 +459,7 @@ private fun androidx.compose.foundation.layout.RowScope.ActivityRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -674,7 +676,7 @@ private fun androidx.compose.foundation.layout.RowScope.SleepRangeChip(
             .padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -963,6 +965,7 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
 @Composable
 fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
+    val appLanguage by viewModel.appLanguage.collectAsState()
     val scope = rememberCoroutineScope()
     var pendingSyncAfterPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
@@ -976,6 +979,39 @@ fun SettingsModule(viewModel: MainViewModel) {
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            ExposedDropdownSimple(
+                label = stringResource(R.string.settings_language),
+                options = listOf(
+                    stringResource(R.string.settings_language_turkish),
+                    stringResource(R.string.settings_language_english),
+                    stringResource(R.string.settings_language_italian),
+                    stringResource(R.string.settings_language_french),
+                    stringResource(R.string.settings_language_german),
+                    stringResource(R.string.settings_language_spanish)
+                ),
+                selected = when (appLanguage) {
+                    "en" -> 1
+                    "it" -> 2
+                    "fr" -> 3
+                    "de" -> 4
+                    "es" -> 5
+                    else -> 0
+                },
+                onSelect = { idx ->
+                    val languageCode = when (idx) {
+                        1 -> "en"
+                        2 -> "it"
+                        3 -> "fr"
+                        4 -> "de"
+                        5 -> "es"
+                        else -> "tr"
+                    }
+                    viewModel.setAppLanguage(languageCode)
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
+                }
+            )
+        }
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.settings_health_connect))
@@ -1026,12 +1062,12 @@ fun SettingsModule(viewModel: MainViewModel) {
 @Composable
 fun GunumOzetScreen(viewModel: MainViewModel) {
     val selectedDate by viewModel.selectedGoalsDate.collectAsState()
+    val userGoals by viewModel.userGoals.collectAsState()
     val foods by viewModel.foods.collectAsState()
     val allMeals by viewModel.allMealEntries.collectAsState()
     val allWater by viewModel.allWaterLogs.collectAsState()
     val allSteps by viewModel.allStepsLogs.collectAsState()
     val sleepLogs by viewModel.sleepLogs.collectAsState()
-    val userGoals by viewModel.userGoals.collectAsState()
     var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
@@ -1100,7 +1136,7 @@ private fun androidx.compose.foundation.layout.RowScope.GunumRangeChip(text: Str
         modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1387,6 +1423,7 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
                             GoalTargetRow(stringResource(R.string.card_sleep), formatSleepDurationLabel(t.sleepMinutes))
                             GoalTargetRow(stringResource(R.string.card_water), "${t.waterMl} ml")
                             GoalTargetRow(stringResource(R.string.me_target_ideal_weight), stringResource(R.string.me_target_ideal_weight_value, t.idealWeightKg))
+                            GoalTargetRow(stringResource(R.string.card_calorie), "${t.caloriesKcal} kcal")
                             GoalTargetRow(stringResource(R.string.me_target_plan_type), weightPlanSummaryLabel(t.weightPlanSummary))
                         }
 
@@ -1502,7 +1539,8 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
                 magnesium = acc.magnesium + n.magnesium,
                 potassium = acc.potassium + n.potassium,
                 vitaminD = acc.vitaminD + n.vitaminD,
-                omega3 = acc.omega3 + n.omega3
+                omega3 = acc.omega3 + n.omega3,
+                calories = acc.calories + n.calories
             )
         }
     }
@@ -1817,7 +1855,7 @@ private fun AddGoalDialog(
     initialActivityType: String = WorkoutType.WALKING.name.lowercase(),
     onDelete: (() -> Unit)? = null
 ) {
-    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "omega3")
+    val goalTypeKeys = listOf("water", "activity", "protein", "carbs", "fat", "fiber", "sleep", "iron", "magnesium", "potassium", "vitamin_d", "calorie", "omega3")
     val activityTypeKeys = WorkoutType.entries.filter { it != WorkoutType.OTHER }
     val initialActivityIndex = activityTypeKeys.indexOfFirst { it.name.lowercase() == initialActivityType }
     var selectedActivityIdx by remember(initialActivityType) { mutableStateOf(initialActivityIndex.takeIf { it >= 0 } ?: 0) }
@@ -1888,6 +1926,7 @@ private fun goalTypeLabel(type: String): String = when {
     type == "magnesium" -> stringResource(R.string.nutrient_magnesium)
     type == "potassium" -> stringResource(R.string.nutrient_potassium)
     type == "vitamin_d" -> stringResource(R.string.nutrient_vitamin_d)
+    type == "calorie" -> stringResource(R.string.card_calorie)
     type == "omega3" -> stringResource(R.string.nutrient_omega3)
     else -> type
 }
@@ -1897,7 +1936,7 @@ private fun goalTargetHintLabel(type: String): String = when {
     type == "water" -> stringResource(R.string.goal_hint_water)
     type == "steps" || type == "activity" || isActivityGoalType(type) -> stringResource(R.string.goal_hint_activity)
     type == "protein" -> stringResource(R.string.goal_hint_protein)
-    type in listOf("carbs", "fat", "fiber") -> stringResource(R.string.goal_hint_macros)
+    type in listOf("carbs", "fat", "fiber", "calorie") -> stringResource(R.string.goal_hint_macros)
     type == "sleep" -> stringResource(R.string.goal_hint_sleep)
     type in listOf("iron", "magnesium", "potassium", "vitamin_d", "omega3") -> stringResource(R.string.goal_hint_micros)
     else -> ""
@@ -1943,6 +1982,7 @@ private fun goalUnit(goalType: String): String = when (goalType) {
     "water" -> "ml"
     "steps", "activity" -> "adım"
     "protein", "carbs", "fat", "fiber" -> "g"
+    "calorie" -> "kcal"
     "sleep" -> ""
     "iron", "magnesium", "potassium", "omega3" -> "mg"
     "vitamin_d" -> "IU"
@@ -1984,6 +2024,7 @@ private fun goalProgress(goal: GoalPlanItem, dashboard: com.leosoft.longevity.do
         goal.goalType == "magnesium" -> consumed.magnesium.toInt()
         goal.goalType == "potassium" -> consumed.potassium.toInt()
         goal.goalType == "vitamin_d" -> consumed.vitaminD.toInt()
+        goal.goalType == "calorie" -> consumed.calories.toInt()
         goal.goalType == "omega3" -> consumed.omega3.toInt()
         else -> 0
     }
@@ -2011,6 +2052,15 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var customSupplementName by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var secondaryText by remember { mutableStateOf("") }
+    var macroProteinText by remember { mutableStateOf("") }
+    var macroCarbsText by remember { mutableStateOf("") }
+    var macroFatText by remember { mutableStateOf("") }
+    var macroFiberText by remember { mutableStateOf("") }
+    var microIronText by remember { mutableStateOf("") }
+    var microMagnesiumText by remember { mutableStateOf("") }
+    var microPotassiumText by remember { mutableStateOf("") }
+    var microVitaminDText by remember { mutableStateOf("") }
+    var microOmega3Text by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
     var selectedWorkoutType by remember { mutableStateOf(WorkoutType.WALKING) }
     var customActivityName by remember { mutableStateOf("") }
@@ -2050,6 +2100,19 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         )
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
+                    }
+                    QuickAddType.MACRO -> {
+                        OutlinedTextField(value = macroProteinText, onValueChange = { macroProteinText = it }, label = { Text(stringResource(R.string.nutrient_protein) + " (g)") })
+                        OutlinedTextField(value = macroCarbsText, onValueChange = { macroCarbsText = it }, label = { Text(stringResource(R.string.nutrient_carbs) + " (g)") })
+                        OutlinedTextField(value = macroFatText, onValueChange = { macroFatText = it }, label = { Text(stringResource(R.string.nutrient_fat) + " (g)") })
+                        OutlinedTextField(value = macroFiberText, onValueChange = { macroFiberText = it }, label = { Text(stringResource(R.string.nutrient_fiber) + " (g)") })
+                    }
+                    QuickAddType.MICRO -> {
+                        OutlinedTextField(value = microIronText, onValueChange = { microIronText = it }, label = { Text(stringResource(R.string.nutrient_iron) + " (mg)") })
+                        OutlinedTextField(value = microMagnesiumText, onValueChange = { microMagnesiumText = it }, label = { Text(stringResource(R.string.nutrient_magnesium) + " (mg)") })
+                        OutlinedTextField(value = microPotassiumText, onValueChange = { microPotassiumText = it }, label = { Text(stringResource(R.string.nutrient_potassium) + " (mg)") })
+                        OutlinedTextField(value = microVitaminDText, onValueChange = { microVitaminDText = it }, label = { Text(stringResource(R.string.nutrient_vitamin_d) + " (IU)") })
+                        OutlinedTextField(value = microOmega3Text, onValueChange = { microOmega3Text = it }, label = { Text(stringResource(R.string.nutrient_omega3) + " (mg)") })
                     }
                     QuickAddType.WATER -> OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.water_ml_input)) })
                     QuickAddType.SUPPLEMENT -> {
@@ -2148,6 +2211,51 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 when (type) {
                     null -> Unit
                     QuickAddType.FOOD -> viewModel.addMealWithOptionalCustomFood(selectedFoodId, customFoodName, amountText.toIntOrNull() ?: 0, MealType.SNACK)
+                    QuickAddType.MACRO -> {
+                        val protein = macroProteinText.toFloatOrNull() ?: 0f
+                        val carbs = macroCarbsText.toFloatOrNull() ?: 0f
+                        val fat = macroFatText.toFloatOrNull() ?: 0f
+                        val fiber = macroFiberText.toFloatOrNull() ?: 0f
+                        val macroNames = buildList {
+                            if (protein > 0f) add(context.getString(R.string.nutrient_protein))
+                            if (carbs > 0f) add(context.getString(R.string.nutrient_carbs))
+                            if (fat > 0f) add(context.getString(R.string.nutrient_fat))
+                            if (fiber > 0f) add(context.getString(R.string.nutrient_fiber))
+                        }
+                        val entryName = if (macroNames.size == 1) macroNames.first() else context.getString(R.string.tab_macros)
+                        val servingGrams = maxOf(protein, carbs, fat, fiber).toInt().coerceAtLeast(1)
+                        viewModel.addCustomNutrientMeal(
+                            name = entryName,
+                            protein = protein,
+                            carbs = carbs,
+                            fat = fat,
+                            fiber = fiber,
+                            servingGrams = servingGrams
+                        )
+                    }
+                    QuickAddType.MICRO -> {
+                        val iron = microIronText.toFloatOrNull() ?: 0f
+                        val magnesium = microMagnesiumText.toFloatOrNull() ?: 0f
+                        val potassium = microPotassiumText.toFloatOrNull() ?: 0f
+                        val vitaminD = microVitaminDText.toFloatOrNull() ?: 0f
+                        val omega3 = microOmega3Text.toFloatOrNull() ?: 0f
+                        val microNames = buildList {
+                            if (iron > 0f) add(context.getString(R.string.nutrient_iron))
+                            if (magnesium > 0f) add(context.getString(R.string.nutrient_magnesium))
+                            if (potassium > 0f) add(context.getString(R.string.nutrient_potassium))
+                            if (vitaminD > 0f) add(context.getString(R.string.nutrient_vitamin_d))
+                            if (omega3 > 0f) add(context.getString(R.string.nutrient_omega3))
+                        }
+                        val entryName = if (microNames.size == 1) microNames.first() else context.getString(R.string.tab_micros)
+                        viewModel.addCustomNutrientMeal(
+                            name = entryName,
+                            ironMg = iron,
+                            magnesiumMg = magnesium,
+                            potassiumMg = potassium,
+                            vitaminDUi = vitaminD,
+                            omega3Mg = omega3
+                        )
+                    }
                     QuickAddType.WATER -> viewModel.addWater(amountText.toIntOrNull() ?: 0)
                     QuickAddType.SUPPLEMENT -> {
                         if (customSupplementName.isNotBlank()) viewModel.addSupplementByName(customSupplementName)
@@ -2205,6 +2313,8 @@ private fun ExposedDropdownSimple(label: String, options: List<String>, selected
 
 private fun typeLabel(type: QuickAddType): Int = when (type) {
     QuickAddType.FOOD -> R.string.add_type_food
+    QuickAddType.MACRO -> R.string.add_type_macro
+    QuickAddType.MICRO -> R.string.add_type_micro
     QuickAddType.WATER -> R.string.add_type_water
     QuickAddType.SUPPLEMENT -> R.string.add_type_supplement
     QuickAddType.SLEEP -> R.string.add_type_sleep
@@ -2230,7 +2340,8 @@ private data class NutrientTotals(
     val magnesium: Float = 0f,
     val potassium: Float = 0f,
     val vitaminD: Float = 0f,
-    val omega3: Float = 0f
+    val omega3: Float = 0f,
+    val calories: Float = 0f
 )
 
 private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
@@ -2244,7 +2355,8 @@ private fun nutrientByGrams(food: FoodEntity, grams: Int): NutrientTotals {
         magnesium = food.magnesiumMg * ratio,
         potassium = food.potassiumMg * ratio,
         vitaminD = food.vitaminDUi * ratio,
-        omega3 = food.omega3Mg * ratio
+        omega3 = food.omega3Mg * ratio,
+        calories = food.kcalPer100g * ratio
     )
 }
 
@@ -2560,6 +2672,8 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
 }
 
 
+
+
 @Composable
 fun BeslenmeSuScreen(viewModel: MainViewModel) {
     val logs by viewModel.waterLogs.collectAsState()
@@ -2804,7 +2918,7 @@ private fun NutritionTrendChartCard(
                         Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
                             Box(modifier = Modifier.fillMaxWidth().height(animatedH).background(TrendBarColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
                         }
-                        Text(p.label, style = MaterialTheme.typography.labelSmall)
+                        Text(p.label, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -2818,7 +2932,7 @@ private fun androidx.compose.foundation.layout.RowScope.NutritionRangeChip(text:
         modifier = Modifier.weight(1f).background(if (selected) Color.White else Color.Transparent, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = if (selected) TrendChipSelectedTextColor else TrendChipDefaultTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

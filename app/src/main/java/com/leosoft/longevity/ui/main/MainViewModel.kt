@@ -67,6 +67,7 @@ data class PersonalizedTargets(
     val potassiumMg: Int,
     val vitaminDIu: Int,
     val omega3Mg: Int,
+    val caloriesKcal: Int,
     val idealWeightKg: Float,
     val weightPlanSummary: String
 )
@@ -155,6 +156,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val healthSyncPreferences: StateFlow<HealthSyncPreferences> = app.preferences.healthSyncPreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HealthSyncPreferences())
+
+    val appLanguage: StateFlow<String> = app.preferences.appLanguage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "tr")
 
     val healthConnectAvailable: Boolean get() = healthConnectAdapter.isAvailable()
     val healthConnectInstallable: Boolean get() = healthConnectAdapter.isInstallable()
@@ -308,6 +312,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             potassiumMg = potassium,
             vitaminDIu = vitaminD,
             omega3Mg = omega3,
+            caloriesKcal = targetCalories.toInt(),
             idealWeightKg = idealWeight,
             weightPlanSummary = planSummary
         )
@@ -345,6 +350,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "magnesium" to targets.magnesiumMg,
                 "potassium" to targets.potassiumMg,
                 "vitamin_d" to targets.vitaminDIu,
+                "calorie" to targets.caloriesKcal,
                 "omega3" to targets.omega3Mg
             )
 
@@ -445,6 +451,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     mealType = mealType,
                     foodId = resolvedFoodId,
                     grams = grams
+                )
+            )
+            autoSyncHealthConnectIfEnabled()
+        }
+    }
+
+
+    fun addCustomNutrientMeal(
+        name: String,
+        protein: Float = 0f,
+        carbs: Float = 0f,
+        fat: Float = 0f,
+        fiber: Float = 0f,
+        ironMg: Float = 0f,
+        magnesiumMg: Float = 0f,
+        potassiumMg: Float = 0f,
+        vitaminDUi: Float = 0f,
+        omega3Mg: Float = 0f,
+        servingGrams: Int = 1
+    ) {
+        viewModelScope.launch {
+            val safeServingGrams = servingGrams.coerceAtLeast(1)
+            val multiplier = 100f / safeServingGrams
+            val kcalForInput = ((protein + carbs) * 4f + (fat * 9f))
+            val foodId = repository.addCustomFoodWithNutrition(
+                name = name,
+                kcalPer100g = (kcalForInput * multiplier).toInt(),
+                protein = protein * multiplier,
+                carbs = carbs * multiplier,
+                fat = fat * multiplier,
+                fiber = fiber * multiplier,
+                ironMg = ironMg * multiplier,
+                magnesiumMg = magnesiumMg * multiplier,
+                potassiumMg = potassiumMg * multiplier,
+                vitaminDUi = vitaminDUi * multiplier,
+                omega3Mg = omega3Mg * multiplier
+            )
+            repository.addMealEntry(
+                MealEntryEntity(
+                    date = selectedNutritionDate.value,
+                    time = LocalDateTime.now(),
+                    mealType = MealType.SNACK,
+                    foodId = foodId,
+                    grams = safeServingGrams
                 )
             )
             autoSyncHealthConnectIfEnabled()
@@ -603,6 +653,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun permissionsContract() = healthConnectAdapter.permissionsContract()
+
+    fun setAppLanguage(languageCode: String) = viewModelScope.launch {
+        app.preferences.setAppLanguage(languageCode)
+    }
 
     fun setHealthSyncEnabled(enabled: Boolean) = viewModelScope.launch {
         app.preferences.updateHealthSyncPreferences {
