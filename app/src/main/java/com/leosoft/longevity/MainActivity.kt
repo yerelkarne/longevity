@@ -211,7 +211,7 @@ private fun MainScaffold(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = topBarColor),
                 title = {
                     Text(
-                        text = stringResource(R.string.app_name),
+                        text = "${stringResource(R.string.app_name)} ♥",
                         style = MaterialTheme.typography.headlineMedium,
                         fontFamily = FontFamily.Cursive
                     )
