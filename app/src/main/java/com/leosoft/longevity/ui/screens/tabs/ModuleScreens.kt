@@ -954,13 +954,9 @@ fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val scope = rememberCoroutineScope()
-    var pendingSyncAfterPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
         viewModel.refreshHealthPermissions()
-        if (pendingSyncAfterPermission) {
-            pendingSyncAfterPermission = false
-            viewModel.syncNow()
-        }
+        viewModel.syncNow()
     }
 
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
@@ -1023,24 +1019,6 @@ fun SettingsModule(viewModel: MainViewModel) {
                     Text(stringResource(R.string.medical_disclaimer_title), style = MaterialTheme.typography.titleSmall, color = Color(0xFFBF360C))
                     Text(stringResource(R.string.medical_disclaimer_body), style = MaterialTheme.typography.bodySmall, color = Color(0xFF6D4C41))
                 }
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    scope.launch {
-                        val missingPermissions = viewModel.missingHealthPermissions()
-                        if (missingPermissions.isNotEmpty()) {
-                            pendingSyncAfterPermission = true
-                            launcher.launch(missingPermissions)
-                        } else {
-                            viewModel.syncNow()
-                        }
-                    }
-                },
-                enabled = prefs.enabled && viewModel.healthConnectAvailable
-            ) {
-                Text(stringResource(R.string.settings_sync_now))
             }
         }
     }
