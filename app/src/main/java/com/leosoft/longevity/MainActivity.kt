@@ -51,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
+import com.leosoft.longevity.steps.StepTrackingService
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
@@ -80,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         showActivityPermissionWarning = !granted
         if (granted) {
             trackerManager.start()
+            ensureStepTrackingServiceRunning()
         }
     }
 
@@ -125,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
         requestActivityPermissionIfNeeded()
+        ensureStepTrackingServiceRunning()
     }
 
     override fun onResume() {
@@ -161,6 +164,11 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+    }
+
+    private fun ensureStepTrackingServiceRunning() {
+        if (!hasActivityPermission() && !trackerManager.usesEstimatedTracking) return
+        startForegroundService(Intent(this, StepTrackingService::class.java))
     }
 
     private fun requestNotificationPermissionIfNeeded() {

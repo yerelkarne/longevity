@@ -185,7 +185,6 @@ fun AktiviteModule(viewModel: MainViewModel) {
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val userGoals by viewModel.userGoals.collectAsState()
-    val state by viewModel.stepTrackingState.collectAsState()
     val allStepsLogs by viewModel.allStepsLogs.collectAsState()
     var range by remember { mutableStateOf(StepsChartRange.DAILY) }
     val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
@@ -285,25 +284,6 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
                 ) {
                     Text(stringResource(R.string.estimated_tracking_info), modifier = Modifier.padding(12.dp))
-                }
-            }
-        }
-
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = TrendChipBackgroundColor)
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
-                        Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
-                    }
                 }
             }
         }
