@@ -37,8 +37,10 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val notificationId = ((reminderId * 1_000_003L) xor System.currentTimeMillis()).toInt()
+
         nm.notify(
-            reminderId.toInt(),
+            notificationId,
             NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(context.getString(R.string.reminder_notification_title))
