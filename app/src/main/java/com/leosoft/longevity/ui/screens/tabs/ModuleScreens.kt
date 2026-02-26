@@ -176,10 +176,14 @@ fun AktiviteModule(viewModel: MainViewModel) {
         WorkoutType.YOGA,
         WorkoutType.OTHER
     )
-    val tabs = workoutTabs.map { resolveWorkoutTypeLabel(it) }
+    val tabs = listOf(stringResource(R.string.activity_tab_steps)) + workoutTabs.map { resolveWorkoutTypeLabel(it) }
     ModuleTabLayout(tabs) { page ->
-        val selectedType = workoutTabs.getOrNull(page) ?: WorkoutType.PILATES
-        ActivityExerciseScreen(viewModel, selectedType)
+        if (page == 0) {
+            ActivityStepsScreen(viewModel)
+        } else {
+            val selectedType = workoutTabs.getOrNull(page - 1) ?: WorkoutType.PILATES
+            ActivityExerciseScreen(viewModel, selectedType)
+        }
     }
 }
 
