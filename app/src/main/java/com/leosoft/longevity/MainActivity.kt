@@ -228,7 +228,7 @@ private fun MainScaffold(
                             append(stringResource(R.string.app_name))
                             withStyle(
                                 style = SpanStyle(
-                                    color = Color.Black,
+                                    color = Color.White,
                                     fontStyle = FontStyle.Italic,
                                     baselineShift = BaselineShift(0.24f),
                                     fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.86f
