@@ -18,6 +18,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -299,9 +301,21 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
 private fun ActivityExerciseScreen(viewModel: MainViewModel) {
     val workoutLogs by viewModel.workoutLogs.collectAsState()
     var range by remember { mutableStateOf(ActivityChartRange.DAILY) }
+    val exerciseTabs = remember {
+        listOf(
+            WorkoutType.PILATES,
+            WorkoutType.ELLIPTICAL,
+            WorkoutType.RUNNING,
+            WorkoutType.STRENGTH,
+            WorkoutType.YOGA,
+            WorkoutType.OTHER
+        )
+    }
+    var selectedExerciseTab by remember { mutableStateOf(WorkoutType.PILATES) }
     var workoutToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
     var workoutToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
-    val chartData = remember(workoutLogs, range) { buildWorkoutChartData(workoutLogs, range) }
+    val selectedWorkoutLogs = remember(workoutLogs, selectedExerciseTab) { workoutLogs.filter { it.type == selectedExerciseTab } }
+    val chartData = remember(selectedWorkoutLogs, range) { buildWorkoutChartData(selectedWorkoutLogs, range) }
     val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
     LazyColumn(
@@ -320,6 +334,18 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.activity_exercise_trend_title), style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .background(TrendChipBackgroundColor, RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        exerciseTabs.forEach { type ->
+                            ActivityRangeChip(resolveWorkoutTypeLabel(type), selectedExerciseTab == type) { selectedExerciseTab = type }
+                        }
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -365,14 +391,14 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
             }
         }
 
-        if (workoutLogs.isEmpty()) {
+        if (selectedWorkoutLogs.isEmpty()) {
             item {
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.activity_exercise_empty), modifier = Modifier.padding(16.dp))
                 }
             }
         } else {
-            items(workoutLogs, key = { it.id }) { workout ->
+            items(selectedWorkoutLogs, key = { it.id }) { workout ->
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { workoutToEdit = workout }) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(workout.date.toString(), style = MaterialTheme.typography.titleSmall)
