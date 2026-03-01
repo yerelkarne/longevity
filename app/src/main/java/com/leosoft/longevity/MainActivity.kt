@@ -215,7 +215,7 @@ private fun MainScaffold(
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
 
-    val topBarColor = Color(0xFFD1C4E9)
+    val topBarColor = Color(0xFF7E57C2)
     val bottomBarColor = MaterialTheme.colorScheme.surface
 
     Scaffold(
@@ -238,6 +238,7 @@ private fun MainScaffold(
                             }
                         },
                         style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
                         fontFamily = FontFamily.Cursive
                     )
                 }
