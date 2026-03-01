@@ -51,7 +51,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 .build()
         )
 
-        ReminderAlarmScheduler.schedule(context, reminderId, title, cadence, reminderTime, intervalHours)
     }
 
     companion object {
@@ -124,6 +123,11 @@ object ReminderAlarmScheduler {
         val nextTriggerAt = nextTriggerAt(now, cadence, reminderTime, intervalHours)
         val triggerAtMillis = nextTriggerAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        am.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        val repeatIntervalMillis = when (cadence) {
+            "hourly" -> java.util.concurrent.TimeUnit.HOURS.toMillis(intervalHours.coerceAtLeast(1).toLong())
+            else -> java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+        }
+
+        am.setRepeating(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, repeatIntervalMillis, pi)
     }
 }
