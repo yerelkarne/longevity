@@ -140,7 +140,6 @@ fun ModuleTabLayout(
                 content(currentPage)
             }
         }
-        NativeAdvancedAdCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
     }
 }
 
@@ -219,6 +218,10 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -332,6 +335,10 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel, selectedExerciseTab
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -576,6 +583,10 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.life_sleep_trend_title), style = MaterialTheme.typography.titleMedium)
@@ -742,6 +753,10 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.life_routines_intro))
@@ -798,6 +813,10 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         if (latest == null) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
@@ -976,6 +995,10 @@ fun SettingsModule(viewModel: MainViewModel) {
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             ExposedDropdownSimple(
                 label = stringResource(R.string.settings_language),
                 options = listOf(
@@ -1067,6 +1090,10 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -1268,6 +1295,10 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Text(stringResource(R.string.me_intro), style = MaterialTheme.typography.bodyMedium)
         }
@@ -1533,6 +1564,10 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
@@ -1650,6 +1685,10 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         if (reminders.isEmpty()) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
@@ -2357,6 +2396,10 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
 
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 TextButton(onClick = {
                     DatePickerDialog(
@@ -2541,6 +2584,10 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
@@ -2608,6 +2655,10 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
@@ -2669,6 +2720,10 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -2751,6 +2806,10 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
