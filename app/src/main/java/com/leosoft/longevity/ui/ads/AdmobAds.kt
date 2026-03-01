@@ -33,15 +33,15 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.leosoft.longevity.BuildConfig
 import com.leosoft.longevity.R
 
 private const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
 private const val TEST_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
 
 object AdUnitIds {
-    val nativeAdvanced = if (BuildConfig.DEBUG) TEST_NATIVE_AD_UNIT_ID else TEST_NATIVE_AD_UNIT_ID
-    val interstitial = if (BuildConfig.DEBUG) TEST_INTERSTITIAL_AD_UNIT_ID else TEST_INTERSTITIAL_AD_UNIT_ID
+    // TODO: Replace test IDs with production IDs before release.
+    const val nativeAdvanced: String = TEST_NATIVE_AD_UNIT_ID
+    const val interstitial: String = TEST_INTERSTITIAL_AD_UNIT_ID
 }
 
 object AdMobManager {
@@ -123,11 +123,17 @@ fun NativeAdvancedAdCard(
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+    val containerColor = colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    val adLabelColor = colorScheme.primary
+    val headlineColor = colorScheme.onSurface.toArgb()
+    val bodyColor = colorScheme.onSurfaceVariant.toArgb()
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                color = containerColor,
                 shape = RoundedCornerShape(18.dp)
             )
             .padding(12.dp)
@@ -135,7 +141,7 @@ fun NativeAdvancedAdCard(
         Text(
             text = stringResource(R.string.ad_label),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
+            color = adLabelColor
         )
         AndroidView(
             modifier = Modifier.fillMaxWidth(),
@@ -157,7 +163,7 @@ fun NativeAdvancedAdCard(
                 }
 
                 val headlineView = android.widget.TextView(context).apply {
-                    setTextColor(MaterialTheme.colorScheme.onSurface.toArgb())
+                    setTextColor(headlineColor)
                     textSize = 17f
                     text = ad.headline
                 }
@@ -166,7 +172,7 @@ fun NativeAdvancedAdCard(
 
                 ad.body?.let { body ->
                     val bodyView = android.widget.TextView(context).apply {
-                        setTextColor(MaterialTheme.colorScheme.onSurfaceVariant.toArgb())
+                        setTextColor(bodyColor)
                         textSize = 14f
                         text = body
                     }
