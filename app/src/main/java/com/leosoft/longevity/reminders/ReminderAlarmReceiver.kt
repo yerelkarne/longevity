@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.leosoft.longevity.MainActivity
 import com.leosoft.longevity.R
+import com.leosoft.longevity.ui.theme.AppImageAssets
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -42,7 +43,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         nm.notify(
             notificationId,
             NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(AppImageAssets.notificationSmallIconRes)
                 .setContentTitle(context.getString(R.string.reminder_notification_title))
                 .setContentText(title)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
