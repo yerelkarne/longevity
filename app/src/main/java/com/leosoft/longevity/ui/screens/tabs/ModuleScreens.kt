@@ -168,15 +168,21 @@ fun BeslenmeModule(viewModel: MainViewModel) {
 
 @Composable
 fun AktiviteModule(viewModel: MainViewModel) {
-    val tabs = listOf(
-        stringResource(R.string.activity_tab_steps),
-        stringResource(R.string.activity_tab_add_exercise)
+    val workoutTabs = listOf(
+        WorkoutType.PILATES,
+        WorkoutType.ELLIPTICAL,
+        WorkoutType.RUNNING,
+        WorkoutType.STRENGTH,
+        WorkoutType.YOGA,
+        WorkoutType.OTHER
     )
+    val tabs = listOf(stringResource(R.string.activity_tab_steps)) + workoutTabs.map { resolveWorkoutTypeLabel(it) }
     ModuleTabLayout(tabs) { page ->
-        when (page) {
-            0 -> ActivityStepsScreen(viewModel)
-            1 -> ActivityExerciseScreen(viewModel)
-            else -> PlaceholderTab(stringResource(R.string.nav_activity))
+        if (page == 0) {
+            ActivityStepsScreen(viewModel)
+        } else {
+            val selectedType = workoutTabs.getOrNull(page - 1) ?: WorkoutType.PILATES
+            ActivityExerciseScreen(viewModel, selectedType)
         }
     }
 }
@@ -185,7 +191,6 @@ fun AktiviteModule(viewModel: MainViewModel) {
 private fun ActivityStepsScreen(viewModel: MainViewModel) {
     val dashboard by viewModel.dashboard.collectAsState()
     val userGoals by viewModel.userGoals.collectAsState()
-    val state by viewModel.stepTrackingState.collectAsState()
     val allStepsLogs by viewModel.allStepsLogs.collectAsState()
     var range by remember { mutableStateOf(StepsChartRange.DAILY) }
     val chartData = remember(allStepsLogs, range) { buildStepsChartData(allStepsLogs, range) }
@@ -290,25 +295,6 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
         }
 
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = TrendChipBackgroundColor)
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (state.isForegroundTrackingEnabled) stringResource(R.string.step_tracking_on) else stringResource(R.string.step_tracking_off),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { viewModel.setForegroundStepTracking(true) }) { Text(stringResource(R.string.enable_background)) }
-                        Button(onClick = { viewModel.setForegroundStepTracking(false) }) { Text(stringResource(R.string.disable_background)) }
-                    }
-                }
-            }
-        }
-
-        item {
             Text(stringResource(R.string.battery_optimization_hint), style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -316,12 +302,13 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
 
 
 @Composable
-private fun ActivityExerciseScreen(viewModel: MainViewModel) {
+private fun ActivityExerciseScreen(viewModel: MainViewModel, selectedExerciseTab: WorkoutType) {
     val workoutLogs by viewModel.workoutLogs.collectAsState()
     var range by remember { mutableStateOf(ActivityChartRange.DAILY) }
     var workoutToEdit by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
     var workoutToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.WorkoutLogEntity?>(null) }
-    val chartData = remember(workoutLogs, range) { buildWorkoutChartData(workoutLogs, range) }
+    val selectedWorkoutLogs = remember(workoutLogs, selectedExerciseTab) { workoutLogs.filter { it.type == selectedExerciseTab } }
+    val chartData = remember(selectedWorkoutLogs, range) { buildWorkoutChartData(selectedWorkoutLogs, range) }
     val maxMinutes = (chartData.maxOfOrNull { it.minutes } ?: 1).coerceAtLeast(1)
 
     LazyColumn(
@@ -385,14 +372,14 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel) {
             }
         }
 
-        if (workoutLogs.isEmpty()) {
+        if (selectedWorkoutLogs.isEmpty()) {
             item {
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.activity_exercise_empty), modifier = Modifier.padding(16.dp))
                 }
             }
         } else {
-            items(workoutLogs, key = { it.id }) { workout ->
+            items(selectedWorkoutLogs, key = { it.id }) { workout ->
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { workoutToEdit = workout }) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(workout.date.toString(), style = MaterialTheme.typography.titleSmall)
@@ -967,13 +954,9 @@ fun SettingsModule(viewModel: MainViewModel) {
     val prefs by viewModel.healthSyncPreferences.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val scope = rememberCoroutineScope()
-    var pendingSyncAfterPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(viewModel.permissionsContract()) {
         viewModel.refreshHealthPermissions()
-        if (pendingSyncAfterPermission) {
-            pendingSyncAfterPermission = false
-            viewModel.syncNow()
-        }
+        viewModel.syncNow()
     }
 
     LaunchedEffect(Unit) { viewModel.refreshHealthPermissions() }
@@ -1036,24 +1019,6 @@ fun SettingsModule(viewModel: MainViewModel) {
                     Text(stringResource(R.string.medical_disclaimer_title), style = MaterialTheme.typography.titleSmall, color = Color(0xFFBF360C))
                     Text(stringResource(R.string.medical_disclaimer_body), style = MaterialTheme.typography.bodySmall, color = Color(0xFF6D4C41))
                 }
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    scope.launch {
-                        val missingPermissions = viewModel.missingHealthPermissions()
-                        if (missingPermissions.isNotEmpty()) {
-                            pendingSyncAfterPermission = true
-                            launcher.launch(missingPermissions)
-                        } else {
-                            viewModel.syncNow()
-                        }
-                    }
-                },
-                enabled = prefs.enabled && viewModel.healthConnectAvailable
-            ) {
-                Text(stringResource(R.string.settings_sync_now))
             }
         }
     }

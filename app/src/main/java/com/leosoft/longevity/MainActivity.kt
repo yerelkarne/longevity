@@ -34,8 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
+import com.leosoft.longevity.steps.StepTrackingService
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
@@ -75,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         showActivityPermissionWarning = !granted
         if (granted) {
             trackerManager.start()
+            ensureStepTrackingServiceRunning()
         }
     }
 
@@ -120,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
         requestActivityPermissionIfNeeded()
+        ensureStepTrackingServiceRunning()
     }
 
     override fun onResume() {
@@ -156,6 +164,11 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+    }
+
+    private fun ensureStepTrackingServiceRunning() {
+        if (!hasActivityPermission() && !trackerManager.usesEstimatedTracking) return
+        startForegroundService(Intent(this, StepTrackingService::class.java))
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -202,7 +215,7 @@ private fun MainScaffold(
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
 
-    val topBarColor = Color(0xFFEDE7F6)
+    val topBarColor = Color(0xFF7E57C2)
     val bottomBarColor = MaterialTheme.colorScheme.surface
 
     Scaffold(
@@ -211,8 +224,21 @@ private fun MainScaffold(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = topBarColor),
                 title = {
                     Text(
-                        text = stringResource(R.string.app_name),
+                        text = buildAnnotatedString {
+                            append(stringResource(R.string.app_name))
+                            withStyle(
+                                style = SpanStyle(
+                                    color = Color.White,
+                                    fontStyle = FontStyle.Italic,
+                                    baselineShift = BaselineShift(0.24f),
+                                    fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.86f
+                                )
+                            ) {
+                                append("♥︎")
+                            }
+                        },
                         style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
                         fontFamily = FontFamily.Cursive
                     )
                 }

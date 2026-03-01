@@ -37,8 +37,10 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val notificationId = ((reminderId * 1_000_003L) xor System.currentTimeMillis()).toInt()
+
         nm.notify(
-            reminderId.toInt(),
+            notificationId,
             NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(context.getString(R.string.reminder_notification_title))
@@ -49,7 +51,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 .build()
         )
 
-        ReminderAlarmScheduler.schedule(context, reminderId, title, cadence, reminderTime, intervalHours, fromReceiver = true)
     }
 
     companion object {
@@ -62,6 +63,27 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 }
 
 object ReminderAlarmScheduler {
+    internal fun nextTriggerAt(
+        now: LocalDateTime,
+        cadence: String,
+        reminderTime: String,
+        intervalHours: Int
+    ): LocalDateTime {
+        return when (cadence) {
+            "hourly" -> {
+                val hourInterval = intervalHours.coerceAtLeast(1)
+                val currentHourBoundary = now.withMinute(0).withSecond(0).withNano(0)
+                currentHourBoundary.plusHours(hourInterval.toLong())
+            }
+            else -> {
+                val t = runCatching { LocalTime.parse(reminderTime) }.getOrElse { LocalTime.of(9, 0) }
+                var next = now.withHour(t.hour).withMinute(t.minute).withSecond(0).withNano(0)
+                if (!next.isAfter(now)) next = next.plusDays(1)
+                next
+            }
+        }
+    }
+
     fun cancel(context: Context, id: Long) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java)
@@ -80,8 +102,7 @@ object ReminderAlarmScheduler {
         title: String,
         cadence: String,
         reminderTime: String,
-        intervalHours: Int,
-        fromReceiver: Boolean = false
+        intervalHours: Int
     ) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
@@ -99,25 +120,14 @@ object ReminderAlarmScheduler {
         )
 
         val now = LocalDateTime.now()
-        val triggerAtMillis = when (cadence) {
-            "hourly" -> {
-                val hourInterval = intervalHours.coerceAtLeast(1)
-                val currentHourBoundary = now.withMinute(0).withSecond(0).withNano(0)
-                val next = if (fromReceiver) {
-                    currentHourBoundary.plusHours(hourInterval.toLong())
-                } else {
-                    currentHourBoundary.plusHours(1)
-                }
-                next.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-            }
-            else -> {
-                val t = runCatching { LocalTime.parse(reminderTime) }.getOrElse { LocalTime.of(9, 0) }
-                var next = now.withHour(t.hour).withMinute(t.minute).withSecond(0).withNano(0)
-                if (!next.isAfter(now)) next = next.plusDays(1)
-                next.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-            }
+        val nextTriggerAt = nextTriggerAt(now, cadence, reminderTime, intervalHours)
+        val triggerAtMillis = nextTriggerAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+        val repeatIntervalMillis = when (cadence) {
+            "hourly" -> java.util.concurrent.TimeUnit.HOURS.toMillis(intervalHours.coerceAtLeast(1).toLong())
+            else -> java.util.concurrent.TimeUnit.DAYS.toMillis(1)
         }
 
-        am.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        am.setRepeating(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, repeatIntervalMillis, pi)
     }
 }

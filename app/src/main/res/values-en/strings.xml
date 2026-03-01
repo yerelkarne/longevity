@@ -314,4 +314,10 @@
     <string name="medical_disclaimer_body">This app is for general wellness tracking only. It does not replace a doctor or a registered dietitian and does not provide diagnosis, treatment, or personalized medical advice. Please consult qualified healthcare professionals for health decisions.</string>
     <string name="medical_disclaimer_accept">I accept</string>
     <string name="activity_steps_trend_title">Step trends</string>
+    <string name="daily_goal_check_title">Evening goal summary</string>
+    <string name="daily_goal_water_behind">You are behind your water goal today. A few more glasses can help you finish strong.</string>
+    <string name="daily_goal_macro_behind">You are behind your macro goals today. Try adding a balanced meal and complete your food logs.</string>
+    <string name="daily_goal_micro_behind">You are behind your micronutrient goals today. A nutrient-dense meal can help you catch up.</string>
+    <string name="daily_logging_reminder_title">Daily logging reminder</string>
+    <string name="daily_logging_reminder_message">Please update today’s food and water logs to keep your progress tracking accurate.</string>
 </resources>

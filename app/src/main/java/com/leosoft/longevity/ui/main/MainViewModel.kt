@@ -27,8 +27,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 
@@ -166,11 +171,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _healthPermissionsGranted = MutableStateFlow(false)
     val healthPermissionsGranted: StateFlow<Boolean> = _healthPermissionsGranted
 
+    private var healthAutoSyncJob: Job? = null
+
     val usesEstimatedTracking = StepTrackerManager(application, repository, app.preferences).usesEstimatedTracking
 
     init {
         ensureCoreFoods()
         refreshHealthPermissions()
+        viewModelScope.launch {
+            healthSyncPreferences
+                .map { it.enabled }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    scheduleHealthAutoSync(enabled)
+                }
+        }
     }
 
     fun completeOnboarding(form: OnboardingForm) {
@@ -688,6 +703,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         refreshHealthPermissions()
+    }
+
+    private fun scheduleHealthAutoSync(enabled: Boolean) {
+        healthAutoSyncJob?.cancel()
+        if (!enabled) return
+        healthAutoSyncJob = viewModelScope.launch {
+            while (isActive) {
+                autoSyncHealthConnectIfEnabled()
+                delay(15 * 60 * 1000L)
+            }
+        }
     }
 
     fun syncNow() = viewModelScope.launch {

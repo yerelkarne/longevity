@@ -21,7 +21,6 @@
     <uses-permission android:name="android.permission.health.WRITE_HYDRATION" />
     <uses-permission android:name="android.permission.health.READ_MENSTRUATION" />
     <uses-permission android:name="android.permission.health.WRITE_MENSTRUATION" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:name=".LongevityApp"
@@ -59,6 +58,7 @@
             android:exported="false" />
 
         <receiver android:name=".reminders.ReminderAlarmReceiver" android:exported="false" />
+        <receiver android:name=".reminders.DailyCoachReminderReceiver" android:exported="false" />
     </application>
 
 </manifest>
