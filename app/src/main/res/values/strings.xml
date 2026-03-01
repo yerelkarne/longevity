@@ -344,4 +344,5 @@
     <string name="daily_goal_micro_behind">Bugün mikro besin hedeflerinizin gerisindesiniz. Zengin içerikli bir öğünle hedefe yaklaşabilirsiniz.</string>
     <string name="daily_logging_reminder_title">Günlük kayıt hatırlatması</string>
     <string name="daily_logging_reminder_message">Lütfen bugünkü besin ve su kayıtlarınızı güncelleyin; hedef takibinizin doğru kalmasına yardımcı olur.</string>
+    <string name="ad_label">Reklam</string>
 </resources>

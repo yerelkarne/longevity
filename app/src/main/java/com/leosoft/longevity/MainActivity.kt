@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -52,6 +54,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.steps.StepTrackingService
+import com.leosoft.longevity.ui.ads.AdMobManager
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
@@ -214,6 +217,14 @@ private fun MainScaffold(
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    LaunchedEffect(currentRoute) {
+        val activity = context as? AppCompatActivity ?: return@LaunchedEffect
+        if (currentRoute != null) {
+            AdMobManager.onPageChanged(activity)
+        }
+    }
 
     val topBarColor = Color(0xFF7E57C2)
     val bottomBarColor = MaterialTheme.colorScheme.surface

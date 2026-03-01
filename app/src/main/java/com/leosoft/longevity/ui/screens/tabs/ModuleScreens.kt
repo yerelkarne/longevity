@@ -67,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,6 +86,8 @@ import java.time.YearMonth
 import java.util.Locale
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
+import com.leosoft.longevity.ui.ads.AdMobManager
+import com.leosoft.longevity.ui.ads.NativeAdvancedAdCard
 import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
@@ -108,10 +111,19 @@ fun ModuleTabLayout(
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var hasSeenFirstPage by remember { mutableStateOf(false) }
     LaunchedEffect(requestedPage) {
         val page = requestedPage ?: return@LaunchedEffect
         pagerState.animateScrollToPage(page.coerceIn(0, tabs.lastIndex))
         onRequestConsumed()
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        if (!hasSeenFirstPage) {
+            hasSeenFirstPage = true
+            return@LaunchedEffect
+        }
+        (context as? AppCompatActivity)?.let { AdMobManager.onPageChanged(it) }
     }
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
@@ -119,7 +131,7 @@ fun ModuleTabLayout(
                 Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab, maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
         }
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
             AnimatedContent(
                 targetState = page,
                 transitionSpec = { (fadeIn(animationSpec = tween(350)) + slideInVertically(animationSpec = tween(350)) { it / 10 }) togetherWith (fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -it / 10 }) },
@@ -128,6 +140,7 @@ fun ModuleTabLayout(
                 content(currentPage)
             }
         }
+        NativeAdvancedAdCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
     }
 }
 
