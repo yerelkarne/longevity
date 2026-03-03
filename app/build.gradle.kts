@@ -35,6 +35,15 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    sourceSets {
+        getByName("main") {
+            java {
+                // Guard against accidental backup/temporary duplicate files (e.g. xFoodDataset.kt)
+                // that can cause redeclaration errors in local IDE builds.
+                exclude("**/xFoodDataset.kt")
+            }
+        }
+    }
     buildFeatures {
         compose = true
     }
