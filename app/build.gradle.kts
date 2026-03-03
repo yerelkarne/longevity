@@ -37,11 +37,7 @@ android {
     }
     sourceSets {
         getByName("main") {
-            java {
-                // Guard against accidental backup/temporary duplicate files (e.g. xFoodDataset.kt)
-                // that can cause redeclaration errors in local IDE builds.
-                exclude("**/xFoodDataset.kt")
-            }
+            java.exclude("**/xFoodDataset.kt")
         }
     }
     buildFeatures {
@@ -87,3 +83,4 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
+
