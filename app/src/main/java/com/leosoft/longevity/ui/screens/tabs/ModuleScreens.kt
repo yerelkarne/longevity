@@ -1817,7 +1817,13 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.reminders_empty_message))
-                        TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                        Button(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(stringResource(R.string.reminder_add_link))
+                        }
                     }
                 }
             }
@@ -1825,7 +1831,12 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.tab_reminders), style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                    Button(
+                        onClick = { showAddDialog = true },
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(stringResource(R.string.reminder_add_link))
+                    }
                 }
             }
             items(reminders, key = { it.id }) { reminder ->
