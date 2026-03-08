@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -74,6 +75,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
@@ -2274,7 +2276,8 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             )
                             ExposedDropdownMenu(
                                 expanded = foodDropdownExpanded,
-                                onDismissRequest = { foodDropdownExpanded = false }
+                                onDismissRequest = { foodDropdownExpanded = false },
+                                modifier = Modifier.heightIn(max = 56.dp * 3)
                             ) {
                                 filteredFoods.forEach { food ->
                                     DropdownMenuItem(
@@ -2481,7 +2484,13 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExposedDropdownSimple(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+private fun ExposedDropdownSimple(
+    label: String,
+    options: List<String>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    dropdownMaxHeight: Dp = 56.dp * 6
+) {
     var expanded by remember { mutableStateOf(false) }
     if (options.isEmpty()) return
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
@@ -2493,7 +2502,11 @@ private fun ExposedDropdownSimple(label: String, options: List<String>, selected
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = dropdownMaxHeight)
+        ) {
             options.forEachIndexed { index, item ->
                 DropdownMenuItem(text = { Text(item) }, onClick = { onSelect(index); expanded = false })
             }
@@ -2707,7 +2720,8 @@ private fun MealEntryActionsDialog(
                         label = stringResource(R.string.food_list_label),
                         options = foods.map { it.name },
                         selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
-                        onSelect = { idx -> selectedFoodId = foods[idx].id }
+                        onSelect = { idx -> selectedFoodId = foods[idx].id },
+                        dropdownMaxHeight = 56.dp * 3
                     )
                     OutlinedTextField(
                         value = gramsText,
