@@ -59,6 +59,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -104,6 +105,7 @@ private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
 private val TrendChipSelectedTextColor = Color(0xFF4A148C)
 private val TrendChipDefaultTextColor = Color(0xFF6A1B9A)
 private val TrendValueTextColor = Color(0xFF5E35B1)
+private const val FOOD_DROPDOWN_MAX_RESULTS = 80
 
 @Composable
 fun ModuleTabLayout(
@@ -2244,14 +2246,37 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     QuickAddType.FOOD -> {
                         var foodDropdownExpanded by remember { mutableStateOf(false) }
                         var foodQuery by remember { mutableStateOf("") }
-                        val filteredFoods = remember(foods, foodQuery) {
-                            val q = foodQuery.trim()
-                            if (q.isBlank()) {
-                                foods
-                            } else {
-                                val startsWithQuery = foods.filter { it.name.startsWith(q, ignoreCase = true) }
-                                val containsQuery = foods.filter { it.name.contains(q, ignoreCase = true) && !it.name.startsWith(q, ignoreCase = true) }
-                                startsWithQuery + containsQuery
+                        val searchableFoods = remember(foods) {
+                            foods.map { food -> food to food.name.lowercase(Locale.ROOT) }
+                        }
+                        val filteredFoods by remember(searchableFoods, foodQuery) {
+                            derivedStateOf {
+                                val normalizedQuery = foodQuery.trim().lowercase(Locale.ROOT)
+                                if (normalizedQuery.isBlank()) {
+                                    searchableFoods
+                                        .asSequence()
+                                        .map { it.first }
+                                        .take(FOOD_DROPDOWN_MAX_RESULTS)
+                                        .toList()
+                                } else {
+                                    val startsWithQuery = searchableFoods
+                                        .asSequence()
+                                        .filter { it.second.startsWith(normalizedQuery) }
+                                        .map { it.first }
+                                        .take(FOOD_DROPDOWN_MAX_RESULTS)
+                                        .toList()
+
+                                    if (startsWithQuery.size >= FOOD_DROPDOWN_MAX_RESULTS) {
+                                        startsWithQuery
+                                    } else {
+                                        startsWithQuery + searchableFoods
+                                            .asSequence()
+                                            .filter { it.second.contains(normalizedQuery) && !it.second.startsWith(normalizedQuery) }
+                                            .map { it.first }
+                                            .take(FOOD_DROPDOWN_MAX_RESULTS - startsWithQuery.size)
+                                            .toList()
+                                    }
+                                }
                             }
                         }
 
@@ -2268,7 +2293,8 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                                 onValueChange = {
                                     foodQuery = it
                                     foodDropdownExpanded = true
-                                    selectedFoodId = foods.firstOrNull { food -> food.name.equals(it.trim(), ignoreCase = true) }?.id
+                                    val normalizedQuery = it.trim().lowercase(Locale.ROOT)
+                                    selectedFoodId = searchableFoods.firstOrNull { item -> item.second == normalizedQuery }?.first?.id
                                 },
                                 label = { Text(stringResource(R.string.food_list_label)) },
                                 placeholder = { Text(stringResource(R.string.food_select_or_search_prompt)) },
