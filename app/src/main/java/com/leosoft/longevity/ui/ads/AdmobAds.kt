@@ -21,16 +21,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
-import com.google.android.gms.ads.interstitial.InterstitialAd
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 
 private const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
 private const val TEST_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
@@ -73,11 +74,13 @@ object AdMobManager {
     fun onPageChanged(activity: Activity) {
         pageChangeCount += 1
         if (pageChangeCount % 10 != 0) return
+
         val ad = interstitialAd
         if (ad == null) {
             preloadInterstitial(activity)
             return
         }
+
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 interstitialAd = null
@@ -102,14 +105,12 @@ fun NativeAdvancedAdCard(
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
 
     DisposableEffect(adUnitId) {
-        val adLoader = com.google.android.gms.ads.AdLoader.Builder(context, adUnitId)
+        val adLoader = AdLoader.Builder(context, adUnitId)
             .forNativeAd { loadedAd ->
                 nativeAd?.destroy()
                 nativeAd = loadedAd
             }
-            .withNativeAdOptions(
-                NativeAdOptions.Builder().build()
-            )
+            .withNativeAdOptions(NativeAdOptions.Builder().build())
             .build()
 
         adLoader.loadAd(AdRequest.Builder().build())
@@ -128,10 +129,7 @@ fun NativeAdvancedAdCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                color = containerColor,
-                shape = RoundedCornerShape(18.dp)
-            )
+            .background(color = containerColor, shape = RoundedCornerShape(18.dp))
             .padding(12.dp)
     ) {
         AndroidView(
