@@ -277,12 +277,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val remainingCaloriesAfterProteinFat = (targetCalories - ((protein * 4f) + (fat * 9f))).coerceAtLeast(0f)
         val carbsFromRemaining = remainingCaloriesAfterProteinFat / 4f
         val carbsMinPerKg = when (planSummary) {
-            "lose" -> 1.6f
+            "lose" -> 1.2f
             "gain" -> 3.0f
             else -> 2.2f
         }
         val carbsMaxPerKg = when (planSummary) {
-            "lose" -> 3.2f
+            "lose" -> 2.4f
             "gain" -> 6.0f
             else -> 4.8f
         }
