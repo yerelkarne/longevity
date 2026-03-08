@@ -65,6 +65,7 @@
     <string name="add_type_reminder">Promemoria</string>
     <string name="add_type_goal">Add Obiettivo</string>
     <string name="food_name">Food Name</string>
+    <string name="food_select_or_search_prompt">Seleziona o cerca</string>
     <string name="food_list_label">Food List Label</string>
     <string name="foods_loading_hint">Foods Loading Hint</string>
     <string name="food_name_custom_optional">Food Name Custom Optional</string>

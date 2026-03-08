@@ -2258,7 +2258,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                                     selectedFoodId = foods.firstOrNull { food -> food.name.equals(it.trim(), ignoreCase = true) }?.id
                                 },
                                 label = { Text(stringResource(R.string.food_list_label)) },
-                                placeholder = { Text(stringResource(R.string.select_prompt)) },
+                                placeholder = { Text(stringResource(R.string.food_select_or_search_prompt)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = foodDropdownExpanded) }
                             )
                             ExposedDropdownMenu(
