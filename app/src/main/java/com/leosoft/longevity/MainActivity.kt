@@ -1,10 +1,12 @@
 package com.leosoft.longevity
 
 import android.Manifest
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.provider.Settings
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -130,13 +132,13 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
         requestActivityPermissionIfNeeded()
-        ensureStepTrackingServiceRunning()
     }
 
     override fun onResume() {
         super.onResume()
         if (hasActivityPermission() || trackerManager.usesEstimatedTracking) {
             trackerManager.start()
+            ensureStepTrackingServiceRunning()
         }
     }
 
@@ -171,7 +173,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun ensureStepTrackingServiceRunning() {
         if (!hasActivityPermission() && !trackerManager.usesEstimatedTracking) return
-        startForegroundService(Intent(this, StepTrackingService::class.java))
+        val intent = Intent(this, StepTrackingService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Log.w("MainActivity", "Step tracking service start deferred by system", e)
+            } else {
+                throw e
+            }
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
