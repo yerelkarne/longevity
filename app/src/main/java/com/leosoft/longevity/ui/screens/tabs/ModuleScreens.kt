@@ -2193,7 +2193,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     }
     val nutritiousFoods by viewModel.nutritiousFoods.collectAsState()
     val allFoods by viewModel.foods.collectAsState()
-    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else allFoods
+    val foods = if (allFoods.isNotEmpty()) allFoods else nutritiousFoods
     val supplements by viewModel.supplements.collectAsState()
     var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }
