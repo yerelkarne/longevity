@@ -78,13 +78,3 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
-
-
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    exclude("**/xFoodDataset.kt")
-}
-
-tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
-    exclude("**/xFoodDataset.kt")
-}
