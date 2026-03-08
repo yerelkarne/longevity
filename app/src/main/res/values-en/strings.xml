@@ -320,4 +320,9 @@
     <string name="daily_goal_micro_behind">You are behind your micronutrient goals today. A nutrient-dense meal can help you catch up.</string>
     <string name="daily_logging_reminder_title">Daily logging reminder</string>
     <string name="daily_logging_reminder_message">Please update today’s food and water logs to keep your progress tracking accurate.</string>
+    <string name="summary_daily_calorie_goal_title">My daily calorie goal</string>
+    <string name="summary_goal_of_format">Goal: %1$d kcal</string>
+    <string name="summary_calorie_remaining">Calories remaining: %1$d kcal</string>
+    <string name="summary_calorie_exceeded">Goal exceeded: %1$d kcal</string>
+    <string name="summary_calories_burned_by_activity">Burned with activity: %1$d kcal</string>
 </resources>

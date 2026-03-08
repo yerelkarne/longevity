@@ -344,4 +344,9 @@
     <string name="daily_goal_micro_behind">Bugün mikro besin hedeflerinizin gerisindesiniz. Zengin içerikli bir öğünle hedefe yaklaşabilirsiniz.</string>
     <string name="daily_logging_reminder_title">Günlük kayıt hatırlatması</string>
     <string name="daily_logging_reminder_message">Lütfen bugünkü besin ve su kayıtlarınızı güncelleyin; hedef takibinizin doğru kalmasına yardımcı olur.</string>
+    <string name="summary_daily_calorie_goal_title">Günlük kalori hedefim</string>
+    <string name="summary_goal_of_format">Hedef: %1$d kcal</string>
+    <string name="summary_calorie_remaining">Kalan kalori: %1$d kcal</string>
+    <string name="summary_calorie_exceeded">Hedef aşıldı: %1$d kcal</string>
+    <string name="summary_calories_burned_by_activity">Aktivitelerle yakılan: %1$d kcal</string>
 </resources>

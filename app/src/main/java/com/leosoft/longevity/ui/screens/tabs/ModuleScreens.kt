@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -1069,8 +1070,21 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     val allWater by viewModel.allWaterLogs.collectAsState()
     val allSteps by viewModel.allStepsLogs.collectAsState()
     val sleepLogs by viewModel.sleepLogs.collectAsState()
+    val workoutLogs by viewModel.workoutLogs.collectAsState()
     var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+
+    val dailyCalorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt()
+    val dailyCalorieStatus = remember(selectedDate, allMeals, foods, allSteps, workoutLogs, dailyCalorieTarget) {
+        buildDailyCalorieGoalStatus(
+            selectedDate = selectedDate,
+            meals = allMeals,
+            foodsById = foods.associateBy { it.id },
+            stepsLogs = allSteps,
+            workoutLogs = workoutLogs,
+            calorieTarget = dailyCalorieTarget
+        )
+    }
 
     val summary = remember(selectedDate, range, allMeals, allWater, allSteps, sleepLogs, foods, userGoals) {
         buildGunumSummaryMetrics(
@@ -1084,7 +1098,7 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
             stepsTarget = userGoals?.stepsTarget ?: 10000,
             waterTarget = userGoals?.waterTargetMl ?: 2000,
             proteinTarget = userGoals?.proteinTarget?.toInt() ?: 120,
-            calorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt(),
+            calorieTarget = dailyCalorieTarget,
             sleepTarget = userGoals?.sleepTargetMinutes ?: 480
         )
     }
@@ -1092,6 +1106,10 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
+            DailyCalorieGoalCard(status = dailyCalorieStatus)
         }
 
         item {
@@ -1133,6 +1151,99 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
             AnimatedSummaryBarsCard(summary)
         }
     }
+}
+
+@Composable
+private fun DailyCalorieGoalCard(status: DailyCalorieGoalStatus) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        ) {
+            Text(stringResource(R.string.summary_daily_calorie_goal_title), style = MaterialTheme.typography.titleMedium)
+            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { status.progress.coerceIn(0f, 1f) },
+                    modifier = Modifier.size(110.dp),
+                    strokeWidth = 10.dp,
+                    color = Color(0xFF7E57C2),
+                    trackColor = Color(0xFFEDE7F6)
+                )
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text("${status.consumedCalories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.summary_goal_of_format, status.targetCalories), style = MaterialTheme.typography.labelMedium, color = TrendValueTextColor)
+                }
+            }
+            Text(
+                text = if (status.remainingCalories >= 0) {
+                    stringResource(R.string.summary_calorie_remaining, status.remainingCalories)
+                } else {
+                    stringResource(R.string.summary_calorie_exceeded, -status.remainingCalories)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (status.remainingCalories >= 0) Color(0xFF2E7D32) else Color(0xFFC62828)
+            )
+            Text(
+                text = stringResource(R.string.summary_calories_burned_by_activity, status.burnedCalories),
+                style = MaterialTheme.typography.bodyMedium,
+                color = TrendValueTextColor
+            )
+        }
+    }
+}
+
+private data class DailyCalorieGoalStatus(
+    val consumedCalories: Int,
+    val targetCalories: Int,
+    val remainingCalories: Int,
+    val burnedCalories: Int,
+    val progress: Float
+)
+
+private fun buildDailyCalorieGoalStatus(
+    selectedDate: LocalDate,
+    meals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    stepsLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    workoutLogs: List<com.leosoft.longevity.data.local.entity.WorkoutLogEntity>,
+    calorieTarget: Int
+): DailyCalorieGoalStatus {
+    val dayMeals = meals.filter { it.date == selectedDate }
+    val consumed = CalculateMacroTotalsUseCase().invoke(dayMeals, foodsById).calories
+    val stepBurn = stepsLogs.firstOrNull { it.date == selectedDate }?.caloriesEst?.toInt()
+        ?: ((stepsLogs.firstOrNull { it.date == selectedDate }?.steps ?: 0) * 0.04f).toInt()
+    val workoutBurn = workoutLogs
+        .filter { it.date == selectedDate }
+        .sumOf { estimateWorkoutCaloriesBurn(it.type, it.durationMinutes, it.intensity) }
+    val burned = (stepBurn + workoutBurn).coerceAtLeast(0)
+    val safeTarget = calorieTarget.coerceAtLeast(1)
+    return DailyCalorieGoalStatus(
+        consumedCalories = consumed,
+        targetCalories = safeTarget,
+        remainingCalories = safeTarget - consumed,
+        burnedCalories = burned,
+        progress = consumed / safeTarget.toFloat()
+    )
+}
+
+private fun estimateWorkoutCaloriesBurn(type: WorkoutType, durationMinutes: Int, intensity: Int): Int {
+    val basePerMinute = when (type) {
+        WorkoutType.WALKING -> 4.5f
+        WorkoutType.RUNNING -> 10f
+        WorkoutType.ELLIPTICAL -> 8f
+        WorkoutType.PILATES -> 4f
+        WorkoutType.STRENGTH -> 6f
+        WorkoutType.YOGA -> 3.5f
+        WorkoutType.OTHER -> 5f
+    }
+    val intensityFactor = (0.7f + (intensity.coerceIn(1, 10) - 1) * 0.08f)
+    return (durationMinutes.coerceAtLeast(0) * basePerMinute * intensityFactor).toInt()
 }
 
 @Composable

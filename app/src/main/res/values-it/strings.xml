@@ -320,4 +320,9 @@
     <string name="daily_goal_micro_behind">Oggi sei indietro rispetto agli obiettivi di micronutrienti. Un pasto ricco di nutrienti può aiutarti a recuperare.</string>
     <string name="daily_logging_reminder_title">Promemoria registrazione giornaliera</string>
     <string name="daily_logging_reminder_message">Aggiorna i registri di cibo e acqua di oggi per mantenere accurato il monitoraggio dei tuoi progressi.</string>
+    <string name="summary_daily_calorie_goal_title">Il mio obiettivo calorico giornaliero</string>
+    <string name="summary_goal_of_format">Obiettivo: %1$d kcal</string>
+    <string name="summary_calorie_remaining">Calorie rimanenti: %1$d kcal</string>
+    <string name="summary_calorie_exceeded">Obiettivo superato: %1$d kcal</string>
+    <string name="summary_calories_burned_by_activity">Bruciate con attività: %1$d kcal</string>
 </resources>

@@ -320,4 +320,9 @@
     <string name="daily_goal_micro_behind">Hoy vas por detrás de tus objetivos de micronutrientes. Una comida densa en nutrientes puede ayudarte a ponerte al día.</string>
     <string name="daily_logging_reminder_title">Recordatorio de registro diario</string>
     <string name="daily_logging_reminder_message">Actualiza los registros de comida y agua de hoy para mantener preciso el seguimiento de tu progreso.</string>
+    <string name="summary_daily_calorie_goal_title">Mi objetivo diario de calorías</string>
+    <string name="summary_goal_of_format">Objetivo: %1$d kcal</string>
+    <string name="summary_calorie_remaining">Calorías restantes: %1$d kcal</string>
+    <string name="summary_calorie_exceeded">Objetivo excedido: %1$d kcal</string>
+    <string name="summary_calories_burned_by_activity">Quemadas con actividad: %1$d kcal</string>
 </resources>
