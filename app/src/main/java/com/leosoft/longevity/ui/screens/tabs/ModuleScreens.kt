@@ -148,10 +148,12 @@ fun ModuleTabLayout(
 @Composable
 fun GunumModule(viewModel: MainViewModel) {
     val tabs = listOf(stringResource(R.string.tab_me), stringResource(R.string.tab_summary), stringResource(R.string.tab_tasks), stringResource(R.string.tab_reminders))
+    val userGoals by viewModel.userGoals.collectAsState()
     var requestedPage by remember { mutableStateOf<Int?>(null) }
+    val initialPage = if (userGoals == null) 0 else 1
     ModuleTabLayout(
         tabs = tabs,
-        initialPage = 1,
+        initialPage = initialPage,
         requestedPage = requestedPage,
         onRequestConsumed = { requestedPage = null }
     ) { page ->
