@@ -1156,6 +1156,12 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
 
 @Composable
 private fun DailyCalorieGoalCard(status: DailyCalorieGoalStatus) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = status.progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 900),
+        label = "daily-calorie-progress"
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -1164,21 +1170,26 @@ private fun DailyCalorieGoalCard(status: DailyCalorieGoalStatus) {
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
         ) {
             Text(stringResource(R.string.summary_daily_calorie_goal_title), style = MaterialTheme.typography.titleMedium)
-            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { status.progress.coerceIn(0f, 1f) },
-                    modifier = Modifier.size(110.dp),
-                    strokeWidth = 10.dp,
-                    color = Color(0xFF7E57C2),
-                    trackColor = Color(0xFFEDE7F6)
-                )
-                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                    Text("${status.consumedCalories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.summary_goal_of_format, status.targetCalories), style = MaterialTheme.typography.labelMedium, color = TrendValueTextColor)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.size(170.dp),
+                        strokeWidth = 14.dp,
+                        color = Color(0xFF7E57C2),
+                        trackColor = Color(0xFFEDE7F6)
+                    )
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${status.consumedCalories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.summary_goal_of_format, status.targetCalories), style = MaterialTheme.typography.labelMedium, color = TrendValueTextColor)
+                    }
                 }
             }
             Text(
