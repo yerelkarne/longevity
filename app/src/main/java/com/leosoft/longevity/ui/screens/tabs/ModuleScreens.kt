@@ -2229,15 +2229,54 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 when (type) {
                     null -> Text(stringResource(R.string.select_first_hint), style = MaterialTheme.typography.bodySmall)
                     QuickAddType.FOOD -> {
+                        var foodDropdownExpanded by remember { mutableStateOf(false) }
+                        var foodQuery by remember { mutableStateOf("") }
+                        val filteredFoods = remember(foods, foodQuery) {
+                            val q = foodQuery.trim()
+                            if (q.isBlank()) {
+                                foods
+                            } else {
+                                val startsWithQuery = foods.filter { it.name.startsWith(q, ignoreCase = true) }
+                                val containsQuery = foods.filter { it.name.contains(q, ignoreCase = true) && !it.name.startsWith(q, ignoreCase = true) }
+                                startsWithQuery + containsQuery
+                            }
+                        }
+
                         if (!foodsReady && foods.isEmpty()) {
                             Text(stringResource(R.string.foods_loading_hint), style = MaterialTheme.typography.bodySmall)
                         }
-                        ExposedDropdownSimple(
-                            label = stringResource(R.string.food_list_label),
-                            options = listOf(stringResource(R.string.select_prompt)) + foods.map { it.name },
-                            selected = foods.indexOfFirst { it.id == selectedFoodId }.takeIf { it >= 0 }?.plus(1) ?: 0,
-                            onSelect = { idx -> selectedFoodId = if (idx == 0) null else foods[idx - 1].id }
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = foodDropdownExpanded,
+                            onExpandedChange = { foodDropdownExpanded = !foodDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                value = foodQuery,
+                                onValueChange = {
+                                    foodQuery = it
+                                    foodDropdownExpanded = true
+                                    selectedFoodId = foods.firstOrNull { food -> food.name.equals(it.trim(), ignoreCase = true) }?.id
+                                },
+                                label = { Text(stringResource(R.string.food_list_label)) },
+                                placeholder = { Text(stringResource(R.string.select_prompt)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = foodDropdownExpanded) }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = foodDropdownExpanded,
+                                onDismissRequest = { foodDropdownExpanded = false }
+                            ) {
+                                filteredFoods.forEach { food ->
+                                    DropdownMenuItem(
+                                        text = { Text(food.name) },
+                                        onClick = {
+                                            selectedFoodId = food.id
+                                            foodQuery = food.name
+                                            foodDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
