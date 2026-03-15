@@ -24,6 +24,7 @@ class StepTrackerManager(
     private val appContext = context.applicationContext
     private val sensorManager = appContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+    private val stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
     private val accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private val detector = AccelerometerStepDetector()
     private val engine = StepProcessingEngine()
@@ -33,15 +34,15 @@ class StepTrackerManager(
     private var cachedPersistedDate: LocalDate? = null
     private var cachedPersistedSteps: Int = 0
 
-    val usesEstimatedTracking: Boolean get() = stepCounterSensor == null
+    val usesEstimatedTracking: Boolean get() = stepCounterSensor == null && stepDetectorSensor == null
 
-    fun hasAnyStepSensor(): Boolean = stepCounterSensor != null || accelerometerSensor != null
+    fun hasAnyStepSensor(): Boolean = stepCounterSensor != null || stepDetectorSensor != null || accelerometerSensor != null
 
     fun start() {
-        if (stepCounterSensor != null) {
-            sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
-        } else if (accelerometerSensor != null) {
-            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_GAME)
+        when {
+            stepCounterSensor != null -> sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
+            stepDetectorSensor != null -> sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL)
+            accelerometerSensor != null -> sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_GAME)
         }
     }
 
@@ -51,7 +52,13 @@ class StepTrackerManager(
 
     override fun onSensorChanged(event: SensorEvent) {
         when (event.sensor.type) {
-            Sensor.TYPE_STEP_COUNTER -> scope.launch { handleStepCounter(event.values.firstOrNull()?.toLong() ?: return@launch) }
+            Sensor.TYPE_STEP_COUNTER -> scope.launch {
+                handleStepCounter(event.values.firstOrNull()?.toLong() ?: return@launch)
+            }
+            Sensor.TYPE_STEP_DETECTOR -> scope.launch {
+                val detectedSteps = (event.values.firstOrNull() ?: 1f).toInt().coerceAtLeast(1)
+                handleDetectedSteps(detectedSteps)
+            }
             Sensor.TYPE_ACCELEROMETER -> scope.launch {
                 val x = event.values.getOrNull(0) ?: 0f
                 val y = event.values.getOrNull(1) ?: 0f
@@ -78,6 +85,18 @@ class StepTrackerManager(
         preferences.saveStepBaseline(result.state.date ?: today, result.state.baseline ?: rawValue)
         preferences.saveLastRawSensorValue(result.state.lastRawValue ?: rawValue)
         persistDaily(today, result.dailySteps)
+    }
+
+
+    private suspend fun handleDetectedSteps(stepDelta: Int) {
+        val today = LocalDate.now()
+        if (estimatedDate != today) {
+            estimatedDate = today
+            val persisted = repository.getStepsForDate(today)?.steps ?: 0
+            estimatedSteps = persisted
+        }
+        estimatedSteps += stepDelta
+        persistDaily(today, estimatedSteps)
     }
 
     private suspend fun handleEstimatedStep(timestampNs: Long, magnitude: Float) {
