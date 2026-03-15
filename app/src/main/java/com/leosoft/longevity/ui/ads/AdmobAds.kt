@@ -2,6 +2,8 @@ package com.leosoft.longevity.ui.ads
 
 import android.app.Activity
 import android.content.Context
+import android.os.SystemClock
+import android.util.Log
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -46,53 +48,78 @@ object AdMobManager {
     private var initialized = false
     private var interstitialAd: InterstitialAd? = null
     private var pageChangeCount = 0
+    private var lastInterstitialShownAtMs: Long = 0L
+    private var isPreloadingInterstitial = false
+    private const val minInterstitialIntervalMs: Long = 90_000L
 
     fun initialize(context: Context) {
         if (initialized) return
-        MobileAds.initialize(context) {}
+        runCatching { MobileAds.initialize(context) {} }
+            .onFailure { Log.w("AdMobManager", "MobileAds initialize failed", it) }
         initialized = true
-        preloadInterstitial(context)
+        preloadInterstitial(context.applicationContext)
     }
 
     fun preloadInterstitial(context: Context) {
+        if (!initialized || isPreloadingInterstitial || interstitialAd != null) return
+        isPreloadingInterstitial = true
+        val appContext = context.applicationContext
         InterstitialAd.load(
-            context,
+            appContext,
             AdUnitIds.interstitial,
             AdRequest.Builder().build(),
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
+                    isPreloadingInterstitial = false
                     interstitialAd = ad
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
+                    isPreloadingInterstitial = false
                     interstitialAd = null
+                    Log.w("AdMobManager", "Interstitial failed to load: ${error.message}")
                 }
             }
         )
     }
 
     fun onPageChanged(activity: Activity) {
+        if (!initialized) initialize(activity.applicationContext)
+
         pageChangeCount += 1
         if (pageChangeCount % 10 != 0) return
 
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastInterstitialShownAtMs < minInterstitialIntervalMs) return
+
         val ad = interstitialAd
         if (ad == null) {
-            preloadInterstitial(activity)
+            preloadInterstitial(activity.applicationContext)
             return
         }
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 interstitialAd = null
-                preloadInterstitial(activity)
+                preloadInterstitial(activity.applicationContext)
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 interstitialAd = null
-                preloadInterstitial(activity)
+                preloadInterstitial(activity.applicationContext)
+            }
+
+            override fun onAdShowedFullScreenContent() {
+                lastInterstitialShownAtMs = SystemClock.elapsedRealtime()
             }
         }
-        ad.show(activity)
+
+        runCatching { ad.show(activity) }
+            .onFailure {
+                interstitialAd = null
+                preloadInterstitial(activity.applicationContext)
+                Log.w("AdMobManager", "Interstitial show failed", it)
+            }
     }
 }
 
@@ -169,14 +196,18 @@ fun NativeAdvancedAdCard(
                     container.addView(bodyView)
                 }
 
-                val mediaView = MediaView(context).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        420
-                    )
+                val mediaContent = ad.mediaContent
+                val showMedia = mediaContent != null && !mediaContent.hasVideoContent()
+                if (showMedia) {
+                    val mediaView = MediaView(context).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            420
+                        )
+                    }
+                    adView.mediaView = mediaView
+                    container.addView(mediaView)
                 }
-                adView.mediaView = mediaView
-                container.addView(mediaView)
 
                 ad.callToAction?.let { cta ->
                     val ctaView = android.widget.Button(context).apply {

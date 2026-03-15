@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LongevityApp : Application() {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -39,7 +40,11 @@ class LongevityApp : Application() {
             calculateMacroTotals = macroUseCase
         )
         preferences = AppPreferences(this)
-        AdMobManager.initialize(this)
+        appScope.launch {
+            withContext(Dispatchers.Main) {
+                AdMobManager.initialize(this@LongevityApp)
+            }
+        }
         DailyCoachReminderScheduler.scheduleAll(this)
         appScope.launch {
             db.nutritionDao().seedFoodsIfEmpty()

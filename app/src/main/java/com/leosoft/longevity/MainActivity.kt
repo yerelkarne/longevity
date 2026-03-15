@@ -48,12 +48,11 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.steps.StepTrackingService
 import com.leosoft.longevity.ui.ads.AdMobManager
@@ -66,6 +65,7 @@ import com.leosoft.longevity.ui.screens.tabs.QuickAddDialog
 import com.leosoft.longevity.ui.screens.tabs.SettingsModule
 import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
+import kotlinx.coroutines.flow.first
 
 class MainActivity : AppCompatActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val app = application as LongevityApp
         trackerManager = StepTrackerManager(this, app.repository, app.preferences)
-        runBlocking {
+        lifecycleScope.launchWhenCreated {
             val language = app.preferences.appLanguage.first()
             androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(language))
         }
