@@ -30,6 +30,8 @@ class StepTrackerManager(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var estimatedDate: LocalDate? = null
     private var estimatedSteps: Int = 0
+    private var cachedPersistedDate: LocalDate? = null
+    private var cachedPersistedSteps: Int = 0
 
     val usesEstimatedTracking: Boolean get() = stepCounterSensor == null
 
@@ -85,23 +87,37 @@ class StepTrackerManager(
         val today = LocalDate.now()
         if (estimatedDate != today) {
             estimatedDate = today
-            estimatedSteps = 0
+            val persisted = repository.getStepsForDate(today)?.steps ?: 0
+            estimatedSteps = persisted
         }
         estimatedSteps += 1
         persistDaily(today, estimatedSteps)
     }
 
     private suspend fun persistDaily(date: LocalDate, steps: Int) {
+        val persistedSteps = if (cachedPersistedDate == date) {
+            cachedPersistedSteps
+        } else {
+            (repository.getStepsForDate(date)?.steps ?: 0).also { current ->
+                cachedPersistedDate = date
+                cachedPersistedSteps = current
+            }
+        }
+        val stableSteps = maxOf(steps, persistedSteps)
+        if (stableSteps == persistedSteps) return
+
         repository.addSteps(
             StepsLogEntity(
                 date = date,
-                steps = steps,
+                steps = stableSteps,
                 goal = 10000,
-                distanceKm = steps * 0.0008f,
-                caloriesEst = steps * 0.04f,
+                distanceKm = stableSteps * 0.0008f,
+                caloriesEst = stableSteps * 0.04f,
                 updatedAt = LocalDateTime.now()
             )
         )
+        cachedPersistedDate = date
+        cachedPersistedSteps = stableSteps
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit

@@ -202,6 +202,8 @@ class LongevityRepositoryImpl(
         recalculateScore(log.date)
     }
 
+    override suspend fun getStepsForDate(date: LocalDate): StepsLogEntity? = activityDao.getSteps(date)
+
     override fun observeWeeklySteps(endDate: LocalDate): Flow<List<StepsLogEntity>> {
         val start = endDate.minusDays(6)
         return activityDao.observeStepsBetween(start, endDate)
