@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -57,6 +59,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,10 +70,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.leosoft.longevity.R
 import com.leosoft.longevity.data.local.entity.FoodEntity
@@ -85,6 +91,8 @@ import java.time.YearMonth
 import java.util.Locale
 import com.leosoft.longevity.ui.components.MiniProgressCard
 import com.leosoft.longevity.ui.components.ScoreBar
+import com.leosoft.longevity.ui.ads.AdMobManager
+import com.leosoft.longevity.ui.ads.NativeAdvancedAdCard
 import com.leosoft.longevity.ui.main.GoalPlanItem
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.main.WeightGoalMode
@@ -97,6 +105,7 @@ private val TrendChipBackgroundColor = Color(0xFFF3E5F5)
 private val TrendChipSelectedTextColor = Color(0xFF4A148C)
 private val TrendChipDefaultTextColor = Color(0xFF6A1B9A)
 private val TrendValueTextColor = Color(0xFF5E35B1)
+private const val FOOD_DROPDOWN_MAX_RESULTS = 80
 
 @Composable
 fun ModuleTabLayout(
@@ -108,10 +117,19 @@ fun ModuleTabLayout(
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var hasSeenFirstPage by remember { mutableStateOf(false) }
     LaunchedEffect(requestedPage) {
         val page = requestedPage ?: return@LaunchedEffect
         pagerState.animateScrollToPage(page.coerceIn(0, tabs.lastIndex))
         onRequestConsumed()
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        if (!hasSeenFirstPage) {
+            hasSeenFirstPage = true
+            return@LaunchedEffect
+        }
+        (context as? AppCompatActivity)?.let { AdMobManager.onPageChanged(it) }
     }
     Column(modifier = Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
@@ -119,7 +137,7 @@ fun ModuleTabLayout(
                 Tab(selected = index == pagerState.currentPage, onClick = { scope.launch { pagerState.animateScrollToPage(index) } }, text = { Text(tab, maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
         }
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
             AnimatedContent(
                 targetState = page,
                 transitionSpec = { (fadeIn(animationSpec = tween(350)) + slideInVertically(animationSpec = tween(350)) { it / 10 }) togetherWith (fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -it / 10 }) },
@@ -206,6 +224,10 @@ private fun ActivityStepsScreen(viewModel: MainViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -319,6 +341,10 @@ private fun ActivityExerciseScreen(viewModel: MainViewModel, selectedExerciseTab
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -563,6 +589,10 @@ private fun YasamUykuScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.life_sleep_trend_title), style = MaterialTheme.typography.titleMedium)
@@ -729,6 +759,10 @@ private fun YasamRutinlerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.life_routines_intro))
@@ -785,6 +819,10 @@ private fun YasamReglScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         if (latest == null) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
@@ -963,6 +1001,10 @@ fun SettingsModule(viewModel: MainViewModel) {
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             ExposedDropdownSimple(
                 label = stringResource(R.string.settings_language),
                 options = listOf(
@@ -1033,8 +1075,21 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
     val allWater by viewModel.allWaterLogs.collectAsState()
     val allSteps by viewModel.allStepsLogs.collectAsState()
     val sleepLogs by viewModel.sleepLogs.collectAsState()
+    val workoutLogs by viewModel.workoutLogs.collectAsState()
     var range by remember { mutableStateOf(GunumSummaryRange.DAILY) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
+
+    val dailyCalorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt()
+    val dailyCalorieStatus = remember(selectedDate, allMeals, foods, allSteps, workoutLogs, dailyCalorieTarget) {
+        buildDailyCalorieGoalStatus(
+            selectedDate = selectedDate,
+            meals = allMeals,
+            foodsById = foods.associateBy { it.id },
+            stepsLogs = allSteps,
+            workoutLogs = workoutLogs,
+            calorieTarget = dailyCalorieTarget
+        )
+    }
 
     val summary = remember(selectedDate, range, allMeals, allWater, allSteps, sleepLogs, foods, userGoals) {
         buildGunumSummaryMetrics(
@@ -1048,12 +1103,20 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
             stepsTarget = userGoals?.stepsTarget ?: 10000,
             waterTarget = userGoals?.waterTargetMl ?: 2000,
             proteinTarget = userGoals?.proteinTarget?.toInt() ?: 120,
-            calorieTarget = (((userGoals?.proteinTarget ?: 120f) * 4f) + ((userGoals?.carbsTarget ?: 180f) * 4f) + ((userGoals?.fatTarget ?: 60f) * 9f)).toInt(),
+            calorieTarget = dailyCalorieTarget,
             sleepTarget = userGoals?.sleepTargetMinutes ?: 480
         )
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
+            DailyCalorieGoalCard(status = dailyCalorieStatus)
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -1093,6 +1156,110 @@ fun GunumOzetScreen(viewModel: MainViewModel) {
             AnimatedSummaryBarsCard(summary)
         }
     }
+}
+
+@Composable
+private fun DailyCalorieGoalCard(status: DailyCalorieGoalStatus) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = status.progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 900),
+        label = "daily-calorie-progress"
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        ) {
+            Text(stringResource(R.string.summary_daily_calorie_goal_title), style = MaterialTheme.typography.titleMedium)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.size(170.dp),
+                        strokeWidth = 14.dp,
+                        color = Color(0xFF7E57C2),
+                        trackColor = Color(0xFFEDE7F6)
+                    )
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("${status.consumedCalories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.summary_goal_of_format, status.targetCalories), style = MaterialTheme.typography.labelMedium, color = TrendValueTextColor)
+                    }
+                }
+            }
+            Text(
+                text = if (status.remainingCalories >= 0) {
+                    stringResource(R.string.summary_calorie_remaining, status.remainingCalories)
+                } else {
+                    stringResource(R.string.summary_calorie_exceeded, -status.remainingCalories)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (status.remainingCalories >= 0) Color(0xFF2E7D32) else Color(0xFFC62828)
+            )
+            Text(
+                text = stringResource(R.string.summary_calories_burned_by_activity, status.burnedCalories),
+                style = MaterialTheme.typography.bodyMedium,
+                color = TrendValueTextColor
+            )
+        }
+    }
+}
+
+private data class DailyCalorieGoalStatus(
+    val consumedCalories: Int,
+    val targetCalories: Int,
+    val remainingCalories: Int,
+    val burnedCalories: Int,
+    val progress: Float
+)
+
+private fun buildDailyCalorieGoalStatus(
+    selectedDate: LocalDate,
+    meals: List<com.leosoft.longevity.data.local.entity.MealEntryEntity>,
+    foodsById: Map<Long, FoodEntity>,
+    stepsLogs: List<com.leosoft.longevity.data.local.entity.StepsLogEntity>,
+    workoutLogs: List<com.leosoft.longevity.data.local.entity.WorkoutLogEntity>,
+    calorieTarget: Int
+): DailyCalorieGoalStatus {
+    val dayMeals = meals.filter { it.date == selectedDate }
+    val consumed = CalculateMacroTotalsUseCase().invoke(dayMeals, foodsById).calories
+    val stepBurn = stepsLogs.firstOrNull { it.date == selectedDate }?.caloriesEst?.toInt()
+        ?: ((stepsLogs.firstOrNull { it.date == selectedDate }?.steps ?: 0) * 0.04f).toInt()
+    val workoutBurn = workoutLogs
+        .filter { it.date == selectedDate }
+        .sumOf { estimateWorkoutCaloriesBurn(it.type, it.durationMinutes, it.intensity) }
+    val burned = (stepBurn + workoutBurn).coerceAtLeast(0)
+    val safeTarget = calorieTarget.coerceAtLeast(1)
+    return DailyCalorieGoalStatus(
+        consumedCalories = consumed,
+        targetCalories = safeTarget,
+        remainingCalories = safeTarget - consumed,
+        burnedCalories = burned,
+        progress = consumed / safeTarget.toFloat()
+    )
+}
+
+private fun estimateWorkoutCaloriesBurn(type: WorkoutType, durationMinutes: Int, intensity: Int): Int {
+    val basePerMinute = when (type) {
+        WorkoutType.WALKING -> 4.5f
+        WorkoutType.RUNNING -> 10f
+        WorkoutType.ELLIPTICAL -> 8f
+        WorkoutType.PILATES -> 4f
+        WorkoutType.STRENGTH -> 6f
+        WorkoutType.YOGA -> 3.5f
+        WorkoutType.OTHER -> 5f
+    }
+    val intensityFactor = (0.7f + (intensity.coerceIn(1, 10) - 1) * 0.08f)
+    return (durationMinutes.coerceAtLeast(0) * basePerMinute * intensityFactor).toInt()
 }
 
 @Composable
@@ -1255,6 +1422,10 @@ private fun GunumBenScreen(viewModel: MainViewModel, onGoalsCreated: () -> Unit)
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Text(stringResource(R.string.me_intro), style = MaterialTheme.typography.bodyMedium)
         }
@@ -1520,6 +1691,10 @@ private fun GunumHedeflerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
@@ -1637,12 +1812,22 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         if (reminders.isEmpty()) {
             item {
                 Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.reminders_empty_message))
-                        TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                        Button(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(stringResource(R.string.reminder_add_link))
+                        }
                     }
                 }
             }
@@ -1650,7 +1835,12 @@ private fun GunumHatirlatmalarScreen(viewModel: MainViewModel) {
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.tab_reminders), style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = { showAddDialog = true }) { Text(stringResource(R.string.reminder_add_link)) }
+                    Button(
+                        onClick = { showAddDialog = true },
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(stringResource(R.string.reminder_add_link))
+                    }
                 }
             }
             items(reminders, key = { it.id }) { reminder ->
@@ -2007,7 +2197,7 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     }
     val nutritiousFoods by viewModel.nutritiousFoods.collectAsState()
     val allFoods by viewModel.foods.collectAsState()
-    val foods = if (nutritiousFoods.isNotEmpty()) nutritiousFoods else allFoods
+    val foods = if (allFoods.isNotEmpty()) allFoods else nutritiousFoods
     val supplements by viewModel.supplements.collectAsState()
     var type by remember { mutableStateOf<QuickAddType?>(null) }
     var expanded by remember { mutableStateOf(false) }
@@ -2054,15 +2244,79 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 when (type) {
                     null -> Text(stringResource(R.string.select_first_hint), style = MaterialTheme.typography.bodySmall)
                     QuickAddType.FOOD -> {
+                        var foodDropdownExpanded by remember { mutableStateOf(false) }
+                        var foodQuery by remember { mutableStateOf("") }
+                        val searchableFoods = remember(foods) {
+                            foods.map { food -> food to food.name.lowercase(Locale.ROOT) }
+                        }
+                        val filteredFoods by remember(searchableFoods, foodQuery) {
+                            derivedStateOf {
+                                val normalizedQuery = foodQuery.trim().lowercase(Locale.ROOT)
+                                if (normalizedQuery.isBlank()) {
+                                    searchableFoods
+                                        .asSequence()
+                                        .map { it.first }
+                                        .take(FOOD_DROPDOWN_MAX_RESULTS)
+                                        .toList()
+                                } else {
+                                    val startsWithQuery = searchableFoods
+                                        .asSequence()
+                                        .filter { it.second.startsWith(normalizedQuery) }
+                                        .map { it.first }
+                                        .take(FOOD_DROPDOWN_MAX_RESULTS)
+                                        .toList()
+
+                                    if (startsWithQuery.size >= FOOD_DROPDOWN_MAX_RESULTS) {
+                                        startsWithQuery
+                                    } else {
+                                        startsWithQuery + searchableFoods
+                                            .asSequence()
+                                            .filter { it.second.contains(normalizedQuery) && !it.second.startsWith(normalizedQuery) }
+                                            .map { it.first }
+                                            .take(FOOD_DROPDOWN_MAX_RESULTS - startsWithQuery.size)
+                                            .toList()
+                                    }
+                                }
+                            }
+                        }
+
                         if (!foodsReady && foods.isEmpty()) {
                             Text(stringResource(R.string.foods_loading_hint), style = MaterialTheme.typography.bodySmall)
                         }
-                        ExposedDropdownSimple(
-                            label = stringResource(R.string.food_list_label),
-                            options = listOf(stringResource(R.string.select_prompt)) + foods.map { it.name },
-                            selected = foods.indexOfFirst { it.id == selectedFoodId }.takeIf { it >= 0 }?.plus(1) ?: 0,
-                            onSelect = { idx -> selectedFoodId = if (idx == 0) null else foods[idx - 1].id }
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = foodDropdownExpanded,
+                            onExpandedChange = { foodDropdownExpanded = !foodDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                value = foodQuery,
+                                onValueChange = {
+                                    foodQuery = it
+                                    foodDropdownExpanded = true
+                                    val normalizedQuery = it.trim().lowercase(Locale.ROOT)
+                                    selectedFoodId = searchableFoods.firstOrNull { item -> item.second == normalizedQuery }?.first?.id
+                                },
+                                label = { Text(stringResource(R.string.food_list_label)) },
+                                placeholder = { Text(stringResource(R.string.food_select_or_search_prompt)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = foodDropdownExpanded) }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = foodDropdownExpanded,
+                                onDismissRequest = { foodDropdownExpanded = false },
+                                modifier = Modifier.heightIn(max = 56.dp * 3)
+                            ) {
+                                filteredFoods.forEach { food ->
+                                    DropdownMenuItem(
+                                        text = { Text(food.name) },
+                                        onClick = {
+                                            selectedFoodId = food.id
+                                            foodQuery = food.name
+                                            foodDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         OutlinedTextField(value = customFoodName, onValueChange = { customFoodName = it }, label = { Text(stringResource(R.string.food_name_custom_optional)) })
                         OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text(stringResource(R.string.grams)) })
                     }
@@ -2256,7 +2510,13 @@ fun QuickAddDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExposedDropdownSimple(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+private fun ExposedDropdownSimple(
+    label: String,
+    options: List<String>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    dropdownMaxHeight: Dp = 56.dp * 6
+) {
     var expanded by remember { mutableStateOf(false) }
     if (options.isEmpty()) return
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
@@ -2268,7 +2528,11 @@ private fun ExposedDropdownSimple(label: String, options: List<String>, selected
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = dropdownMaxHeight)
+        ) {
             options.forEachIndexed { index, item ->
                 DropdownMenuItem(text = { Text(item) }, onClick = { onSelect(index); expanded = false })
             }
@@ -2343,6 +2607,10 @@ fun BeslenmeKayitScreen(viewModel: MainViewModel) {
     var mealToDelete by remember { mutableStateOf<com.leosoft.longevity.data.local.entity.MealEntryEntity?>(null) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F5FF)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 120.dp)) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
                 TextButton(onClick = {
@@ -2478,7 +2746,8 @@ private fun MealEntryActionsDialog(
                         label = stringResource(R.string.food_list_label),
                         options = foods.map { it.name },
                         selected = foods.indexOfFirst { it.id == selectedFoodId }.coerceAtLeast(0),
-                        onSelect = { idx -> selectedFoodId = foods[idx].id }
+                        onSelect = { idx -> selectedFoodId = foods[idx].id },
+                        dropdownMaxHeight = 56.dp * 3
                     )
                     OutlinedTextField(
                         value = gramsText,
@@ -2527,6 +2796,10 @@ fun BeslenmeMakrolarScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -2595,6 +2868,10 @@ fun BeslenmeMikrolarScreen(viewModel: MainViewModel) {
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
         item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
                 selectedDateText = selectedDate.format(dateFormatter),
@@ -2656,6 +2933,10 @@ fun BeslenmeSuScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,
@@ -2738,6 +3019,10 @@ fun BeslenmeTakviyelerScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        item {
+            NativeAdvancedAdCard(modifier = Modifier.fillMaxWidth())
+        }
+
         item {
             NutritionDatePickerCard(
                 selectedDate = selectedDate,

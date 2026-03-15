@@ -244,54 +244,73 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         val targetCalories = (maintenanceCalories * calorieMultiplier).coerceIn(1300f, 3600f)
 
+        val planSummary = when (goalMode) {
+            WeightGoalMode.MAINTAIN -> "maintain"
+            WeightGoalMode.REACH_IDEAL -> when {
+                calorieMultiplier > 1f -> "gain"
+                calorieMultiplier < 1f -> "lose"
+                else -> "maintain"
+            }
+        }
+
         val ageProteinMultiplier = when {
             age < 18 -> 1.05f
             age < 40 -> 1.0f
             age < 60 -> 1.08f
             else -> 1.15f
         }
-        val protein = (when (goalMode) {
-            WeightGoalMode.MAINTAIN -> (weightKg * 1.3f)
-            WeightGoalMode.REACH_IDEAL -> when {
-                weightKg > idealWeight * 1.03f -> idealWeight * 1.7f
-                weightKg < idealWeight * 0.97f -> idealWeight * 1.5f
-                else -> weightKg * 1.35f
-            }
-        } * ageProteinMultiplier).coerceIn(70f, 220f)
 
-        val fatRatioBase = when {
-            calorieMultiplier < 1f -> 0.30f
-            calorieMultiplier > 1f -> 0.26f
-            else -> 0.28f
+        val proteinPerKg = when (planSummary) {
+            "lose" -> 1.9f
+            "gain" -> 1.7f
+            else -> 1.6f
         }
-        val ageFatRatioAdjustment = when {
-            age < 18 -> 0.01f
-            age >= 60 -> 0.02f
-            else -> 0f
+        val protein = (weightKg * proteinPerKg * ageProteinMultiplier).coerceIn(75f, 230f)
+
+        val fatPerKg = when (planSummary) {
+            "lose" -> 0.75f
+            "gain" -> 0.85f
+            else -> 0.8f
         }
-        val fatRatio = (fatRatioBase + ageFatRatioAdjustment).coerceIn(0.24f, 0.35f)
-        val fat = (targetCalories * fatRatio / 9f).coerceIn(40f, 120f)
-        val carbs = ((targetCalories - ((protein * 4f) + (fat * 9f))) / 4f).coerceAtLeast(100f)
+        val fat = (weightKg * fatPerKg).coerceIn(40f, 120f)
+
+        val remainingCaloriesAfterProteinFat = (targetCalories - ((protein * 4f) + (fat * 9f))).coerceAtLeast(0f)
+        val carbsFromRemaining = remainingCaloriesAfterProteinFat / 4f
+        val carbsMinPerKg = when (planSummary) {
+            "lose" -> 1.2f
+            "gain" -> 3.0f
+            else -> 2.2f
+        }
+        val carbsMaxPerKg = when (planSummary) {
+            "lose" -> 2.4f
+            "gain" -> 6.0f
+            else -> 4.8f
+        }
+        val carbs = carbsFromRemaining.coerceIn(weightKg * carbsMinPerKg, weightKg * carbsMaxPerKg)
+
         val fiberBase = (targetCalories / 1000f * 14f)
         val fiber = when {
-            age < 18 -> (fiberBase * 0.9f)
+            age < 18 -> (fiberBase * 0.95f)
             age >= 60 -> (fiberBase * 1.1f)
             else -> fiberBase
-        }.coerceIn(22f, 45f)
+        }.coerceIn(25f, 45f)
+
         val water = ((weightKg * 33f) + (heightCm * 2f)).toInt().coerceIn(1800, 4500)
         val steps = ((heightCm * 20f) + (age * 35f)).toInt().coerceIn(7000, 13000)
         val sleep = if (age < 18) 540 else if (age < 65) 480 else 450
+
         val iron = when {
             gender == "female" && age in 14..50 -> 18
             age < 14 -> 10
             else -> 8
         }
-        val magnesium = when {
+        val magnesiumBase = when {
             age < 14 -> 240
             age < 19 -> if (gender == "male") 410 else 360
             age < 31 -> if (gender == "male") 400 else 310
             else -> if (gender == "male") 420 else 320
         }
+        val magnesium = if (planSummary == "lose") (magnesiumBase * 1.05f).toInt() else magnesiumBase
         val potassium = when {
             age < 14 -> 3000
             age >= 51 -> 3400
@@ -303,15 +322,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             gender == "male" -> if (age >= 51) 1500 else 1600
             gender == "female" -> if (age >= 51) 1000 else 1100
             else -> if (age >= 51) 1250 else 1350
-        }
-
-        val planSummary = when (goalMode) {
-            WeightGoalMode.MAINTAIN -> "maintain"
-            WeightGoalMode.REACH_IDEAL -> when {
-                calorieMultiplier > 1f -> "gain"
-                calorieMultiplier < 1f -> "lose"
-                else -> "maintain"
-            }
         }
 
         return PersonalizedTargets(

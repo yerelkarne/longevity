@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <queries>
@@ -6,6 +7,8 @@
     </queries>
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -25,9 +28,16 @@
     <application
         android:name=".LongevityApp"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="Longevity Coach"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Longevity">
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -36,7 +46,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
 
         <activity-alias
             android:name=".health.HealthConnectPermissionRationaleActivity"
@@ -57,8 +66,12 @@
             android:enabled="true"
             android:exported="false" />
 
-        <receiver android:name=".reminders.ReminderAlarmReceiver" android:exported="false" />
-        <receiver android:name=".reminders.DailyCoachReminderReceiver" android:exported="false" />
+        <receiver
+            android:name=".reminders.ReminderAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminders.DailyCoachReminderReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

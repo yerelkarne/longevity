@@ -1,10 +1,12 @@
 package com.leosoft.longevity
 
 import android.Manifest
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.provider.Settings
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,14 +48,14 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import com.leosoft.longevity.steps.StepTrackerManager
 import com.leosoft.longevity.steps.StepTrackingService
+import com.leosoft.longevity.ui.ads.AdMobManager
 import com.leosoft.longevity.ui.main.MainViewModel
 import com.leosoft.longevity.ui.navigation.bottomDestinations
 import com.leosoft.longevity.ui.screens.tabs.AktiviteModule
@@ -61,6 +65,7 @@ import com.leosoft.longevity.ui.screens.tabs.QuickAddDialog
 import com.leosoft.longevity.ui.screens.tabs.SettingsModule
 import com.leosoft.longevity.ui.screens.tabs.YasamModule
 import com.leosoft.longevity.ui.theme.LongevityTheme
+import kotlinx.coroutines.flow.first
 
 class MainActivity : AppCompatActivity() {
     private var showNotificationPermissionWarning by mutableStateOf(false)
@@ -89,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val app = application as LongevityApp
         trackerManager = StepTrackerManager(this, app.repository, app.preferences)
-        runBlocking {
+        lifecycleScope.launchWhenCreated {
             val language = app.preferences.appLanguage.first()
             androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(language))
         }
@@ -127,13 +132,13 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         requestNotificationPermissionIfNeeded()
         requestActivityPermissionIfNeeded()
-        ensureStepTrackingServiceRunning()
     }
 
     override fun onResume() {
         super.onResume()
         if (hasActivityPermission() || trackerManager.usesEstimatedTracking) {
             trackerManager.start()
+            ensureStepTrackingServiceRunning()
         }
     }
 
@@ -168,7 +173,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun ensureStepTrackingServiceRunning() {
         if (!hasActivityPermission() && !trackerManager.usesEstimatedTracking) return
-        startForegroundService(Intent(this, StepTrackingService::class.java))
+        val intent = Intent(this, StepTrackingService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Log.w("MainActivity", "Step tracking service start deferred by system", e)
+            } else {
+                throw e
+            }
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -214,6 +232,14 @@ private fun MainScaffold(
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val openQuickAdd = remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    LaunchedEffect(currentRoute) {
+        val activity = context as? AppCompatActivity ?: return@LaunchedEffect
+        if (currentRoute != null) {
+            AdMobManager.onPageChanged(activity)
+        }
+    }
 
     val topBarColor = Color(0xFF7E57C2)
     val bottomBarColor = MaterialTheme.colorScheme.surface

@@ -15,6 +15,7 @@ data class FoodEntity(
     val fat: Float,
     val fiber: Float,
     val ironMg: Float = 0f,
+    val calciumMg: Float = 0f,
     val magnesiumMg: Float = 0f,
     val potassiumMg: Float = 0f,
     val vitaminDUi: Float = 0f,

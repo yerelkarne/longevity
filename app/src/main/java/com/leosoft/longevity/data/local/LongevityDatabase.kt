@@ -51,7 +51,7 @@ import com.leosoft.longevity.data.local.entity.WorkoutLogEntity
         MenstrualCycleLogEntity::class,
         PulseCameraMeasurementEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -70,7 +70,7 @@ abstract class LongevityDatabase : RoomDatabase() {
             context,
             LongevityDatabase::class.java,
             "longevity.db"
-         ).addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build()
+         ).addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10).build()
 
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -121,6 +121,12 @@ abstract class LongevityDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE foods ADD COLUMN calciumMg REAL NOT NULL DEFAULT 0")
             }
         }
     }

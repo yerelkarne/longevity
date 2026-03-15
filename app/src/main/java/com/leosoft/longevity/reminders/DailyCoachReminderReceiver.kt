@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.MainActivity
 import com.leosoft.longevity.R
+import com.leosoft.longevity.ui.theme.AppImageAssets
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -116,7 +117,7 @@ class DailyCoachReminderReceiver : BroadcastReceiver() {
         nm.notify(
             notificationId,
             NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(AppImageAssets.notificationSmallIconRes)
                 .setContentTitle(title)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setContentText(message)

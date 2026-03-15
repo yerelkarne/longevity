@@ -1,4 +1,7 @@
 <resources>
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_native_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="admob_interstitial_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
     <string name="app_name">Longevity Coach</string>
     <string name="tab_me">Ben</string>
     <string name="me_intro">Kişisel bilgilerinizi girin, sistem tıbbi tahmine göre günlük hedeflerinizi oluştursun.</string>
@@ -65,6 +68,7 @@
     <string name="add_type_reminder">Hatırlatıcı</string>
     <string name="add_type_goal">Hedef Ekle</string>
     <string name="food_name">Yemek</string>
+    <string name="food_select_or_search_prompt">Seçiniz veya arayınız</string>
     <string name="food_list_label">Yemek listesi</string>
     <string name="foods_loading_hint">Yemek listesi yükleniyor, lütfen bekleyin.</string>
     <string name="food_name_custom_optional">Listede yoksa beslenme adı (opsiyonel)</string>
@@ -344,4 +348,9 @@
     <string name="daily_goal_micro_behind">Bugün mikro besin hedeflerinizin gerisindesiniz. Zengin içerikli bir öğünle hedefe yaklaşabilirsiniz.</string>
     <string name="daily_logging_reminder_title">Günlük kayıt hatırlatması</string>
     <string name="daily_logging_reminder_message">Lütfen bugünkü besin ve su kayıtlarınızı güncelleyin; hedef takibinizin doğru kalmasına yardımcı olur.</string>
+    <string name="summary_daily_calorie_goal_title">Günlük kalori hedefim</string>
+    <string name="summary_goal_of_format">Hedef: %1$d kcal</string>
+    <string name="summary_calorie_remaining">Kalan kalori: %1$d kcal</string>
+    <string name="summary_calorie_exceeded">Hedef aşıldı: %1$d kcal</string>
+    <string name="summary_calories_burned_by_activity">Aktivitelerle yakılan: %1$d kcal</string>
 </resources>

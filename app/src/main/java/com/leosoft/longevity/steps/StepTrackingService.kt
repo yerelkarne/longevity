@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.leosoft.longevity.LongevityApp
 import com.leosoft.longevity.R
+import com.leosoft.longevity.ui.theme.AppImageAssets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,7 +41,7 @@ class StepTrackingService : Service() {
     private fun buildNotification(): Notification {
         ensureChannel()
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(AppImageAssets.notificationSmallIconRes)
             .setContentTitle(getString(R.string.step_tracking_active_title))
             .setContentText(getString(R.string.step_tracking_active_message))
             .setOngoing(true)

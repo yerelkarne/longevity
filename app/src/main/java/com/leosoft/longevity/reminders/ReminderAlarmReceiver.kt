@@ -1,5 +1,6 @@
 package com.leosoft.longevity.reminders
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -10,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.leosoft.longevity.MainActivity
 import com.leosoft.longevity.R
+import com.leosoft.longevity.ui.theme.AppImageAssets
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -42,7 +44,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         nm.notify(
             notificationId,
             NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(AppImageAssets.notificationSmallIconRes)
                 .setContentTitle(context.getString(R.string.reminder_notification_title))
                 .setContentText(title)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -51,6 +53,16 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 .build()
         )
 
+        if (reminderId > 0L) {
+            ReminderAlarmScheduler.schedule(
+                context = context,
+                id = reminderId,
+                title = title,
+                cadence = cadence,
+                reminderTime = reminderTime,
+                intervalHours = intervalHours
+            )
+        }
     }
 
     companion object {
@@ -85,7 +97,7 @@ object ReminderAlarmScheduler {
     }
 
     fun cancel(context: Context, id: Long) {
-        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java)
         val pi = PendingIntent.getBroadcast(
             context,
@@ -104,7 +116,7 @@ object ReminderAlarmScheduler {
         reminderTime: String,
         intervalHours: Int
     ) {
-        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
             putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
@@ -123,11 +135,20 @@ object ReminderAlarmScheduler {
         val nextTriggerAt = nextTriggerAt(now, cadence, reminderTime, intervalHours)
         val triggerAtMillis = nextTriggerAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        val repeatIntervalMillis = when (cadence) {
-            "hourly" -> java.util.concurrent.TimeUnit.HOURS.toMillis(intervalHours.coerceAtLeast(1).toLong())
-            else -> java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+        am.cancel(pi)
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms() -> {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT -> {
+                am.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            }
+            else -> {
+                am.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            }
         }
-
-        am.setRepeating(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, repeatIntervalMillis, pi)
     }
 }

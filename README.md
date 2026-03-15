@@ -42,3 +42,15 @@
 - Onboarding: `ui/onboarding/OnboardingScreen.kt`
 - Main tabs: `ui/screens/tabs/ModuleScreens.kt`
 - Score logic: `domain/usecase/CalculateDailyScoreUseCase.kt`
+
+## Uygulama İkonu ve Bildirim Simgesi Değiştirme
+- **Uygulama ikonu** artık manifestte standart launcher kaynaklarına bağlıdır:
+  - `@mipmap/ic_launcher`
+  - `@mipmap/ic_launcher_round`
+- Android Studio'da **New > Image Asset > Launcher Icons (Adaptive and Legacy)** ile bu isimlerde asset üretirseniz kod değiştirmeden ikon güncellenir.
+
+- **Bildirim küçük simgesi** tek noktadan yönetilir:
+  - `app/src/main/java/com/leosoft/longevity/ui/theme/AppImageAssets.kt`
+  - `notificationSmallIconRes = R.drawable.ic_notification`
+- Android Studio'da **New > Vector Asset** veya **Image Asset** ile `ic_notification` üretip aynı isimle değiştirmeniz yeterlidir.
+- Servis ve tüm reminder bildirimleri bu tek kaynağı kullanır.
