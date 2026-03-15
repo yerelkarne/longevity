@@ -123,9 +123,9 @@
     <string name="goal_add_link">Aggiungi obiettivo</string>
     <string name="goals_empty_message">Nessun obiettivo trovato.</string>
     <string name="goal_frequency_label">Frequenza: %1$s</string>
-    <string name="goal_progress_text">Obiettivo Progress Text %1$d %2$d</string>
-    <string name="goal_progress_text_with_unit">Obiettivo Progress Text With Unit %1$s %2$s %3$s</string>
-    <string name="goal_progress_text_plain">Obiettivo Progress Text Plain %1$s %2$s</string>
+    <string name="goal_progress_text">Avanzamento: %1$d / %2$d</string>
+    <string name="goal_progress_text_with_unit">Avanzamento: %1$s / %2$s %3$s</string>
+    <string name="goal_progress_text_plain">Avanzamento: %1$s / %2$s</string>
     <string name="steps_input">Passi</string>
     <string name="distance_km_optional">Distanza (km, opzionale)</string>
     <string name="distance_km_note">Distance Km Note %1$s</string>
