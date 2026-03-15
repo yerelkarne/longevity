@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.leosoft.longevity.R
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
@@ -39,9 +40,17 @@ private const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/22476961
 private const val TEST_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
 
 object AdUnitIds {
-    // TODO: Replace test IDs with production IDs before release.
-    const val nativeAdvanced: String = TEST_NATIVE_AD_UNIT_ID
-    const val interstitial: String = TEST_INTERSTITIAL_AD_UNIT_ID
+    private fun looksLikeAdUnitId(value: String): Boolean = value.startsWith("ca-app-pub-") && value.contains("/")
+
+    fun nativeAdvanced(context: Context): String {
+        val configured = runCatching { context.getString(R.string.admob_native_ad_unit_id).trim() }.getOrDefault("")
+        return configured.takeIf(::looksLikeAdUnitId) ?: TEST_NATIVE_AD_UNIT_ID
+    }
+
+    fun interstitial(context: Context): String {
+        val configured = runCatching { context.getString(R.string.admob_interstitial_ad_unit_id).trim() }.getOrDefault("")
+        return configured.takeIf(::looksLikeAdUnitId) ?: TEST_INTERSTITIAL_AD_UNIT_ID
+    }
 }
 
 object AdMobManager {
@@ -66,7 +75,7 @@ object AdMobManager {
         val appContext = context.applicationContext
         InterstitialAd.load(
             appContext,
-            AdUnitIds.interstitial,
+            AdUnitIds.interstitial(appContext),
             AdRequest.Builder().build(),
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
@@ -126,18 +135,24 @@ object AdMobManager {
 @Composable
 fun NativeAdvancedAdCard(
     modifier: Modifier = Modifier,
-    adUnitId: String = AdUnitIds.nativeAdvanced
+    adUnitId: String? = null
 ) {
     val context = LocalContext.current
+    val resolvedAdUnitId = remember(adUnitId, context) { adUnitId?.takeIf { it.isNotBlank() } ?: AdUnitIds.nativeAdvanced(context) }
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
 
-    DisposableEffect(adUnitId) {
-        val adLoader = AdLoader.Builder(context, adUnitId)
+    DisposableEffect(resolvedAdUnitId) {
+        val adLoader = AdLoader.Builder(context, resolvedAdUnitId)
             .forNativeAd { loadedAd ->
                 nativeAd?.destroy()
                 nativeAd = loadedAd
             }
             .withNativeAdOptions(NativeAdOptions.Builder().build())
+            .withAdListener(object : com.google.android.gms.ads.AdListener() {
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    Log.w("AdMobManager", "Native ad failed to load for unit=$resolvedAdUnitId: ${error.message}")
+                }
+            })
             .build()
 
         adLoader.loadAd(AdRequest.Builder().build())

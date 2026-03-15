@@ -1,4 +1,7 @@
 <resources>
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_native_ad_unit_id">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="admob_interstitial_ad_unit_id">ca-app-pub-3940256099942544/1033173712</string>
     <string name="app_name">Longevity Coach</string>
     <string name="tab_me">Moi</string>
     <string name="me_intro">Saisissez vos informations personnelles afin que le système crée vos objectifs quotidiens selon des estimations médicales.</string>
